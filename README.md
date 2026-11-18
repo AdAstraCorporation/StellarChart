@@ -15,11 +15,18 @@ Tau Ceti, 40 Eridani, Vega) usa RA/Dec/distancia reales, en eclíptica J2000 cen
 
 ## Uso
 Arrastrar = orbitar · rueda/pellizco = zoom · clic en una celda = añade su carácter · flechas/RePág = celdas vecinas ·
-Retroceso = subir · botones Sol / Trayectoria / Tau Ceti / Sector, ruta Sol→Tau Ceti y color espectral.
+Retroceso = subir · Inicio = centrar en la nave · botones Sol / Trayectoria / Tau Ceti / Sector, ruta Sol→Tau Ceti y color espectral.
 
-## Nave
-Pestaña «Nave»: 8 diseños prehechos, nombre y dos colores. Aparece en el centro de la celda explorada y acompaña al planeta
-seleccionado en cada sistema. Se guarda con el perfil y viaja en el enlace/QR.
+## Nave 3D
+Pestaña «Nave»: 8 diseños prehechos en malla 3D (vista previa giratoria), nombre y dos colores. La nave tiene posición propia:
+se queda donde la dejas («Mover mi nave aquí») y viaja contigo al entrar a un sistema. Si te alejas, una flecha en el borde
+indica dónde está; **◎ Centrar** (o `Inicio`/`.`) hace un vuelo animado (subiendo y bajando de nivel, con salto warp si cambia
+el sector) y muestra la zona cercana.
+
+## Partida (archivo)
+«Compartir → Descargar partida» genera un archivo binario sin formato legible (`ADA` + versión + deflate + CRC32) con toda la
+sesión: bitácora, nave y posición, apodo, cámara y opciones. «Cargar partida…» o arrastrarlo a la ventana lo restaura
+(fusionar o reemplazar; detecta archivos dañados).
 
 ## Historial y traslado
 - Bitácora en `localStorage` (favoritos, notas, modo «no registrar»).

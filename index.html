@@ -83,12 +83,45 @@ textarea{width:100%;height:70px;resize:vertical;font-size:11px}
   .logo small{display:none}
   #hint{display:none}
 }
+
+/* ── animaciones y estilo carta estelar ── */
+button{transition:background .15s,border-color .15s,color .15s,transform .12s}
+button:active:not(:disabled){transform:scale(.95)}
+.pane.on{animation:paneIn .28s ease both}
+@keyframes paneIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+#p-info.fadein>*{animation:rise .35s ease both}
+#p-info.fadein>*:nth-child(2){animation-delay:.03s}#p-info.fadein>*:nth-child(3){animation-delay:.06s}#p-info.fadein>*:nth-child(4){animation-delay:.09s}#p-info.fadein>*:nth-child(5){animation-delay:.12s}#p-info.fadein>*:nth-child(n+6){animation-delay:.16s}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.item{transition:border-color .15s,background .15s,transform .15s}.item:hover{border-color:var(--cy);transform:translateX(2px)}
+#crumb button{animation:pop .25s ease both}@keyframes pop{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:none}}
+#modal{animation:fadeIn .2s ease}#modal .box{animation:boxIn .25s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}@keyframes boxIn{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}
+#stage::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:radial-gradient(ellipse at 50% 50%,transparent 55%,rgba(2,4,10,.65) 100%)}
+#stage::after{content:"";position:absolute;inset:8px;z-index:1;pointer-events:none;opacity:.7;
+ background:linear-gradient(#58d0ff,#58d0ff) 0 0/18px 1px no-repeat,linear-gradient(#58d0ff,#58d0ff) 0 0/1px 18px no-repeat,
+ linear-gradient(#58d0ff,#58d0ff) 100% 0/18px 1px no-repeat,linear-gradient(#58d0ff,#58d0ff) 100% 0/1px 18px no-repeat,
+ linear-gradient(#58d0ff,#58d0ff) 0 100%/18px 1px no-repeat,linear-gradient(#58d0ff,#58d0ff) 0 100%/1px 18px no-repeat,
+ linear-gradient(#58d0ff,#58d0ff) 100% 100%/18px 1px no-repeat,linear-gradient(#58d0ff,#58d0ff) 100% 100%/1px 18px no-repeat}
+#hud{right:16px;top:44px;display:flex;flex-direction:column;gap:5px;text-align:right;z-index:2;pointer-events:none}
+#hud div{display:flex;flex-direction:column;border-right:2px solid rgba(88,208,255,.5);padding-right:8px;background:linear-gradient(270deg,rgba(10,18,36,.7),transparent)}
+#hud span{font-size:10px;letter-spacing:.2em;color:var(--dim)}#hud b{font-weight:500;color:var(--cy);font-size:14px;letter-spacing:.05em}
+#hud b.tick{animation:tick .6s ease}@keyframes tick{0%{color:#fff;text-shadow:0 0 10px #58d0ff}100%{color:var(--cy);text-shadow:none}}
+#ctr{right:16px;bottom:64px;padding:8px 14px;box-shadow:0 0 0 0 rgba(255,180,84,.5);animation:pulse 2.6s ease-out infinite;z-index:3}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,180,84,.45)}70%{box-shadow:0 0 0 12px rgba(255,180,84,0)}100%{box-shadow:0 0 0 0 rgba(255,180,84,0)}}
+#boot{position:fixed;inset:0;z-index:20;background:#04060c;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;pointer-events:none;transition:opacity .6s ease,visibility .6s}
+#boot.out{opacity:0;visibility:hidden}
+#boot .bt{letter-spacing:.3em;color:#cdd7ea;font-size:13px;animation:fadeIn .6s ease}#boot .bs{letter-spacing:.2em;color:var(--dim);font-size:10px}
+#boot .bl{width:240px;height:1px;background:#1b2744;overflow:hidden}#boot .bl i{display:block;height:100%;width:40%;background:linear-gradient(90deg,transparent,#58d0ff,transparent);animation:scan 1s linear infinite}
+@keyframes scan{from{transform:translateX(-100%)}to{transform:translateX(250%)}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media(max-width:860px){#hud{top:40px;right:10px}#hud div:nth-child(n+4){display:none}#ctr{bottom:96px}}
 </style>
 </head>
 <body>
+<div id="boot"><div class="bt">INICIALIZANDO CATÁLOGO ESTELAR</div><div class="bl"><i></i></div><div class="bs">ECL J2000 · SOL-CENTRADO · GENERADOR DETERMINISTA</div></div>
 <div id="app">
 <header>
-  <div class="logo">AD ASTRA<small>explorador de semillas</small></div>
+  <div class="logo">AD ASTRA<small>carta estelar · ecl J2000 · sol-centrado</small></div>
   <form id="seedForm" autocomplete="off">
     <input id="seedIn" placeholder="Semilla: A-3K9Q  ·  AB-7C2  ·  (sector - detalle)" spellcheck="false" maxlength="48" aria-label="Semilla">
     <button class="pri" type="submit">Teletransportar</button>
@@ -101,7 +134,9 @@ textarea{width:100%;height:70px;resize:vertical;font-size:11px}
   <div class="ov" id="crumb"></div>
   <div class="ov" id="banner">sin registro</div>
   <div class="ov" id="dpad"><button data-d="-1,0,0" title="Sector/celda X− (←)">X−</button><button data-d="1,0,0" title="X+ (→)">X+</button><button data-d="0,-1,0" title="Y− (↓)">Y−</button><button data-d="0,1,0" title="Y+ (↑)">Y+</button><button data-d="0,0,-1" title="Z− (AvPág)">Z−</button><button data-d="0,0,1" title="Z+ (RePág)">Z+</button><button id="upBtn" title="Subir un nivel (Retroceso)">⤒</button></div>
-  <div class="ov" id="views"><button data-v="sol">Sol</button><button data-v="traj">Trayectoria</button><button data-v="tau">Tau Ceti</button><button data-v="sector">Sector</button><button data-v="route" id="routeBtn">Ruta</button><button data-v="color" id="colorBtn">Color</button></div>
+  <div class="ov" id="views"><button data-v="sol">Sol</button><button data-v="traj">Trayectoria</button><button data-v="tau">Tau Ceti</button><button data-v="sector">Sector</button><button data-v="route" id="routeBtn">Ruta</button><button data-v="spin" id="spinBtn" class="on">Rotar</button><button data-v="color" id="colorBtn">Color</button></div>
+  <div class="ov" id="hud"><div><span>RANGO</span><b id="h1">—</b></div><div><span>CELDA</span><b id="h2">—</b></div><div><span>ESTRELLAS</span><b id="h3">—</b></div><div><span>NAVE</span><b id="h4">—</b></div><div><span>DEST</span><b>Tau Ceti</b></div></div>
+  <button class="ov pri" id="ctr" title="Volar a tu nave (Inicio)">◎ Centrar</button>
   <div class="ov" id="hint">Arrastra = orbitar · rueda = zoom · clic en una celda = añade su carácter (0-9, A-Q) · flechas/RePág = celdas vecinas · Retroceso = subir</div>
   <div class="ov" id="tip"></div>
 </section>
@@ -2638,44 +2673,109 @@ function genSystem(st){
   return{star:st,name,P,planets,belts,hz,frost};
 }
 
-/* ═════════ Nave del jugador ═════════ */
+/* ═════════ Nave 3D (malla de caras con sombreado plano; proa = +Y, arriba = +Z) ═════════ */
+function nrm(vs){let x=0,y=0,z=0;for(let i=0;i<vs.length;i++){const a=vs[i],b=vs[(i+1)%vs.length];x+=(a[1]-b[1])*(a[2]+b[2]);y+=(a[2]-b[2])*(a[0]+b[0]);z+=(a[0]-b[0])*(a[1]+b[1])}const l=Math.hypot(x,y,z)||1;return[x/l,y/l,z/l]}
+function mk(v,k,c){const n=nrm(v),g=[0,0,0];for(const p of v){g[0]+=p[0]/v.length;g[1]+=p[1]/v.length;g[2]+=p[2]/v.length}
+  if(n[0]*(g[0]-c[0])+n[1]*(g[1]-c[1])+n[2]*(g[2]-c[2])<0){n[0]*=-1;n[1]*=-1;n[2]*=-1}return{v,k,n,g}}
+function cylF(ax,c,len,rb,rf,seg,k){
+  const F=[],M=(u,v,w)=>ax==='y'?[c[0]+u,c[1]+w,c[2]+v]:ax==='z'?[c[0]+u,c[1]+v,c[2]+w]:[c[0]+w,c[1]+u,c[2]+v],w0=-len/2,w1=len/2;
+  const P=(a,w,r)=>M(Math.cos(a)*r,Math.sin(a)*r,w);
+  for(let i=0;i<seg;i++){const a=i/seg*6.2832,b=(i+1)/seg*6.2832;
+    F.push(mk([P(a,w0,rb),P(b,w0,rb),P(b,w1,rf),P(a,w1,rf)],k,M(0,0,0)));}
+  const cap=(w,r)=>{const pts=[];for(let i=0;i<seg;i++)pts.push(P(i/seg*6.2832,w,r));return mk(pts,k,c)};
+  if(rb>0)F.push(cap(w0,rb));if(rf>0)F.push(cap(w1,rf));
+  // la normal de los lados se orienta respecto al eje (centro del cilindro)
+  return F;
+}
+function prismF(pts,plane,t0,t1,k){
+  const M=(a,b,t)=>plane==='xy'?[a,b,t]:plane==='yz'?[t,a,b]:[a,t,b],n=pts.length;let ca=0,cb=0;pts.forEach(p=>{ca+=p[0]/n;cb+=p[1]/n});
+  const cen=M(ca,cb,(t0+t1)/2),F=[mk(pts.map(p=>M(p[0],p[1],t1)),k,cen),mk(pts.map(p=>M(p[0],p[1],t0)),k,cen)];
+  for(let i=0;i<n;i++){const a=pts[i],b=pts[(i+1)%n];F.push(mk([M(a[0],a[1],t0),M(b[0],b[1],t0),M(b[0],b[1],t1),M(a[0],a[1],t1)],k,cen))}
+  return F;
+}
+const boxF=(cx,cy,cz,sx,sy,sz,k)=>prismF([[cx-sx/2,cy-sy/2],[cx+sx/2,cy-sy/2],[cx+sx/2,cy+sy/2],[cx-sx/2,cy+sy/2]],'xy',cz-sz/2,cz+sz/2,k);
+function mirX(F){return F.map(f=>{const v=f.v.map(p=>[-p[0],p[1],p[2]]);return{v,k:f.k,n:[-f.n[0],f.n[1],f.n[2]],g:[-f.g[0],f.g[1],f.g[2]]}})}
+function ringF(R,r,hh,seg,cy,k){const F=[];
+  for(let i=0;i<seg;i++){const a=i/seg*6.2832,b=(i+1)/seg*6.2832,m=(a+b)/2,Ri=R-r/2,Ro=R+r/2,y0=cy-hh/2,y1=cy+hh/2,cs=[R*Math.cos(m),cy,R*Math.sin(m)];
+    const q=(rr,aa,y)=>[rr*Math.cos(aa),y,rr*Math.sin(aa)];
+    F.push(mk([q(Ro,a,y0),q(Ro,b,y0),q(Ro,b,y1),q(Ro,a,y1)],k,cs),mk([q(Ri,a,y0),q(Ri,b,y0),q(Ri,b,y1),q(Ri,a,y1)],k,cs),
+           mk([q(Ri,a,y1),q(Ro,a,y1),q(Ro,b,y1),q(Ri,b,y1)],k,cs),mk([q(Ri,a,y0),q(Ro,a,y0),q(Ro,b,y0),q(Ri,b,y0)],k,cs))}
+  return F}
+const both=F=>F.concat(mirX(F));
 const SHIPS={
  corbeta:{n:'Corbeta',d:'Ágil y versátil, para explorar sin compromisos.',vel:7,alc:6,car:3,tri:6,
-  p:[['M50 6 L62 40 L60 78 L40 78 L38 40 Z',1],['M38 46 L14 74 L14 84 L40 72 Z M62 46 L86 74 L86 84 L60 72 Z',2],['M43 78 L57 78 L54 90 L46 90 Z','w']]},
+  m:()=>({faces:[...cylF('y',[0,-.1,0],1.3,.24,.24,8,1),...cylF('y',[0,.85,0],.6,.24,0,8,1),...cylF('y',[0,-.82,0],.16,.2,.17,8,'w'),
+    ...both(prismF([[.2,.25],[.95,-.55],[.95,-.75],[.2,-.5]],'xy',-.035,.035,2)),...both(prismF([[-.4,.2],[-.8,.65],[-.92,.65],[-.78,.2]],'yz',.19,.22,2)).slice(0,0),
+    ...prismF([[-.45,.22],[-.8,.68],[-.92,.68],[-.78,.22]],'yz',-.02,.02,2)],fl:[[0,-.95,0,.2]]})},
  carguero:{n:'Carguero',d:'Gran bodega para misiones de suministro.',vel:3,alc:6,car:10,tri:12,
-  p:[['M34 14 L66 14 L70 84 L30 84 Z',1],['M24 36 L34 36 L34 70 L24 70 Z M66 36 L76 36 L76 70 L66 70 Z',2],['M42 8 L58 8 L62 14 L38 14 Z',2],['M34 84 L44 84 L42 94 L36 94 Z M56 84 L66 84 L64 94 L58 94 Z','w']]},
+  m:()=>({faces:[...boxF(0,0,0,.6,1.5,.5,1),...boxF(.5,-.1,0,.36,1.0,.4,2),...boxF(-.5,-.1,0,.36,1.0,.4,2),...boxF(0,.88,.05,.42,.3,.34,2),
+    ...cylF('y',[.18,-.85,0],.24,.13,.11,8,'w'),...cylF('y',[-.18,-.85,0],.24,.13,.11,8,'w')],fl:[[.18,-.98,0,.16],[-.18,-.98,0,.16]]})},
  sonda:{n:'Sonda',d:'Autónoma y ligera; ideal para cartografiar.',vel:5,alc:9,car:1,tri:0,
-  p:[['M50 8 L58 30 L58 70 L42 70 L42 30 Z',1],['M30 28 Q50 8 70 28 Z',2],['M18 44 L42 44 L42 56 L18 56 Z M58 44 L82 44 L82 56 L58 56 Z',2],['M49 70 L51 70 L51 92 L49 92 Z','w']]},
+  m:()=>({faces:[...cylF('y',[0,0,0],1.0,.2,.2,8,1),...cylF('y',[0,.62,0],.22,.07,.58,12,2),...cylF('y',[0,-.9,0],.6,.03,.03,5,'w'),
+    ...boxF(.65,-.1,0,.8,.3,.04,2),...boxF(-.65,-.1,0,.8,.3,.04,2)],fl:[[0,-.55,0,.12]]})},
  velero:{n:'Velero solar',d:'Velas de luz: lento pero casi sin combustible.',vel:2,alc:10,car:2,tri:2,
-  p:[['M49 10 L51 10 L51 86 L49 86 Z','w'],['M51 14 L88 50 L51 82 Z',2],['M49 20 L22 50 L49 78 Z',1],['M42 84 L58 84 L54 94 L46 94 Z','w']]},
+  m:()=>({faces:[...cylF('y',[0,0,0],1.5,.04,.04,6,'w'),...prismF([[-.95,0],[0,.95],[.95,0],[0,-.95]],'xz',.3,.33,2),
+    ...prismF([[-.6,0],[0,.6],[.6,0],[0,-.6]],'xz',-.2,-.17,1),...cylF('y',[0,-.8,0],.3,.14,.1,8,'w')],fl:[[0,-.98,0,.1]]})},
  generacional:{n:'Generacional',d:'Una ciudad en órbita propia para viajes larguísimos.',vel:2,alc:10,car:8,tri:200,
-  p:[['M50 8 L60 24 L60 80 L40 80 L40 24 Z',1],['M18 52 A32 12 0 1 0 82 52 A32 12 0 1 0 18 52 Z',2],['M44 80 L56 80 L54 94 L46 94 Z','w']]},
+  m:()=>({faces:[...cylF('y',[0,0,0],1.7,.13,.13,8,1),...cylF('y',[0,1.05,0],.4,.13,0,8,1),...ringF(.78,.26,.2,20,.12,2),
+    ...boxF(.4,.12,0,.8,.05,.05,1),...boxF(-.4,.12,0,.8,.05,.05,1),...boxF(0,.12,.4,.05,.05,.8,1),...boxF(0,.12,-.4,.05,.05,.8,1),
+    ...cylF('y',[0,-.95,0],.2,.2,.16,8,'w')],fl:[[0,-1.06,0,.24]]})},
  caza:{n:'Caza',d:'Rápido y compacto; poca autonomía.',vel:10,alc:3,car:1,tri:1,
-  p:[['M50 6 L56 36 L90 70 L90 80 L58 66 L56 84 L44 84 L42 66 L10 80 L10 70 L44 36 Z',1],['M47 30 L53 30 L54 60 L46 60 Z',2]]},
+  m:()=>({faces:[...cylF('y',[0,-.1,0],1.3,.16,.16,6,1),...cylF('y',[0,.9,0],.7,.16,0,6,1),...both(prismF([[.1,.6],[1,-.7],[1,-.85],[.1,-.55]],'xy',-.03,.03,1)),
+    ...boxF(0,.35,.15,.18,.4,.1,2),...prismF([[-.5,.15],[-.85,.6],[-.95,.6],[-.8,.15]],'yz',.2,.23,2),...prismF([[-.5,.15],[-.85,.6],[-.95,.6],[-.8,.15]],'yz',-.23,-.2,2),
+    ...cylF('y',[.1,-.8,0],.2,.1,.12,8,'w'),...cylF('y',[-.1,-.8,0],.2,.1,.12,8,'w')],fl:[[.1,-.92,0,.14],[-.1,-.92,0,.14]]})},
  carguero2:{n:'Expedición',d:'Nave de investigación con cúpula y cuatro motores.',vel:5,alc:7,car:5,tri:8,
-  p:[['M50 10 Q66 12 68 40 L68 76 L32 76 L32 40 Q34 12 50 10 Z',1],['M40 20 Q50 14 60 20 L60 32 L40 32 Z',2],['M20 52 L32 52 L32 76 L20 76 Z M68 52 L80 52 L80 76 L68 76 Z',2],['M24 76 L30 76 L28 90 L26 90 Z M70 76 L76 76 L74 90 L72 90 Z M38 76 L44 76 L43 88 L39 88 Z M56 76 L62 76 L61 88 L57 88 Z','w']]},
+  m:()=>({faces:[...cylF('y',[0,0,0],1.3,.38,.38,10,1),...cylF('y',[0,.85,0],.4,.38,.1,10,2),...boxF(.62,-.15,0,.3,.8,.3,2),...boxF(-.62,-.15,0,.3,.8,.3,2),
+    ...cylF('y',[.2,-.8,.2],.25,.1,.12,8,'w'),...cylF('y',[-.2,-.8,.2],.25,.1,.12,8,'w'),...cylF('y',[.2,-.8,-.2],.25,.1,.12,8,'w'),...cylF('y',[-.2,-.8,-.2],.25,.1,.12,8,'w')],
+    fl:[[.2,-.94,.2,.12],[-.2,-.94,.2,.12],[.2,-.94,-.2,.12],[-.2,-.94,-.2,.12]]})},
  plataforma:{n:'Plataforma',d:'Base móvil con paneles y torre de comunicaciones.',vel:1,alc:8,car:9,tri:30,
-  p:[['M30 30 L70 30 L70 70 L30 70 Z',1],['M8 42 L30 42 L30 58 L8 58 Z M70 42 L92 42 L92 58 L70 58 Z',2],['M48 8 L52 8 L52 30 L48 30 Z M42 12 L58 12 L58 16 L42 16 Z','w'],['M40 70 L60 70 L56 84 L44 84 Z','w']]}};
+  m:()=>({faces:[...boxF(0,0,0,.8,.8,.5,1),...boxF(.95,0,0,.9,.4,.04,2),...boxF(-.95,0,0,.9,.4,.04,2),...cylF('z',[0,0,.55],.6,.04,.04,6,'w'),...cylF('z',[0,0,.92],.12,.02,.32,12,2),
+    ...boxF(0,-.5,0,.3,.2,.3,'w')],fl:[[0,-.65,0,.2]]})}};
 const DEF_SHIP={d:'corbeta',n:'',c1:'#58d0ff',c2:'#ffb454'};
-const shipCol=(k,c1,c2)=>k===1?c1:k===2?c2:'#8793a8';
-function shipSVG(d,c1,c2,px){const s=SHIPS[d]||SHIPS.corbeta;return `<svg viewBox="0 0 100 100" width="${px||52}" height="${px||52}">${s.p.map(([p,k])=>`<path d="${p}" fill="${shipCol(k,c1,c2)}" stroke="#04060c" stroke-width="1.5" stroke-linejoin="round"/>`).join('')}</svg>`}
-const pathCache={};
-function drawShip(ctx,x,y,sz,ang,sh){
-  const s=SHIPS[sh.d]||SHIPS.corbeta;ctx.save();ctx.translate(x,y);ctx.rotate(ang);ctx.scale(sz/100,sz/100);ctx.translate(-50,-50);
-  for(const [p,k] of s.p){const P2=pathCache[p]||(pathCache[p]=new Path2D(p));ctx.fillStyle=shipCol(k,sh.c1,sh.c2);ctx.fill(P2);ctx.strokeStyle='#04060c';ctx.lineWidth=1.5;ctx.lineJoin='round';ctx.stroke(P2)}
+const colCache={};
+function rgbOf(hex){return colCache[hex]||(colCache[hex]=[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16)))}
+const LIGHT=(()=>{const l=[-.45,-.7,.55],m=Math.hypot(...l);return l.map(v=>v/m)})();
+function drawShip3D(ctx,x,y,size,yaw,pitch,sh,t,flame=true,ctxAlpha=1){
+  const S=SHIPS[sh.d]||SHIPS.corbeta,M=S.mesh||(S.mesh=S.m()),cy=Math.cos(yaw),sy=Math.sin(yaw),cp=Math.cos(pitch),sp=Math.sin(pitch),D=4.2,F=size*.44*D;
+  const rot=p=>{const x1=p[0]*cy-p[1]*sy,y1=p[0]*sy+p[1]*cy;return[x1,y1*cp-p[2]*sp,y1*sp+p[2]*cp]};
+  const items=[];
+  for(const f of M.faces){const g=rot(f.g),n=rot(f.n);if(n[0]*(0-g[0])+n[1]*(-D-g[1])+n[2]*(0-g[2])<=0)continue;
+    const sh0=.32+.68*Math.max(0,n[0]*LIGHT[0]+n[1]*LIGHT[1]+n[2]*LIGHT[2]);items.push({f,d:g[1],s:sh0})}
+  if(flame)for(const fl of M.fl||[]){const p=rot(fl);items.push({fl,p,d:p[1]})}
+  items.sort((a,b)=>b.d-a.d);ctx.save();ctx.globalAlpha=ctxAlpha;ctx.lineJoin='round';
+  for(const it of items){
+    if(it.fl){const k=F/(it.p[1]+D),px=x+it.p[0]*k,py=y-it.p[2]*k,r=it.fl[3]*k*(1.5+.35*Math.sin(t*30+it.fl[0]*9));
+      const g=ctx.createRadialGradient(px,py,0,px,py,r);g.addColorStop(0,'rgba(255,255,255,.95)');g.addColorStop(.3,'rgba(120,210,255,.7)');g.addColorStop(1,'rgba(40,120,255,0)');
+      ctx.globalCompositeOperation='lighter';ctx.fillStyle=g;ctx.beginPath();ctx.arc(px,py,r,0,7);ctx.fill();ctx.globalCompositeOperation='source-over';continue}
+    const k0=it.f.k,hex=k0===1?sh.c1:k0===2?sh.c2:'#8793a8',c=rgbOf(hex),s=it.s;
+    ctx.fillStyle=`rgb(${c[0]*s|0},${c[1]*s|0},${c[2]*s|0})`;ctx.strokeStyle=`rgba(4,6,12,.55)`;ctx.lineWidth=.6;ctx.beginPath();
+    it.f.v.forEach((p,i)=>{const q=rot(p),k=F/(q[1]+D),px=x+q[0]*k,py=y-q[2]*k;i?ctx.lineTo(px,py):ctx.moveTo(px,py)});ctx.closePath();ctx.fill();ctx.stroke();
+  }
   ctx.restore();
 }
+const thumbCache=new Map();
+function shipThumb(d,c1,c2,px){
+  const key=d+c1+c2+px;if(thumbCache.has(key))return thumbCache.get(key);
+  const c=document.createElement('canvas');c.width=c.height=px*2;const g=c.getContext('2d');drawShip3D(g,px,px*1.02,px*2*.95,.75,.55,{d,c1,c2},0,false);
+  const u=c.toDataURL();thumbCache.set(key,u);return u;
+}
+const shipImg=(d,c1,c2,px)=>`<img src="${shipThumb(d,c1,c2,px)}" width="${px}" height="${px}" alt="">`;
 
 /* ═════════ Estado y persistencia ═════════ */
 let D={v:2,n:'',h:[],base:'',anon:false,ship:{...DEF_SHIP}};
 try{const raw=localStorage.getItem(LS_KEY);if(raw)D=Object.assign(D,JSON.parse(raw))}catch(e){}
 D.ship=Object.assign({...DEF_SHIP},D.ship||{});
+if(!D.sp||!parseSeed(D.sp).loc)D.sp=seedStr(starLoc(A_BY('sol'),14));
 const saveD=()=>{try{localStorage.setItem(LS_KEY,JSON.stringify(D))}catch(e){}};
 let loc=mkLoc('A','');
 try{if(D.c){const p=parseSeed(D.c);if(p.loc)loc=p.loc}}catch(e){}
 let cell=cellOf(loc),curList=[],mode='map',SYS=null,selStar=null,selPlanet=null,hoverIdx=-1,hoverStar=null,anim=null,fade=0,recTimer=null,tab='info';
-const opt={route:false,color:true};
+const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const opt={route:false,color:true,spin:!RM};
+let warp=null,camAnim=null,flight=null,lastInput=0,ping=0,sysT0=0,animDur=420,shipHit=null,lastT=0,prevCv=null,prevSt={yaw:.8,pitch:.5,drag:null,last:0};
 const cam={yaw:.7,pitch:.45,zoom:2.3};
+if(Array.isArray(D.cm)&&D.cm.length===3){cam.yaw=+D.cm[0]||0;cam.pitch=clamp(+D.cm[1]||0,-1.5,1.5);cam.zoom=clamp(+D.cm[2]||2.3,.7,9)}
+if(Array.isArray(D.op)){opt.route=!!D.op[0];opt.color=D.op[1]!==0;opt.spin=D.op[2]!==0&&!RM}
 
 function record(kind,l,force){
   if(D.anon)return;const s=seedStr(l),last=D.h[D.h.length-1];
@@ -2688,14 +2788,16 @@ function scheduleRecord(){clearTimeout(recTimer);recTimer=setTimeout(()=>{if(mod
 /* ═════════ Navegación ═════════ */
 const viewOf=c=>{const m=cellCenter(c);return{x:m[0],y:m[1],z:m[2],size:c.size}};
 function go(nl,opts={}){
+  if(!opts.fromFlight)flight=null;lastInput=performance.now();animDur=opts.fromFlight?240:420;
   if(mode==='system')exitSystem(true);
   const old=loc,oc=cell,nc=cellOf(nl),sameSec=old.head===nl.head;loc=nl;selStar=null;
   if(opts.animate!==false&&sameSec&&nl.path.length===old.path.length+1&&nl.path.startsWith(old.path)){
-    anim={t0:performance.now(),dur:420,list:curList,content:oc,from:viewOf(oc),to:viewOf(nc),final:nc};cell=oc;
+    anim={t0:performance.now(),dur:animDur,list:curList,content:oc,from:viewOf(oc),to:viewOf(nc),final:nc};cell=oc;
   }else if(opts.animate!==false&&sameSec&&old.path.length===nl.path.length+1&&old.path.startsWith(nl.path)){
-    anim={t0:performance.now(),dur:420,list:cellList(nc),content:nc,from:viewOf(oc),to:viewOf(nc),final:nc};cell=nc;
+    anim={t0:performance.now(),dur:animDur,list:cellList(nc),content:nc,from:viewOf(oc),to:viewOf(nc),final:nc};cell=nc;
   }else{cell=nc;fade=1}
   if(!anim)curList=cellList(cell);
+  if(opts.warp&&!RM)warp={t0:performance.now(),dur:opts.warp===2?520:900};
   D.c=seedStr(loc);saveD();
   if(opts.record)record('m',loc,true);else scheduleRecord();
   syncUI();
@@ -2707,14 +2809,15 @@ function neighbor(dx,dy,dz){
   if(!loc.path.length){go(mkLocXYZ(loc.sx+dx,loc.sy+dy,loc.sz+dz,''),{animate:false});return}
   const m=cellCenter(cell),s=cell.size;go(posToLoc(loc.sx,loc.sy,loc.sz,m[0]+dx*s,m[1]+dy*s,m[2]+dz*s,loc.path.length),{animate:false});
 }
-function teleport(nl,note){go(nl,{animate:false,record:true});if(note)setMsg(note)}
+function teleport(nl,note){go(nl,{animate:false,record:true,warp:true});if(note)setMsg(note)}
 function teleportStr(s){
   const p=parseSeed(s);if(p.err){setMsg(p.err,1);return false}
   setMsg(p.trunc?`Semilla recortada a ${MAXD} caracteres (límite de precisión).`:'');teleport(p.loc);return true;
 }
 function enterSystem(st){
   const sl=starLoc(st);loc=sl;cell=cellOf(sl);curList=cellList(cell);anim=null;
-  SYS=genSystem(st);mode='system';selPlanet=null;D.c=seedStr(loc);saveD();record('s',sl,true);syncUI();
+  SYS=genSystem(st);mode='system';selPlanet=null;sysT0=performance.now();D.sp=seedStr(sl);ping=sysT0;flight=null;
+  if(!RM)warp={t0:sysT0,dur:520};D.c=seedStr(loc);saveD();record('s',sl,true);syncUI();
 }
 function exitSystem(silent){if(mode!=='system')return;mode='map';SYS=null;selPlanet=null;if(!silent)syncUI()}
 
@@ -2735,10 +2838,62 @@ function proj(x,y,z){ // x,y,z locales de sector → [sx,sy,depth]; false si det
   if(d<c.dist*.05)return false;const k=c.F/d;_p[0]=c.cxs+x1*k;_p[1]=c.cys-Z*k;_p[2]=d;return true;
 }
 function frame(now){
+  const dt=Math.min(.05,(now-(lastT||now))/1000);lastT=now;
+  if(camAnim){const k=clamp((now-camAnim.t0)/camAnim.dur,0,1),e=ease(k);cam.yaw=lerp(camAnim.f.yaw,camAnim.to.yaw,e);cam.pitch=lerp(camAnim.f.pitch,camAnim.to.pitch,e);cam.zoom=lerp(camAnim.f.zoom,camAnim.to.zoom,e);if(k>=1)camAnim=null}
+  else if(flight)cam.yaw+=dt*.5;
+  else if(opt.spin&&!drag&&!anim&&mode==='map'&&now-lastInput>3500)cam.yaw+=dt*.09;
+  if(flight&&!anim&&mode==='map'){const s=flight.steps.shift();
+    if(s)go(s.loc,{animate:!s.warp,warp:s.warp,fromFlight:true});else{flight=null;ping=now;setCam(.7,.5,2.2);setMsg('Nave localizada.')}}
   ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle='#04060c';ctx.fillRect(0,0,W,H);
   if(mode==='system')drawSystem(now);else drawMap(now);
+  drawWarp(now);
+  if(tab==='ship'&&prevCv)drawPreview(now);
   requestAnimationFrame(frame);
 }
+const streaks=Array.from({length:150},(_,i)=>{const r=rng(i*131+9);return[r()*6.2832,.12+r()*.88,.5+r()*.5]});
+function drawWarp(now){
+  if(!warp)return;const t=(now-warp.t0)/warp.dur;if(t>=1){warp=null;return}
+  const e=1-t,cx=W/2,cy=H/2,R=Math.hypot(W,H)/2;ctx.save();ctx.globalCompositeOperation='lighter';ctx.lineCap='round';
+  for(const s of streaks){const rho=R*s[1]*(.25+.75*t),L=R*.55*e*e*s[2]+2,ca=Math.cos(s[0]),sa=Math.sin(s[0]);
+    ctx.strokeStyle=`rgba(${150+s[2]*90|0},${190+s[2]*50|0},255,${.85*e*s[2]})`;ctx.lineWidth=.8+s[2]*1.4*e;
+    ctx.beginPath();ctx.moveTo(cx+ca*(rho-L),cy+sa*(rho-L));ctx.lineTo(cx+ca*rho,cy+sa*rho);ctx.stroke()}
+  const g=ctx.createRadialGradient(cx,cy,0,cx,cy,R*.55);g.addColorStop(0,`rgba(210,230,255,${e*e*e*.6})`);g.addColorStop(1,'rgba(210,230,255,0)');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  ctx.restore();
+}
+/* posición de la nave relativa al sector de la celda c */
+let _shipC={sp:'',cell:null,ctr:null};
+function shipRel(c){
+  if(_shipC.sp!==D.sp){const p=parseSeed(D.sp).loc;_shipC={sp:D.sp,cell:cellOf(p),ctr:null};_shipC.ctr=cellCenter(_shipC.cell)}
+  const s=_shipC.cell,m=_shipC.ctr;return[(s.sx-c.sx)*SEC+m[0],(s.sy-c.sy)*SEC+m[1],(s.sz-c.sz)*SEC+m[2]]
+}
+function moveShipTo(l){D.sp=seedStr(l);saveD();ping=performance.now();if(tab==='ship')renderShip();syncInfo()}
+function centerOnShip(){
+  const tl=parseSeed(D.sp).loc;if(!tl)return;lastInput=performance.now();
+  if(mode==='system'){const st=SYS&&SYS.star;if(st&&seedStr(starLoc(st))===D.sp){ping=performance.now();return}exitSystem(true);syncUI()}
+  const depth=4,tg={...tl,path:tl.path.slice(0,depth)},steps=[];
+  if(tg.head!==loc.head){steps.push({loc:mkLoc(tg.head,''),warp:2});for(let i=1;i<=depth;i++)steps.push({loc:mkLoc(tg.head,tg.path.slice(0,i))})}
+  else{let k=0;while(k<loc.path.length&&k<tg.path.length&&loc.path[k]===tg.path[k])k++;
+    for(let i=loc.path.length-1;i>=k;i--)steps.push({loc:mkLoc(loc.head,loc.path.slice(0,i))});
+    for(let i=k+1;i<=tg.path.length;i++)steps.push({loc:mkLoc(tg.head,tg.path.slice(0,i))})}
+  selStar=null;if(!steps.length){ping=performance.now();setCam(.7,.5,2.2);return}
+  flight={steps};setMsg('Desplazándose hacia tu nave…');
+}
+const HUDK=[];
+function hud(i,txt){const el=$('#h'+i);if(!el||el.textContent===txt)return;el.textContent=txt;el.classList.remove('tick');void el.offsetWidth;el.classList.add('tick')}
+function updateHud(){
+  if(mode==='system'){hud(1,'SISTEMA');hud(2,fmtLen(0.0003));hud(3,String(SYS.planets.length)+' planetas');hud(4,'en órbita');return}
+  const g=cellCenterG(cell),sr=shipRel(cell),m=cellCenter(cell);
+  hud(1,fmtLen(Math.hypot(...g)));hud(2,fmtLen(cell.size));hud(3,fmtNum(curList.filter(s=>!s.out).length));
+  hud(4,fmtLen(Math.hypot(sr[0]-m[0],sr[1]-m[1],sr[2]-m[2])));
+}
+function drawGizmo(){
+  const gx=W-52,gy=H-84,c=CP,L=26;ctx.save();ctx.font='10px ui-monospace,Menlo,monospace';ctx.textAlign='center';ctx.textBaseline='middle';
+  for(const [v,col,lab] of[[[1,0,0],'#ff7a7a','X'],[[0,1,0],'#7ee787','Y'],[[0,0,1],'#7aa7ff','Z']]){
+    const x1=v[0]*c.cy-v[1]*c.sy,y1=v[0]*c.sy+v[1]*c.cy,Z=y1*c.sp+v[2]*c.cp,dx=x1*L,dy=-Z*L;
+    ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(gx,gy);ctx.lineTo(gx+dx,gy+dy);ctx.stroke();ctx.fillStyle=col;ctx.fillText(lab,gx+dx*1.3,gy+dy*1.3)}
+  ctx.restore();
+}
+
 function drawBoxEdges(x,y,z,s){
   const v=[[0,0,0],[1,0,0],[1,1,0],[0,1,0],[0,0,1],[1,0,1],[1,1,1],[0,1,1]].map(a=>[x+a[0]*s,y+a[1]*s,z+a[2]*s]);
   const e=[[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
@@ -2787,7 +2942,7 @@ function drawMap(now){
     cellPts.push({i,x:_p[0],y:_p[1],d:_p[2],px:CP.F*u/_p[2]});lab.push(cellPts[cellPts.length-1])}
   lab.sort((a,b)=>b.d-a.d);
   if(!anim&&hoverIdx>=0){const i=hoverIdx,ix=i%3,iy=Math.floor(i/3)%3,iz=Math.floor(i/9);
-    ctx.strokeStyle='#ffb454';ctx.lineWidth=2;drawBoxEdges(c.x0+ix*u,c.y0+iy*u,c.z0+iz*u,u)}
+    ctx.strokeStyle=`rgba(255,180,84,${.65+.35*Math.sin(now/170)})`;ctx.lineWidth=2;drawBoxEdges(c.x0+ix*u,c.y0+iy*u,c.z0+iz*u,u)}
   ctx.textAlign='center';ctx.textBaseline='middle';
   for(const p of lab){const fs=clamp(p.px*.32,10,34),near=1-clamp((p.d-CP.dist*.6)/(CP.dist*1.0),0,1);
     ctx.font=`${fs}px ui-monospace,Menlo,monospace`;ctx.fillStyle=p.i===hoverIdx?'#ffb454':`rgba(190,210,245,${.16+.34*near})`;ctx.fillText(DETAIL[p.i],p.x,p.y)}
@@ -2796,17 +2951,35 @@ function drawMap(now){
   for(const st of list){if(!st.anchor)continue;if(!proj(st.lx,st.ly,st.lz))continue;const x=_p[0],y=_p[1];
     ctx.fillStyle='#ffb454';ctx.beginPath();ctx.moveTo(x,y-5);ctx.lineTo(x+5,y);ctx.lineTo(x,y+5);ctx.lineTo(x-5,y);ctx.closePath();ctx.fill();
     ctx.textAlign='left';ctx.fillText(st.anchor.name,x+9,y)}
-  const mark=st=>{if(!st||!proj(st.lx,st.ly,st.lz))return;ctx.strokeStyle='#58d0ff';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(_p[0],_p[1],11,0,7);ctx.stroke();
-    ctx.fillStyle='#58d0ff';ctx.textAlign='left';ctx.fillText(starName(st),_p[0]+15,_p[1]-12)};
+  const mark=st=>{if(!st||!proj(st.lx,st.ly,st.lz))return;const x=_p[0],y=_p[1],pl=1+.12*Math.sin(now/220);
+    ctx.save();ctx.strokeStyle='#58d0ff';ctx.lineWidth=1.5;ctx.setLineDash([5,4]);ctx.lineDashOffset=-now/40;ctx.beginPath();ctx.arc(x,y,13*pl,0,7);ctx.stroke();ctx.setLineDash([]);
+    ctx.beginPath();ctx.moveTo(x+13,y-13);ctx.lineTo(x+34,y-30);ctx.lineTo(x+46,y-30);ctx.stroke();ctx.fillStyle='#58d0ff';ctx.textAlign='left';ctx.font='12px ui-monospace,Menlo,monospace';ctx.fillText(starName(st),x+50,y-30);ctx.restore()};
   if(selStar)mark(selStar);if(hoverStar&&!same(hoverStar,selStar)){if(proj(hoverStar.lx,hoverStar.ly,hoverStar.lz)){ctx.strokeStyle='rgba(255,255,255,.6)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(_p[0],_p[1],9,0,7);ctx.stroke()}}
-  // tu nave, en el centro de la celda actual
-  const m=cellCenter(c);if(proj(m[0],m[1],m[2])){drawShip(ctx,_p[0],_p[1]-18,26,0,D.ship);ctx.fillStyle='rgba(205,215,235,.7)';ctx.textAlign='center';ctx.font='11px ui-monospace,Menlo,monospace';ctx.fillText(D.ship.n||SHIPS[D.ship.d].n,_p[0],_p[1]+2)}
+  // tu nave en su posición real (o indicador en el borde si está fuera de vista)
+  shipHit=null;const sr=shipRel(c),shipLab=D.ship.n||SHIPS[D.ship.d].n;
+  const onScreen=proj(sr[0],sr[1],sr[2])&&_p[0]>20&&_p[0]<W-20&&_p[1]>30&&_p[1]<H-30;
+  if(onScreen){
+    const x=_p[0],y=_p[1],age=(now-ping)/1000;
+    if(age<2.4){for(let k=0;k<2;k++){const a=(age-k*.35);if(a<0||a>1.8)continue;ctx.strokeStyle=`rgba(88,208,255,${(1-a/1.8)*.8})`;ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,10+a*70,0,7);ctx.stroke()}}
+    ctx.strokeStyle='rgba(88,208,255,.5)';ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(x,y+20,26,8,0,0,7);ctx.stroke();
+    drawShip3D(ctx,x,y+Math.sin(now/600)*2,58,now/2600,.5,D.ship,now/1000);
+    ctx.fillStyle='rgba(205,230,255,.85)';ctx.textAlign='center';ctx.font='11px ui-monospace,Menlo,monospace';ctx.fillText(shipLab,x,y+38);
+    shipHit={x,y,r:30};
+  }else{
+    const cm=cellCenter(c),dx=sr[0]-cm[0],dy=sr[1]-cm[1],dz=sr[2]-cm[2],cc=CP,x1=dx*cc.cy-dy*cc.sy,y1=dx*cc.sy+dy*cc.cy,Z=y1*cc.sp+dz*cc.cp;
+    let vx=x1,vy=-Z;const vl=Math.hypot(vx,vy)||1;vx/=vl;vy/=vl;
+    const mx=W/2-46,my=H/2-60,k=Math.min(mx/Math.max(1e-6,Math.abs(vx)),my/Math.max(1e-6,Math.abs(vy))),ex=W/2+vx*k,ey=H/2+vy*k,ang=Math.atan2(vy,vx),pu=1+.1*Math.sin(now/260);
+    ctx.save();ctx.translate(ex,ey);ctx.rotate(ang);ctx.fillStyle='rgba(88,208,255,.9)';ctx.beginPath();ctx.moveTo(15*pu,0);ctx.lineTo(-8,9);ctx.lineTo(-3,0);ctx.lineTo(-8,-9);ctx.closePath();ctx.fill();ctx.restore();
+    ctx.fillStyle='#58d0ff';ctx.font='11px ui-monospace,Menlo,monospace';ctx.textAlign=vx>.3?'right':vx<-.3?'left':'center';
+    ctx.fillText(`${shipLab} · ${fmtLen(Math.hypot(dx,dy,dz))}`,ex-vx*22,ey-vy*22-(Math.abs(vy)>.7?0:0));shipHit={x:ex,y:ey,r:28};
+  }
+  drawGizmo();
   if(fade>0){ctx.fillStyle=`rgba(4,6,12,${fade})`;ctx.fillRect(0,0,W,H);fade=Math.max(0,fade-.06)}
 }
 /* — Vista de sistema (cenital) — */
 let sysHits=[];
 function drawSystem(now){
-  const S=SYS,P=S.P,cx=W/2,cy=H/2,Rmax=Math.min(W,H)/2-26,t=now/1000,starPx=clamp(6+Math.log10(P.rad+1)*14,7,34);
+  const ent=RM?1:ease(clamp((now-sysT0)/1000,0,1)),S=SYS,P=S.P,cx=W/2,cy=H/2,Rmax=(Math.min(W,H)/2-26)*(.35+.65*ent),t=now/1000;ctx.globalAlpha=.15+.85*ent;const starPx=clamp(6+Math.log10(P.rad+1)*14,7,34);
   const all=S.planets.map(p=>p.a).concat(S.belts.flat());const amax=Math.max(...all,S.hz[1],.5)*1.12,a0=Math.min(...all,S.hz[0])*.55;
   const rp=a=>starPx+12+(Rmax-starPx-12)*Math.log(1+Math.max(a,0)/a0)/Math.log(1+amax/a0);
   {const ro=rp(S.hz[1]),ri=rp(S.hz[0]);ctx.beginPath();ctx.arc(cx,cy,ro,0,7);ctx.moveTo(cx+ri,cy);ctx.arc(cx,cy,ri,0,7);ctx.fillStyle='rgba(126,231,135,.08)';ctx.fill('evenodd')}
@@ -2824,7 +2997,8 @@ function drawSystem(now){
     if(Rmax>150||p===selPlanet){ctx.font='11px ui-monospace,Menlo,monospace';ctx.fillStyle=p===selPlanet?'#58d0ff':'rgba(205,215,235,.65)';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(p.name.replace(S.name+' ',''),x+pr+5,y)}
     sysHits.push({x,y,r:Math.max(12,pr+6),planet:p});
   });
-  drawShip(ctx,shipPos[0],shipPos[1],24,.6,D.ship);
+  ctx.globalAlpha=1;drawShip3D(ctx,shipPos[0],shipPos[1],46,t*.9,.5,D.ship,t);
+  if((now-ping)<2200){const a=(now-ping)/1000;ctx.strokeStyle=`rgba(88,208,255,${Math.max(0,1-a/2.2)})`;ctx.lineWidth=2;ctx.beginPath();ctx.arc(shipPos[0],shipPos[1],10+a*40,0,7);ctx.stroke()}
   ctx.font='12px ui-monospace,Menlo,monospace';ctx.fillStyle='rgba(126,231,135,.7)';ctx.textAlign='left';ctx.fillText('▮ zona habitable',12,H-16);
 }
 
@@ -2839,12 +3013,12 @@ function pickStar(mx,my){
   return best;
 }
 const ptrs=new Map();let drag=null,pinch0=0;
-cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,[e.clientX,e.clientY]);drag={x:e.clientX,y:e.clientY,moved:0,yaw:cam.yaw,pitch:cam.pitch};if(ptrs.size===2){const a=[...ptrs.values()];pinch0=Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]);drag.pz=cam.zoom}});
+cv.addEventListener('pointerdown',e=>{lastInput=performance.now();camAnim=null;cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,[e.clientX,e.clientY]);drag={x:e.clientX,y:e.clientY,moved:0,yaw:cam.yaw,pitch:cam.pitch};if(ptrs.size===2){const a=[...ptrs.values()];pinch0=Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]);drag.pz=cam.zoom}});
 cv.addEventListener('pointermove',e=>{
   const [mx,my]=pos(e);
   if(ptrs.has(e.pointerId)){ptrs.set(e.pointerId,[e.clientX,e.clientY]);
     if(ptrs.size===2&&drag.pz){const a=[...ptrs.values()],d=Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]);cam.zoom=clamp(drag.pz*pinch0/Math.max(20,d),.7,9);drag.moved=99;return}
-    if(drag&&mode==='map'){const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.moved=Math.max(drag.moved,Math.hypot(dx,dy));
+    if(drag&&mode==='map'){lastInput=performance.now();const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.moved=Math.max(drag.moved,Math.hypot(dx,dy));
       if(drag.moved>4){cam.yaw=drag.yaw-dx*.008;cam.pitch=clamp(drag.pitch+dy*.008,-1.5,1.5);tip.style.display='none';return}}}
   if(anim||ptrs.size)return;
   if(mode==='system'){let h=null;for(const k of sysHits){if(Math.hypot(k.x-mx,k.y-my)<k.r)h=k}
@@ -2859,15 +3033,17 @@ cv.addEventListener('pointerup',e=>{
   const wasClick=drag&&drag.moved<5&&ptrs.size===1;ptrs.delete(e.pointerId);if(ptrs.size===0){const d=drag;drag=null;if(!wasClick||!d)return;
     const [mx,my]=pos(e);if(anim)return;
     if(mode==='system'){for(const k of sysHits)if(Math.hypot(k.x-mx,k.y-my)<k.r){selPlanet=k.planet;syncInfo();setTab('info');return}return}
+    if(shipHit&&Math.hypot(shipHit.x-mx,shipHit.y-my)<shipHit.r){centerOnShip();return}
     const st=pickStar(mx,my);if(st){selStar=st;syncInfo();setTab('info');return}
     const i=pickCell(mx,my);if(i>=0)dive(DETAIL[i])}});
 cv.addEventListener('pointerleave',()=>{hoverIdx=-1;hoverStar=null;tip.style.display='none';syncMini()});
-cv.addEventListener('wheel',e=>{e.preventDefault();cam.zoom=clamp(cam.zoom*(e.deltaY>0?1.1:.91),.7,9)},{passive:false});
+cv.addEventListener('wheel',e=>{e.preventDefault();lastInput=performance.now();camAnim=null;cam.zoom=clamp(cam.zoom*(e.deltaY>0?1.1:.91),.7,9)},{passive:false});
 cv.addEventListener('dblclick',()=>{cam.yaw=.7;cam.pitch=.45;cam.zoom=2.3});
 document.addEventListener('keydown',e=>{
   if(e.target.matches('input,textarea,select'))return;
   if(e.key==='Escape'){closeModal();if(mode==='system')exitSystem();return}
-  if(e.ctrlKey||e.metaKey||e.altKey)return;const k=e.key;
+  if(e.ctrlKey||e.metaKey||e.altKey)return;const k=e.key;lastInput=performance.now();
+  if(k==='Home'||k==='.'){centerOnShip();return}
   if(k==='ArrowLeft')neighbor(-1,0,0);else if(k==='ArrowRight')neighbor(1,0,0);else if(k==='ArrowUp')neighbor(0,1,0);else if(k==='ArrowDown')neighbor(0,-1,0);
   else if(k==='PageUp')neighbor(0,0,1);else if(k==='PageDown')neighbor(0,0,-1);
   else if(k==='Backspace')up();else if(k==='/'){e.preventDefault();$('#seedIn').focus()}
@@ -2877,11 +3053,14 @@ document.addEventListener('keydown',e=>{
 $('#dpad').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.id==='upBtn')up();else neighbor(...b.dataset.d.split(',').map(Number))});
 
 /* — Vistas rápidas (como en el visor de Hail Mary) — */
-function setCam(y,p,z){cam.yaw=y;cam.pitch=p;cam.zoom=z}
+function setCam(y,p,z){if(RM){cam.yaw=y;cam.pitch=p;cam.zoom=z;return}const dy=((y-cam.yaw+Math.PI)%(2*Math.PI)+2*Math.PI)%(2*Math.PI)-Math.PI;camAnim={t0:performance.now(),dur:900,f:{yaw:cam.yaw,pitch:cam.pitch,zoom:cam.zoom},to:{yaw:cam.yaw+dy,pitch:p,zoom:z}}}
+let vsT;function saveView(){clearTimeout(vsT);vsT=setTimeout(()=>{D.cm=[+cam.yaw.toFixed(3),+cam.pitch.toFixed(3),+cam.zoom.toFixed(3)];D.op=[opt.route?1:0,opt.color?1:0,opt.spin?1:0];saveD()},600)}
+cv.addEventListener('pointerup',saveView);cv.addEventListener('wheel',saveView,{passive:true});
 $('#views').addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;const v=b.dataset.v;
-  if(v==='route'){opt.route=!opt.route;b.classList.toggle('on',opt.route);return}
-  if(v==='color'){opt.color=!opt.color;b.classList.toggle('on',!opt.color);return}
+  if(v==='route'){opt.route=!opt.route;b.classList.toggle('on',opt.route);saveView();return}
+  if(v==='color'){opt.color=!opt.color;b.classList.toggle('on',!opt.color);saveView();return}
+  if(v==='spin'){opt.spin=!opt.spin;b.classList.toggle('on',opt.spin);saveView();return}
   if(v==='sol'){setCam(.7,.45,2.3);teleport(starLoc(A_BY('sol'),9))}
   else if(v==='tau'){setCam(.7,.45,2.3);teleport(starLoc(A_BY('tceti'),9))}
   else if(v==='traj'){setCam(.5,.6,2.2);teleport(mkLoc('A','DD'))}
@@ -2901,7 +3080,7 @@ function syncUI(){
   const cr=$('#crumb');cr.innerHTML='';
   const mk=(txt,n,cur)=>{const b=document.createElement('button');b.textContent=txt;if(cur)b.className='cur';b.onclick=()=>{if(mode==='system')exitSystem(true);if(n!==loc.path.length||mode==='system')go({...loc,path:loc.path.slice(0,n)})};cr.appendChild(b)};
   mk(loc.head,0,!loc.path.length);[...loc.path].forEach((ch,i)=>mk(ch,i+1,i===loc.path.length-1));
-  $('#banner').style.display=D.anon?'block':'none';$('#upBtn').disabled=!loc.path.length&&mode!=='system';
+  updateHud();$('#banner').style.display=D.anon?'block':'none';$('#upBtn').disabled=!loc.path.length&&mode!=='system';
   syncInfo();
 }
 function planetCard(p){const k=KIND[p.kind];return `<h3>Planeta</h3><h2 style="color:${k[1]}">${esc(p.name)}</h2>
@@ -2924,7 +3103,7 @@ function miniHTML(){
   return `<h3>Subdividir (3×3×3)</h3><div class="minis">${layer(0)}${layer(1)}${layer(2)}</div><p class="note">Filas: Y de norte (arriba) a sur · columnas: X de oeste a este.</p>`;
 }
 function syncInfo(){
-  const el=$('#p-info');
+  const el=$('#p-info');if(!flight){el.classList.remove('fadein');void el.offsetWidth;el.classList.add('fadein')}
   if(mode==='system'){
     const S=SYS;
     el.innerHTML=`<h2>${esc(S.name)}</h2><div class="note">${esc(S.P.lab)} · ${S.planets.length} planeta${S.planets.length===1?'':'s'}${S.belts.length?` · ${S.belts.length} cinturón${S.belts.length>1?'es':''}`:''}</div>
@@ -2949,12 +3128,14 @@ function syncInfo(){
   <div class="kv"><span>Sector</span><span>${esc(loc.head)} · (${loc.sx}, ${loc.sy}, ${loc.sz})</span><span>Centro (x,y,z)</span><span>${g.map(v=>Math.abs(v)<10?v.toFixed(3):v.toFixed(1)).join(', ')} al</span>
   <span>Distancia al Sol</span><span>${fmtLen(dist)}</span><span>Densidad</span><span>${dens} (${Math.round(d*100)}%)</span>
   ${c.size>240?'':expect!=null?`<span>Estrellas aquí</span><span>${stars.length}</span>`:''}</div>
+  <div class="row"><button id="mvShip">Mover mi nave aquí</button><button id="ctrBtn">◎ Centrar en mi nave</button></div>
   ${shown?starCard(shown):''}${near}
   ${stars.length>1&&!shown&&stars.length<=60?`<h3>Estrellas en esta celda</h3><div class="lst">${stars.slice().sort((a,b)=>b.P.lum-a.P.lum).slice(0,12).map((s,i)=>`<div class="item" data-s="${i}" style="cursor:pointer"><span style="color:${s.P.col}">★</span><div class="m"><b>${esc(starName(s))}</b><i>${s.P.k} · ${esc(s.P.lab)}</i></div></div>`).join('')}</div>`:''}
   ${miniHTML()}
   <p class="note">${c.depth<9?'Con 9 caracteres de detalle una celda ya es menor a 1 000 UA; a partir de ahí suele aislar una sola estrella.':''}</p>`;
   window._list=stars.slice().sort((a,b)=>b.P.lum-a.P.lum);
   const q=id=>el.querySelector(id);
+  q('#mvShip').onclick=()=>{moveShipTo(shown?starLoc(shown,14):posToLoc(c.sx,c.sy,c.sz,...cellCenter(c),14));setMsg('Tu nave se movió a '+(shown?starName(shown):'el centro de esta celda')+'.')};q('#ctrBtn').onclick=centerOnShip;
   q('#cpSeed').onclick=()=>copy(seedStr(loc),'Semilla copiada');q('#cpLink').onclick=()=>copy(baseUrl()+'#s='+encodeURIComponent(seedStr(loc)),'Enlace copiado');
   if(q('#enterSys'))q('#enterSys').onclick=()=>enterSystem(shown);if(q('#goStar'))q('#goStar').onclick=()=>teleport(starLoc(shown,16));
   if(q('#goNear'))q('#goNear').onclick=()=>teleport(starLoc(window._near,12));
@@ -3008,41 +3189,85 @@ function randomSeed(){
 function renderShip(){
   const el=$('#p-ship'),s=D.ship,S=SHIPS[s.d];
   const bar=(v)=>`<span style="display:inline-block;width:90px;height:8px;background:#122040;border-radius:4px;vertical-align:middle"><span style="display:block;width:${v*10}%;height:100%;background:var(--cy);border-radius:4px"></span></span>`;
-  el.innerHTML=`<div style="display:flex;gap:12px;align-items:center"><div style="background:#060b17;border:1px solid var(--line);border-radius:10px;padding:6px">${shipSVG(s.d,s.c1,s.c2,92)}</div>
-   <div><h2 style="margin:0">${esc(s.n||S.n)}</h2><div class="note" style="margin:0">${esc(S.n)}</div></div></div>
-  <p class="note">${esc(S.d)}</p>
+  el.innerHTML=`<canvas id="shipPrev" style="width:100%;height:190px;border:1px solid var(--line);border-radius:10px;background:radial-gradient(ellipse at 50% 85%,#10203f,#060b17 70%);cursor:grab;touch-action:none"></canvas>
+  <div class="note" style="text-align:center;margin:2px 0 6px">Arrastra para girarla</div>
+  <h2 style="margin:0">${esc(s.n||S.n)}</h2><div class="note" style="margin:0 0 4px">${esc(S.n)} · ${esc(S.d)}</div>
   <div class="kv"><span>Velocidad</span><span>${bar(S.vel)}</span><span>Autonomía</span><span>${bar(S.alc)}</span><span>Carga</span><span>${bar(S.car)}</span><span>Tripulación</span><span>${S.tri?S.tri:'no tripulada'}</span></div>
+  <div class="row"><button class="pri" id="sctr">◎ Centrar en mi nave</button></div><div class="note">Ubicación: <span class="seed" style="font-size:12px">${esc(D.sp)}</span></div>
   <h3>Diseños prehechos</h3>
-  <div class="ships">${Object.entries(SHIPS).map(([k,v])=>`<button data-k="${k}" class="${k===s.d?'on':''}">${shipSVG(k,s.c1,s.c2,52)}<span>${v.n}</span></button>`).join('')}</div>
+  <div class="ships">${Object.entries(SHIPS).map(([k,v])=>`<button data-k="${k}" class="${k===s.d?'on':''}">${shipImg(k,s.c1,s.c2,56)}<span>${v.n}</span></button>`).join('')}</div>
   <h3>Personalizar</h3>
   <div class="field"><label>Nombre</label><input id="sn" maxlength="24" placeholder="${esc(S.n)}" value="${esc(s.n)}"></div>
   <div class="field"><label>Color 1</label><input id="sc1" type="color" value="${esc(s.c1)}" style="height:32px;padding:2px"></div>
   <div class="field"><label>Color 2</label><input id="sc2" type="color" value="${esc(s.c2)}" style="height:32px;padding:2px"></div>
   <div class="row"><button id="sreset">Restablecer colores</button></div>
-  <p class="note">Tu nave aparece en el centro de la celda que exploras y acompaña al planeta que selecciones en cada sistema. Se guarda con tu perfil y viaja en el enlace/QR de «Compartir».</p>`;
+  <p class="note">Tu nave tiene su propia posición: se queda donde la dejas («Mover mi nave aquí») y viaja contigo al entrar a un sistema. Si te alejas, una flecha en el borde del mapa te indica dónde está; «Centrar» te lleva hasta ella. Todo se guarda con tu perfil, en el enlace/QR y en la partida.</p>`;
+  prevCv=$('#shipPrev');
+  const pc=prevCv,r=pc.getBoundingClientRect(),d=Math.min(2,window.devicePixelRatio||1);pc.width=Math.max(10,r.width*d);pc.height=190*d;
+  pc.onpointerdown=e=>{pc.setPointerCapture(e.pointerId);prevSt.drag={x:e.clientX,y:e.clientY,yaw:prevSt.yaw,pitch:prevSt.pitch};pc.style.cursor='grabbing'};
+  pc.onpointermove=e=>{if(!prevSt.drag)return;prevSt.yaw=prevSt.drag.yaw-(e.clientX-prevSt.drag.x)*.012;prevSt.pitch=clamp(prevSt.drag.pitch+(e.clientY-prevSt.drag.y)*.01,-1.2,1.3);prevSt.last=performance.now()};
+  pc.onpointerup=()=>{prevSt.drag=null;pc.style.cursor='grab';prevSt.last=performance.now()};
   el.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{D.ship.d=b.dataset.k;saveD();renderShip()});
   $('#sn').oninput=e=>{D.ship.n=e.target.value.slice(0,24);saveD()};
   $('#sc1').oninput=e=>{D.ship.c1=e.target.value;saveD()};$('#sc2').oninput=e=>{D.ship.c2=e.target.value;saveD()};
   $('#sc1').onchange=$('#sc2').onchange=renderShip;
   $('#sreset').onclick=()=>{D.ship.c1=DEF_SHIP.c1;D.ship.c2=DEF_SHIP.c2;saveD();renderShip()};
+  $('#sctr').onclick=centerOnShip;
+}
+function drawPreview(now){
+  const c=prevCv;if(!c||!c.isConnected){prevCv=null;return}const g=c.getContext('2d'),d=c.width/c.getBoundingClientRect().width||1;
+  g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,c.width,c.height);g.setTransform(d,0,0,d,0,0);
+  const w=c.width/d,h=c.height/d;if(!prevSt.drag&&now-prevSt.last>1500&&!RM)prevSt.yaw+=.012;
+  g.strokeStyle='rgba(88,208,255,.25)';g.lineWidth=1;g.beginPath();g.ellipse(w/2,h*.78,w*.28,h*.07,0,0,7);g.stroke();g.beginPath();g.ellipse(w/2,h*.78,w*.18,h*.045,0,0,7);g.stroke();
+  drawShip3D(g,w/2,h*.5+Math.sin(now/700)*3,Math.min(w,h)*.9,prevSt.yaw,prevSt.pitch,D.ship,now/1000);
 }
 
 /* ═════════ Compartir: enlace + QR ═════════ */
 function baseUrl(){const b=(D.base||'').trim();if(b)return b.split('#')[0];return /^https?:/.test(location.protocol)?location.href.split('#')[0]:''}
 const b64u=u8=>{let s='';for(let i=0;i<u8.length;i+=8192)s+=String.fromCharCode.apply(null,u8.subarray(i,i+8192));return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')};
 const unb64u=s=>{s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';const bin=atob(s),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u};
-async function pipe(u8,Ctor){const s=new Ctor('deflate-raw'),w=s.writable.getWriter();w.write(u8);w.close();return new Uint8Array(await new Response(s.readable).arrayBuffer())}
+async function pipe(u8,Ctor){const s=new Ctor('deflate-raw'),w=s.writable.getWriter();w.write(u8).catch(()=>{});w.close().catch(()=>{});return new Uint8Array(await new Response(s.readable).arrayBuffer())}
+function snapshot(maxN){
+  const sh=D.ship;
+  return{v:2,n:D.n||'',c:seedStr(loc),sh:[sh.d,sh.n||'',sh.c1,sh.c2],sp:D.sp,cm:[+cam.yaw.toFixed(3),+cam.pitch.toFixed(3),+cam.zoom.toFixed(3)],op:[opt.route?1:0,opt.color?1:0,opt.spin?1:0,D.anon?1:0],b:D.base||'',
+    h:D.h.slice(-maxN).map(e=>[e.s,Math.round(e.t/1000).toString(36),e.k,e.f?1:0,e.n||''])};
+}
 async function encodeState(maxN){
-  const sh=D.ship,st={v:2,n:D.n||'',c:seedStr(loc),sh:[sh.d,sh.n||'',sh.c1,sh.c2],h:D.h.slice(-maxN).map(e=>[e.s,Math.round(e.t/1000).toString(36),e.k,e.f?1:0,e.n||''])};
-  const raw=new TextEncoder().encode(JSON.stringify(st));
+  const raw=new TextEncoder().encode(JSON.stringify(snapshot(maxN)));
   if(typeof CompressionStream!=='undefined')return 'z'+b64u(await pipe(raw,CompressionStream));return 'p'+b64u(raw);
 }
-async function decodeState(tok){
-  const kind=tok[0],u8=unb64u(tok.slice(1)),raw=kind==='z'?await pipe(u8,DecompressionStream):u8,st=JSON.parse(new TextDecoder().decode(raw));
+function normState(st){
   if(!st||st.v!==2||!Array.isArray(st.h))throw new Error('formato');
   st.h=st.h.map(a=>({s:String(a[0]||''),t:parseInt(a[1],36)*1000,k:a[2]==='s'?'s':'m',f:a[3]?1:0,n:String(a[4]||'').slice(0,120)}));
   if(Array.isArray(st.sh))st.ship=cleanShip({d:st.sh[0],n:st.sh[1],c1:st.sh[2],c2:st.sh[3]});
+  if(st.sp&&!parseSeed(st.sp).loc)delete st.sp;
   return st;
+}
+async function decodeState(tok){
+  const kind=tok[0],u8=unb64u(tok.slice(1)),raw=kind==='z'?await pipe(u8,DecompressionStream):u8;
+  return normState(JSON.parse(new TextDecoder().decode(raw)));
+}
+/* Partida: archivo binario sin formato legible → "ADA" + versión + bandera + datos comprimidos (deflate) + CRC32 */
+const CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+const crc32=u=>{let c=-1;for(let i=0;i<u.length;i++)c=CRC[(c^u[i])&255]^(c>>>8);return(c^-1)>>>0};
+async function packFile(){
+  const raw=new TextEncoder().encode(JSON.stringify(snapshot(D.h.length)));let flag=0,body=raw;
+  if(typeof CompressionStream!=='undefined'){body=await pipe(raw,CompressionStream);flag=1}
+  const out=new Uint8Array(5+body.length+4);out.set([0x41,0x44,0x41,2,flag]);out.set(body,5);new DataView(out.buffer).setUint32(5+body.length,crc32(raw));return out;
+}
+async function unpackFile(buf){
+  const u=new Uint8Array(buf);if(u.length<10||u[0]!==0x41||u[1]!==0x44||u[2]!==0x41)throw new Error('magic');
+  const body=u.subarray(5,u.length-4),raw=u[4]===1?await pipe(body,DecompressionStream):body;
+  if(new DataView(u.buffer,u.byteOffset).getUint32(u.length-4)!==crc32(raw))throw new Error('crc');
+  return normState(JSON.parse(new TextDecoder().decode(raw)));
+}
+async function downloadSave(){
+  const u=await packFile(),blob=new Blob([u],{type:'application/octet-stream'}),a=document.createElement('a'),d=new Date(),p=n=>String(n).padStart(2,'0');
+  a.href=URL.createObjectURL(blob);a.download=`ad-astra-${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}.partida`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),3000);
+  return u.length;
+}
+async function loadSaveFile(f){
+  try{offerImport(await unpackFile(await f.arrayBuffer()))}catch(e){alert(e.message==='magic'?'Ese archivo no es una partida de Ad Astra.':'La partida está dañada (falló la verificación).')}
 }
 const cleanShip=s=>({d:SHIPS[s.d]?s.d:'corbeta',n:String(s.n||'').slice(0,24),c1:/^#[0-9a-f]{6}$/i.test(s.c1)?s.c1:DEF_SHIP.c1,c2:/^#[0-9a-f]{6}$/i.test(s.c2)?s.c2:DEF_SHIP.c2});
 async function buildShare(){
@@ -3064,25 +3289,26 @@ async function renderShare(){
   <div class="row"><button class="pri" id="cpl">Copiar enlace</button><span class="dim">${info.total} registros · ${info.fullLen.toLocaleString()} caracteres</span></div>
   <h3>QR</h3>${info.qr?`<div id="qrBox"><canvas id="qr"></canvas></div><div class="row"><button id="dlq">Descargar PNG</button></div>
    <p class="note ${info.qrN<info.total?'bad':''}">${info.qrN<info.total?`El QR tiene capacidad limitada: incluye los últimos ${info.qrN} de ${info.total} registros (y tu nave). El enlace y el archivo llevan todo.`:'Incluye todo. Escanéalo con la cámara del otro dispositivo.'}</p>`:'<p class="bad">El QR no alcanza ni con el historial vacío (URL demasiado larga). Usa el enlace.</p>'}
-  <h3>Archivo</h3><div class="row"><button id="exp">Exportar JSON</button><button id="imp">Importar JSON…</button><input type="file" id="impf" accept="application/json,.json" hidden></div>
+  <h3>Partida (archivo)</h3><p class="note">Un archivo binario comprimido con toda tu sesión: bitácora, nave y su posición, apodo, cámara y opciones. Pásalo a otro dispositivo y cárgalo aquí (o arrástralo a la ventana).</p>
+  <div class="row"><button class="pri" id="dls">⬇ Descargar partida</button><button id="lds">Cargar partida…</button><input type="file" id="ldf" hidden></div><div id="saveMsg" class="note"></div>
   <h3>Solo esta ubicación</h3><div class="row"><button id="cps">Copiar enlace a ${esc(seedStr(loc))}</button></div>`;
   if(info.qr)drawQR($('#qr'),info.qr);
   $('#cpl').onclick=()=>copy(info.full,'Enlace copiado');$('#cps').onclick=()=>copy(baseUrl()+'#s='+encodeURIComponent(seedStr(loc)),'Enlace copiado');
   if($('#dlq'))$('#dlq').onclick=()=>{const a=document.createElement('a');a.download='ad-astra-exploracion.png';a.href=$('#qr').toDataURL('image/png');a.click()};
-  $('#exp').onclick=()=>{const blob=new Blob([JSON.stringify({v:2,n:D.n,c:seedStr(loc),ship:D.ship,h:D.h},null,1)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='ad-astra-exploracion.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)};
-  $('#imp').onclick=()=>$('#impf').click();
-  $('#impf').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const j=JSON.parse(await f.text());if(!j||!Array.isArray(j.h))throw 0;
-    offerImport({n:j.n||'',c:j.c||'',ship:j.ship?cleanShip(j.ship):null,h:j.h.map(x=>({s:String(x.s||''),t:+x.t||Date.now(),k:x.k==='s'?'s':'m',f:x.f?1:0,n:String(x.n||'').slice(0,120)}))})}catch(_){alert('Archivo no válido.')}};
+  $('#dls').onclick=async()=>{const n=await downloadSave();$('#saveMsg').textContent=`Partida descargada (${(n/1024).toFixed(1)} KB, ${D.h.length} registros).`;$('#saveMsg').className='note ok'};
+  $('#lds').onclick=()=>$('#ldf').click();$('#ldf').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)loadSaveFile(f)};
 }
+function syncViewBtns(){$('#routeBtn').classList.toggle('on',opt.route);$('#colorBtn').classList.toggle('on',!opt.color);$('#spinBtn').classList.toggle('on',opt.spin);saveView()}
 function closeModal(){$('#modal').style.display='none'}
 function offerImport(st){
   const valid=st.h.filter(e=>parseSeed(e.s).loc),m=$('#modal'),b=$('#modalBox');
   b.innerHTML=`<h2>Exploración recibida</h2><p>${st.n?`De <b>${esc(st.n)}</b>: `:''}<b>${valid.length}</b> registros${st.c?` · última posición <span class="seed" style="font-size:14px">${esc(st.c)}</span>`:''}.</p>
-  ${st.ship?`<div style="display:flex;gap:10px;align-items:center">${shipSVG(st.ship.d,st.ship.c1,st.ship.c2,44)}<span>Nave: <b>${esc(st.ship.n||SHIPS[st.ship.d].n)}</b></span></div>`:''}
+  ${st.ship?`<div style="display:flex;gap:10px;align-items:center">${shipImg(st.ship.d,st.ship.c1,st.ship.c2,48)}<span>Nave: <b>${esc(st.ship.n||SHIPS[st.ship.d].n)}</b></span></div>`:''}
   <p class="note">Tu bitácora actual tiene ${D.h.length} registros.</p>
   <div class="row"><button class="pri" id="mMerge">Fusionar</button><button id="mRep">Reemplazar la mía</button><button id="mNo">Cancelar</button></div>`;
   m.style.display='flex';
-  const finish=(rep)=>{if(st.n&&(!D.n||rep))D.n=st.n;if(st.ship&&(rep||!D.ship.n&&D.ship.d===DEF_SHIP.d&&D.ship.c1===DEF_SHIP.c1&&D.ship.c2===DEF_SHIP.c2))D.ship=st.ship;
+  const finish=(rep)=>{if(st.n&&(!D.n||rep))D.n=st.n;if(st.ship&&(rep||!D.ship.n&&D.ship.d===DEF_SHIP.d&&D.ship.c1===DEF_SHIP.c1&&D.ship.c2===DEF_SHIP.c2)){D.ship=st.ship;if(st.sp)D.sp=st.sp}
+    if(rep){if(Array.isArray(st.cm))setCam(+st.cm[0]||0,clamp(+st.cm[1]||0,-1.5,1.5),clamp(+st.cm[2]||2.3,.7,9));if(Array.isArray(st.op)){opt.route=!!st.op[0];opt.color=st.op[1]!==0;opt.spin=st.op[2]!==0&&!RM;D.anon=!!st.op[3];syncViewBtns()}if(st.b)D.base=st.b}
     D.c=st.c||D.c;saveD();closeModal();const p=parseSeed(st.c);if(p.loc)go(p.loc,{animate:false});renderHist();if(tab==='share')renderShare();if(tab==='ship')renderShip()};
   $('#mMerge').onclick=()=>{const seen=new Set(D.h.map(e=>e.s+'|'+e.t));for(const e of valid)if(!seen.has(e.s+'|'+e.t))D.h.push(e);D.h.sort((a,b)=>a.t-b.t);if(D.h.length>3000)D.h.splice(0,D.h.length-3000);finish(false)};
   $('#mRep').onclick=()=>{if(D.h.length&&!confirm('Esto sustituye tu bitácora y tu nave locales. ¿Seguro?'))return;D.h=valid.sort((a,b)=>a.t-b.t);finish(true)};
@@ -3097,8 +3323,12 @@ async function handleHash(){
 $('#seedForm').addEventListener('submit',e=>{e.preventDefault();teleportStr($('#seedIn').value);$('#seedIn').blur()});
 $('#rndBtn').onclick=randomSeed;
 $('#modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
+$('#ctr').onclick=centerOnShip;syncViewBtns();
+addEventListener('dragover',e=>{if(e.dataTransfer&&[...e.dataTransfer.types].includes('Files'))e.preventDefault()});
+addEventListener('drop',e=>{const f=e.dataTransfer&&e.dataTransfer.files[0];if(f){e.preventDefault();loadSaveFile(f)}});
 resize();curList=cellList(cell);syncUI();setTab('info');requestAnimationFrame(frame);scheduleRecord();handleHash();
-window.__adastra={parseSeed,cellOf,posToLoc,globalToLoc,seedStr,sToXYZ,xyzToS,sToHead,headToS,starsIn,genSystem,ANCHSTARS,starLoc,starInCell,encodeState,decodeState,get loc(){return loc},go,D:()=>D,teleportStr,enterSystem,SHIPS,setTab,get cell(){return cell}};
+setTimeout(()=>{const b=$('#boot');if(b){b.classList.add('out');setTimeout(()=>b.remove(),700)}},RM?0:1300);
+window.__adastra={parseSeed,cellOf,posToLoc,globalToLoc,seedStr,sToXYZ,xyzToS,sToHead,headToS,starsIn,genSystem,ANCHSTARS,starLoc,starInCell,encodeState,decodeState,get loc(){return loc},go,D:()=>D,teleportStr,enterSystem,SHIPS,setTab,get cell(){return cell},centerOnShip,moveShipTo,packFile,unpackFile,get flight(){return flight},get warp(){return warp}};
 })();
 </script>
 </body>
