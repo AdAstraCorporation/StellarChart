@@ -2,13 +2,14 @@
 
 Simulador de rol espacial en un único `index.html` estático, sin servidor ni cuenta. La estética sigue la carta
 «Hail Mary – Stellar Navigation Chart» (valhovey.github.io/gaia-mary): fondo de cielo completo con la Vía Láctea,
-rejillas en perspectiva, nombres en mayúsculas con línea guía, trayectorias en arco y modo Petrova en rojo.
+rejillas en perspectiva, nombres en mayúsculas con línea guía, trayectorias en arco y modo Petrova (estrellas con astrófago en rojo).
 Las estrellas se generan de forma determinista; el vecindario del Sol usa RA/Dec/distancia reales (eclíptica J2000).
 
 ## Carta
 - Cámara libre y suave: arrastrar = orbitar · Shift/botón derecho/dos dedos = desplazar · rueda/pellizco = zoom
   (1 al – 3 000 al) · WASD/flechas = volar · Q/E = bajar/subir · Inicio = tu nave · M = panel · Intro = viajar.
-- Interruptores Navegación (líneas de visión), Color (espectral) y Petrova (estrellas con astrófago y su esfera de 8 al).
+- Interruptores Navegación (líneas de visión), Color (espectral) y Petrova (marca las estrellas con astrófago).
+- Movimiento libre: «⌖ Destino» fija como destino cualquier punto del espacio (la retícula central) y «✈ Pilotar» (F) mueve la nave a mano con WASD, Q/E y Shift. La nave puede detenerse en el espacio profundo. En modo creativo no hay límite de distancia por salto.
 - Vistas: Sistema Solar, Trayectoria (ruta hacia Tau Ceti), Tau Ceti y Galáctica.
 - Semillas `CABECERA-DETALLE`: la cabecera (A…Z, AA, AB…) numera sectores de 240 al en capas alrededor del Sol, sin borde;
   cada carácter de detalle (0-9, A-Q) afina la posición; 14 caracteres identifican una estrella.

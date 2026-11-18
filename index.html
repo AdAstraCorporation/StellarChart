@@ -41,8 +41,8 @@ canvas#cv{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
 #hud div{display:flex;flex-direction:column;text-align:right}
 #hud span{font-size:9px;letter-spacing:.24em;color:var(--dim)}#hud b{font-weight:400;color:#eef2f8;font-size:12px}#hud em{font-style:normal;font-size:10px;color:var(--dim)}
 .mt{display:block;height:3px;background:rgba(205,215,235,.12);margin:2px 0}.mt i{display:block;height:100%;transition:width .5s ease}
-#views{left:50%;bottom:34px;transform:translateX(-50%);display:flex;gap:6px}
-#views button{font-size:10px;letter-spacing:.2em;text-transform:uppercase;padding:6px 12px;color:#c9d1dd}
+#views{left:50%;bottom:34px;transform:translateX(-50%);display:flex;gap:5px}
+#views button{font-size:9px;letter-spacing:.14em;text-transform:uppercase;padding:6px 9px;color:#c9d1dd;white-space:nowrap}#views button.on{border-color:var(--cy);color:var(--cy);background:rgba(120,220,255,.1)}
 #foot{left:50%;bottom:10px;transform:translateX(-50%);font-size:9px;letter-spacing:.24em;color:var(--dim);white-space:nowrap;pointer-events:none}
 #foot em{color:var(--pet);font-style:normal;margin:0 6px}
 #zoom{left:18px;bottom:28px;display:flex;flex-direction:column;gap:4px}
@@ -121,7 +121,7 @@ textarea{width:100%;height:64px;resize:vertical;font-size:10px}
   .info{flex-direction:row;flex-wrap:wrap;gap:4px 12px}.info div:nth-child(n+3){display:none}
   #toggles{left:10px;top:112px;transform:none}#toggles button{padding:3px 7px;letter-spacing:.08em;font-size:9px}
   #hud{right:10px;top:10px;width:140px;gap:4px}#hud div:nth-child(n+4){display:none}
-  #views{bottom:30px;gap:3px}#views button{padding:5px 6px;letter-spacing:.06em;font-size:9px}#foot{display:none}
+  #views{bottom:30px;gap:3px;flex-wrap:wrap;justify-content:center;width:96%}#views button{padding:5px 6px;letter-spacing:.04em;font-size:9px}#foot{display:none}
   #zoom{left:10px;bottom:76px}#ctr{right:10px;bottom:76px}#drawerBtn{right:10px;bottom:120px}
   #drawer{top:auto;height:62vh;width:100%;border-left:0;border-top:1px solid var(--line);transform:translateY(100%)}
 }
@@ -142,11 +142,11 @@ textarea{width:100%;height:64px;resize:vertical;font-size:10px}
   <button class="ov" id="backBtn">⤒ VOLVER</button>
   <div class="ov" id="toast"></div>
   <div class="ov" id="travel"><div class="tl" id="trTxt"></div><div class="tb"><i id="trBar"></i></div></div>
-  <div class="ov" id="views"><button data-v="sol">Sistema Solar</button><button data-v="traj">Trayectoria</button><button data-v="tau">Tau Ceti</button><button data-v="gal">Galáctica</button></div>
+  <div class="ov" id="views"><button data-v="sol">Sistema Solar</button><button data-v="traj">Trayectoria</button><button data-v="tau">Tau Ceti</button><button data-v="gal">Galáctica</button><button data-v="here" title="Fijar destino en el centro de la carta">⌖ Destino</button><button data-v="pilot" id="pilotBtn" title="Pilotaje libre (F)">✈ Pilotar</button></div>
   <div class="ov" id="zoom"><button data-z="-1" title="Acercar">+</button><button data-z="1" title="Alejar">−</button><button id="spinBtn" title="Rotación automática">⟳</button></div>
   <button class="ov" id="drawerBtn">☰ MANDO</button>
   <button class="ov" id="ctr">◎ MI NAVE</button>
-  <div class="ov" id="foot">ARRASTRA ORBITAR · RUEDA ZOOM · SHIFT DESPLAZAR · WASD VOLAR<em>/</em>AD ASTRA CORPORATION</div>
+  <div class="ov" id="foot">ARRASTRA ORBITAR · RUEDA ZOOM · WASD VOLAR · F PILOTAR LA NAVE<em>/</em>AD ASTRA CORPORATION</div>
   <div class="ov" id="banner">SIN REGISTRO</div><div class="ov" id="crTag">MODO CREATIVO</div>
   <div class="ov" id="tip"></div>
 </section>
@@ -2590,7 +2590,7 @@ const ANCH=[
 const ANCHSTARS=ANCH.map(a=>({anchor:a,sx:0,sy:0,sz:0,lx:a.pos[0],ly:a.pos[1],lz:a.pos[2],h:hash(a.id.length,a.id.charCodeAt(0),a.id.charCodeAt(1)),P:a.props}));
 const A_BY=id=>ANCHSTARS.find(s=>s.anchor.id===id);
 const same=(a,b)=>!!(a&&b&&a.lx===b.lx&&a.ly===b.ly&&a.lz===b.lz&&a.sx===b.sx&&a.sy===b.sy&&a.sz===b.sz);
-const starName=st=>st.anchor?st.anchor.name:genName(st.h);
+const starName=st=>st.anchor?st.anchor.name:st.point?st.name:genName(st.h);
 const starLoc=(st,d=14)=>posToLoc(st.sx,st.sy,st.sz,st.lx,st.ly,st.lz,d);
 const starG=st=>[st.sx*SEC+st.lx,st.sy*SEC+st.ly,st.sz*SEC+st.lz];
 
@@ -2808,11 +2808,15 @@ try{const raw=localStorage.getItem(LS_KEY);if(raw)Object.assign(D,JSON.parse(raw
 const saveD=()=>{try{localStorage.setItem(LS_KEY,JSON.stringify(D))}catch(e){}};
 D.ship=cleanShip(Object.assign({...DEF_SHIP},D.ship||{}));
 const SOL=A_BY('sol');
-if(!D.sp||!starFromSeed(D.sp))D.sp=sSeed(SOL);
+if(!D.sp||!parseSeed(D.sp).loc)D.sp=sSeed(SOL);
 if(!Array.isArray(D.h))D.h=[];
 for(const k of['ex','scan','disc','qf'])if(!D[k]||typeof D[k]!=='object')D[k]={};
 let _sp='',_ss=null;
-function shipStar(){if(_sp!==D.sp){_sp=D.sp;_ss=starFromSeed(D.sp)||SOL}return _ss}
+function pointAt(x,y,z){const seed=seedStr(globalToLoc(x,y,z,MAXD)),c=cellOf(parseSeed(seed).loc),g=cellCenterG(c);
+  return{point:1,name:'Espacio profundo',gx:g[0],gy:g[1],gz:g[2],h:hash(Math.round(g[0]*1e4),Math.round(g[1]*1e4),Math.round(g[2]*1e4),3),P:{k:'—',lab:'Espacio profundo',T:0,lum:0,mass:0,rad:0,col:'#78dcff'},seed}}
+function pointFromSeed(s){const p=parseSeed(s);if(!p.loc)return null;const g=cellCenterG(cellOf(p.loc));return pointAt(g[0],g[1],g[2])}
+const seedOf=s=>s.point?s.seed:sSeed(s);
+function shipStar(){if(_sp!==D.sp){_sp=D.sp;_ss=starFromSeed(D.sp)||pointFromSeed(D.sp)||SOL}return _ss}
 const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const opt={color:true,spin:!RM};if(Array.isArray(D.op)){opt.color=D.op[0]!==0;opt.spin=D.op[1]!==0&&!RM}
 
@@ -2889,7 +2893,8 @@ function drawStreaks(e,t){
   const g=ctx.createRadialGradient(cx,cy,0,cx,cy,R*.5);g.addColorStop(0,`rgba(210,230,255,${e*e*.35})`);g.addColorStop(1,'rgba(210,230,255,0)');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);ctx.restore();
 }
 function drawWarp(now){if(!warp)return;const t=(now-warp.t0)/warp.dur;if(t>=1){warp=null;return}drawStreaks((1-t)*(1-t),t*.8)}
-function shipPos(){return travel&&travel.pos?travel.pos:(s=>[s.gx,s.gy,s.gz])(shipStar())}
+let pilot=null;
+function shipPos(){return pilot?pilot.pos:travel&&travel.pos?travel.pos:(s=>[s.gx,s.gy,s.gz])(shipStar())}
 function drawGizmo(){
   const gx=W-52,gy=H-150,c=CP,L=24;ctx.save();ctx.font='10px ui-monospace,Menlo,monospace';ctx.textAlign='center';ctx.textBaseline='middle';
   for(const [v,col,lab] of[[[1,0,0],'#ff7a7a','X'],[[0,1,0],'#7ee787','Y'],[[0,0,1],'#7aa7ff','Z']]){
@@ -2964,9 +2969,6 @@ function drawMap(now){
   for(const s of ANCHSTARS){if(R>150&&s.anchor.id!=='sol')continue;if(!proj(s.gx,s.gy,s.gz))continue;const x=_p[0],y=_p[1],inf=opt.pet&&infected(s);s._x=x;s._y=y;s._f=frameNo;
     ctx.fillStyle=inf?PET:'#fff';ctx.beginPath();ctx.arc(x,y,2.6,0,7);ctx.fill();ctx.globalAlpha=.25;ctx.beginPath();ctx.arc(x,y,7,0,7);ctx.fill();ctx.globalAlpha=1;
     labelAt(x,y,s.anchor.name,inf?'rgba(255,59,92,.95)':'rgba(235,240,248,.9)',10)}
-  // esfera de transmisión del astrófago (8 al) alrededor del destino infectado
-  const pet=selStar&&opt.pet&&infected(selStar)?selStar:null;
-  if(pet&&proj(pet.gx,pet.gy,pet.gz)){const r=8*c.F/_p[2];if(r>12&&r<Math.max(W,H)*2){ctx.strokeStyle='rgba(255,59,92,.75)';ctx.lineWidth=1.4;ctx.setLineDash([r*.18,r*.05]);ctx.lineDashOffset=-now/80;ctx.beginPath();ctx.arc(_p[0],_p[1],r,0,7);ctx.stroke();ctx.setLineDash([])}}
   // alcance de salto
   if(!travel){
     if(ml*c.F/c.dist>8){ctx.setLineDash([2,6]);ctx.strokeStyle='rgba(224,170,70,.22)';ctx.lineWidth=1;ringPath(P0[0],P0[1],P0[2],ml);ctx.stroke()}
@@ -2976,12 +2978,14 @@ function drawMap(now){
   }
   // trayectoria trazada: arcos con marcas, como en la carta original
   if(route&&route.legs&&!travel){
-    for(const L of route.legs){const pts=arcPts(L.from,L.to,28),col=L.err||L.pend?'rgba(150,160,180,.6)':PET;ctx.strokeStyle=col;ctx.lineWidth=1.6;ctx.setLineDash(L.err||L.pend?[5,5]:[]);ctx.beginPath();let pen=false;
+    for(const L of route.legs){const pts=arcPts(L.from,L.to,28),col=L.err||L.pend?'rgba(150,160,180,.6)':'#e9f2ff';ctx.strokeStyle=col;ctx.lineWidth=1.6;ctx.setLineDash(L.err||L.pend?[5,5]:[]);ctx.beginPath();let pen=false;
       for(const p of pts){if(!p){pen=false;continue}pen?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]);pen=true}ctx.stroke();ctx.setLineDash([]);
       ctx.fillStyle=col;pts.forEach((p,i)=>{if(p&&i%4===0&&i&&i<28){ctx.beginPath();ctx.arc(p[0],p[1],2,0,7);ctx.fill()}})}
-    const last=route.legs[route.legs.length-1];if(proj(last.to.gx,last.to.gy,last.to.gz)){ctx.fillStyle=PET;ctx.font='9px ui-monospace,Menlo,monospace';ctx.textAlign='left';ctx.fillText(spaced(`${route.legs.length} SALTO${route.legs.length>1?'S':''} · ${fmtLen(route.tot.d).toUpperCase()}`),_p[0]+17,_p[1]+13)}
+    const last=route.legs[route.legs.length-1];if(proj(last.to.gx,last.to.gy,last.to.gz)){ctx.fillStyle='#e9f2ff';ctx.font='9px ui-monospace,Menlo,monospace';ctx.textAlign='left';ctx.fillText(spaced(`${route.legs.length} SALTO${route.legs.length>1?'S':''} · ${fmtLen(route.tot.d).toUpperCase()}`),_p[0]+17,_p[1]+13)}
   }
-  if(travel&&travel.leg){const L=travel.leg,pts=arcPts(L.from,L.to,28);ctx.strokeStyle=PET;ctx.lineWidth=1.6;ctx.beginPath();let pen=false;for(const p of pts){if(!p){pen=false;continue}pen?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]);pen=true}ctx.stroke()}
+  if(travel&&travel.leg){const L=travel.leg,pts=arcPts(L.from,L.to,28);ctx.strokeStyle='rgba(120,220,255,.8)';ctx.lineWidth=1.6;ctx.beginPath();let pen=false;for(const p of pts){if(!p){pen=false;continue}pen?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]);pen=true}ctx.stroke()}
+  // retícula del foco: el centro de la carta es un punto al que se puede viajar
+  if(!travel){const cx=W/2,cy=H/2;ctx.strokeStyle='rgba(225,232,245,.35)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(cx-9,cy);ctx.lineTo(cx-3,cy);ctx.moveTo(cx+3,cy);ctx.lineTo(cx+9,cy);ctx.moveTo(cx,cy-9);ctx.lineTo(cx,cy-3);ctx.moveTo(cx,cy+3);ctx.lineTo(cx,cy+9);ctx.stroke()}
   // selección y cursor
   if(selStar&&proj(selStar.gx,selStar.gy,selStar.gz)){const x=_p[0],y=_p[1],pl=1+.1*Math.sin(now/220);
     ctx.save();ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.beginPath();for(const [a,b] of[[-1,-1],[1,-1],[1,1],[-1,1]]){const s=11*pl;ctx.moveTo(x+a*s,y+b*(s-5));ctx.lineTo(x+a*s,y+b*s);ctx.lineTo(x+a*(s-5),y+b*s)}ctx.stroke();ctx.restore();
@@ -2992,7 +2996,7 @@ function drawMap(now){
   if(proj(P0[0],P0[1],P0[2])&&_p[0]>16&&_p[0]<W-16&&_p[1]>16&&_p[1]<H-16){
     const x=_p[0],y=_p[1],age=(now-ping)/1000;
     if(age<2.4)for(let k=0;k<2;k++){const a=age-k*.35;if(a<0||a>1.8)continue;ctx.strokeStyle=`rgba(120,220,255,${(1-a/1.8)*.8})`;ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(x,y,8+a*60,0,7);ctx.stroke()}
-    let ang=-Math.PI/2;if(travel&&travel.leg){const L=travel.leg;if(proj(L.to.gx,L.to.gy,L.to.gz))ang=Math.atan2(_p[1]-y,_p[0]-x)}else if(selStar&&!sameStar(selStar,ship)&&proj(selStar.gx,selStar.gy,selStar.gz))ang=Math.atan2(_p[1]-y,_p[0]-x);
+    let ang=-Math.PI/2;if(pilot&&pilot.dir){if(proj(P0[0]+pilot.dir[0],P0[1]+pilot.dir[1],P0[2]+pilot.dir[2]))ang=Math.atan2(_p[1]-y,_p[0]-x)}else if(travel&&travel.leg){const L=travel.leg;if(proj(L.to.gx,L.to.gy,L.to.gz))ang=Math.atan2(_p[1]-y,_p[0]-x)}else if(selStar&&!sameStar(selStar,ship)&&proj(selStar.gx,selStar.gy,selStar.gz))ang=Math.atan2(_p[1]-y,_p[0]-x);
     ctx.save();ctx.translate(x,y);ctx.strokeStyle='rgba(120,220,255,.6)';ctx.setLineDash([2,3]);ctx.rotate(now/1500);ctx.beginPath();ctx.arc(0,0,11,0,7);ctx.stroke();ctx.restore();
     ctx.save();ctx.translate(x,y);ctx.rotate(ang+Math.PI/2);ctx.fillStyle='#78dcff';ctx.beginPath();ctx.moveTo(0,-8);ctx.lineTo(5.5,6);ctx.lineTo(0,3);ctx.lineTo(-5.5,6);ctx.closePath();ctx.fill();ctx.restore();
     ctx.fillStyle='rgba(120,220,255,.95)';ctx.font='9px ui-monospace,Menlo,monospace';ctx.textAlign='center';ctx.fillText(spaced(lab.toUpperCase()),x,y+22);shipHit={x,y,r:18};
@@ -3191,7 +3195,7 @@ function passDays(n){
 
 /* ═════════ Astrófago: estrellas infectadas (modo Petrova) ═════════ */
 const INF=new Set(['sol','tceti','eeri','40eri','acen']);
-const infected=s=>s.anchor?INF.has(s.anchor.id):PETROVA.has(s.P.k)&&hash(s.h,13)%4===0;
+const infected=s=>s.point?false:s.anchor?INF.has(s.anchor.id):PETROVA.has(s.P.k)&&hash(s.h,13)%4===0;
 
 /* ═════════ Cálculo de viaje (relativista, aceleración constante con volteo a mitad de camino) ═════════ */
 function legCalc(a,b){
@@ -3201,7 +3205,7 @@ function legCalc(a,b){
 }
 function legErr(L,s){
   const sp=SPEC[D.ship.d],ml=legMax(D.ship.d);
-  if(L.d>ml+1e-9)return`el salto de ${fmtLen(L.d)} supera el alcance máximo (${fmtLen(ml)})`;
+  if(L.d>ml+1e-9&&!D.cr)return`el salto de ${fmtLen(L.d)} supera el alcance máximo (${fmtLen(ml)})`;
   if(crewCount()<sp.crew[0])return'tripulación insuficiente para operar la nave';
   if(s.hull<=0)return'casco destruido';if(D.cr)return'';
   if(s.fuel+1e-9<L.fuel)return`falta astrófago (${L.fuel.toFixed(1)} t necesarias, hay ${s.fuel.toFixed(1)} t)`;
@@ -3216,7 +3220,7 @@ function buildLegs(stars){
 }
 /* Ruta con A* sobre las estrellas de un corredor alrededor de la línea recta */
 function planRoute(from,to){
-  const ml=legMax(D.ship.d)*.999,D0=gd(from,to);if(D0<=ml)return[from,to];if(D0>400)return null;
+  const ml=legMax(D.ship.d)*.999,D0=gd(from,to);if(D0<=ml||D.cr)return[from,to];if(D0>400)return null;
   const rc=clamp(ml*1.6,12,45),u=[(to.gx-from.gx)/D0,(to.gy-from.gy)/D0,(to.gz-from.gz)/D0],cand=new Map(),key=s=>s.h+':'+Math.round(s.gx*1e3);
   const segD=(x,y,z)=>{const t=clamp((x-from.gx)*u[0]+(y-from.gy)*u[1]+(z-from.gz)*u[2],0,D0);return Math.hypot(x-from.gx-u[0]*t,y-from.gy-u[1]*t,z-from.gz-u[2]*t)};
   const lo=[Math.min(from.gx,to.gx)-rc,Math.min(from.gy,to.gy)-rc,Math.min(from.gz,to.gz)-rc],hi=[Math.max(from.gx,to.gx)+rc,Math.max(from.gy,to.gy)+rc,Math.max(from.gz,to.gz)+rc];
@@ -3246,13 +3250,13 @@ function selectStar(s,fly){
 
 /* ═════════ Viaje animado ═════════ */
 function startTravel(){
-  if(!route||!route.legs||travel)return;const e=legErr(route.legs[0],D.st);if(e){toast('No se puede saltar: '+e);return}
+  if(!route||!route.legs||travel)return;if(pilot)pilot=null;const e=legErr(route.legs[0],D.st);if(e){toast('No se puede saltar: '+e);return}
   if(mode!=='map')exitToMap();travel={legs:route.legs.map(l=>({from:l.from,to:l.to})),i:0,t0:0,pos:null,int:0};route=null;$('#travel').classList.add('show');renderPanel();
 }
 function stepTravel(now){
   if(travel.wait)return;
   if(!travel.t0){const seg=travel.legs[travel.i],L=legCalc(seg.from,seg.to),e=legErr(L,D.st);if(e){endTravel('Viaje detenido: '+e);return}
-    travel.leg=L;travel.t0=now;travel.dur=RM?600:clamp(1700+L.d*120,1900,4200);tg.R=clamp(L.d*.9,6,60);travel.evAt=Math.random()<.45?.5:2}
+    travel.leg=L;travel.t0=now;travel.dur=RM?600:clamp(1700+Math.log10(1+L.d)*1500,1900,5200);tg.R=clamp(L.d*.9,6,3000);travel.evAt=Math.random()<.45?.5:2}
   const L=travel.leg,p=clamp((now-travel.t0)/travel.dur,0,1),e=ease(p),lift=Math.sin(Math.PI*e)*L.d*.18;
   travel.pos=[lerp(L.from.gx,L.to.gx,e),lerp(L.from.gy,L.to.gy,e),lerp(L.from.gz,L.to.gz,e)+lift];travel.int=Math.sin(Math.PI*p);
   cam.fx=tg.fx=travel.pos[0];cam.fy=tg.fy=travel.pos[1];cam.fz=tg.fz=travel.pos[2];
@@ -3266,18 +3270,18 @@ function arrive(L){
   s.days+=L.days;s.yrs+=L.tE;s.jumps++;s.ly+=L.d;if(sp.solar)s.fuel=sp.tank;
   if(!hib)morAll(-Math.min(18,L.days/80));
   else{const risk=.025+(alive().some(m=>m.tr==='Insomne')?.03:0)-best('med').v*.002;if(Math.random()<risk){const w=loseRandom();if(w)queueDialog({t:'Despertar',who:pick(alive())||null,tx:`Al abrir las cápsulas, ${w} no despierta del coma inducido. La tripulación despide a su compañero en silencio.`,res:''})}}
-  D.sp=sSeed(L.to);ping=performance.now();travel.pos=null;record('j',D.sp,true);travel.i++;travel.t0=0;
+  D.sp=seedOf(L.to);ping=performance.now();travel.pos=null;record('j',D.sp,true);travel.i++;travel.t0=0;
   questEvent({type:'arrive',star:L.to});
   if(travel.i>=travel.legs.length){
     const st=L.to;endTravel();selStar=st;
-    toast(`Llegada a <b>${esc(starName(st))}</b> · ${fmtT(L.tau)} a bordo`,'Entrar al sistema',()=>enterSystem(st));
+    if(st.point)toast(`Llegada al espacio profundo · ${fmtT(L.tau)} a bordo`);else toast(`Llegada a <b>${esc(starName(st))}</b> · ${fmtT(L.tau)} a bordo`,'Entrar al sistema',()=>enterSystem(st));
     if(Math.random()<.3){const ev=pickEvent('arr',{star:st});if(ev)queueDialog({ev,ctx:{star:st}})}else crewChatter();
   }
   saveD();refresh();
 }
 function endTravel(msg){travel=null;$('#travel').classList.remove('show');if(msg)toast(esc(msg));saveD();refresh()}
 function rescue(why){
-  const s=D.st,sp=SPEC[D.ship.d];D.sp=sSeed(SOL);s.fuel=sp.tank*.5;s.prov=Math.max(s.prov,sp.prov*.5);s.hull=Math.max(s.hull,60);s.min=0;s.days+=365;s.yrs+=10;
+  const s=D.st,sp=SPEC[D.ship.d];if(typeof pilot!=='undefined')pilot=null;D.sp=sSeed(SOL);s.fuel=sp.tank*.5;s.prov=Math.max(s.prov,sp.prov*.5);s.hull=Math.max(s.hull,60);s.min=0;s.days+=365;s.yrs+=10;
   if(travel){travel=null;$('#travel').classList.remove('show')}mode='map';SYS=null;surf=null;selStar=null;route=null;
   const p=shipStar();flyTo(p.gx,p.gy,p.gz,20);saveD();
   queueDialog({t:'Rescate',who:null,tx:(why?why+' ':'')+'Una nave de la Corporación Ad Astra remolca la tuya hasta la Tierra. Diez años perdidos y la bodega vacía, pero seguís con vida.',res:'Combustible al 50%, casco reparado al 60%.'});refresh();
@@ -3286,7 +3290,7 @@ function rescue(why){
 /* ═════════ Sistemas: vista orbital ═════════ */
 let sysHits=[];
 function enterSystem(st){
-  if(travel)return;SYS=genSystem(st);mode='system';surf=null;selPlanet=null;sysT0=performance.now();if(!RM)warp={t0:sysT0,dur:520};
+  if(travel||!st||st.point){if(st&&st.point)toast('Aquí no hay ningún sistema estelar.');return}SYS=genSystem(st);mode='system';surf=null;selPlanet=null;sysT0=performance.now();if(!RM)warp={t0:sysT0,dur:520};
   const here=sameStar(st,shipStar()),seed=sSeed(st);
   if(here&&!D.disc[seed]){D.disc[seed]=1;record('s',seed,true);morAll(2);for(const m of alive())if(m.tr==='Curioso')m.mor=Math.min(100,m.mor+4);toast(`Sistema registrado: <b>${esc(SYS.name)}</b> (${Object.keys(D.disc).length} en total)`);questEvent({type:'disc'})}
   if(here)questEvent({type:'enter',star:st});
@@ -3410,10 +3414,14 @@ function frame(now){
   const dt=Math.min(.05,(now-(lastT||now))/1000);lastT=now;
   if(travel)stepTravel(now);
   else{
-    if(keys.size&&mode==='map'&&CP){const s=cam.R*dt*.9;let mx=0,my=0,mz=0;
+    if(keys.size&&mode==='map'&&CP){const s=cam.R*dt*(pilot?.5:.9);let mx=0,my=0,mz=0;
       if(keys.has('w')||keys.has('arrowup'))my++;if(keys.has('s')||keys.has('arrowdown'))my--;if(keys.has('a')||keys.has('arrowleft'))mx--;if(keys.has('d')||keys.has('arrowright'))mx++;if(keys.has('e'))mz++;if(keys.has('q'))mz--;
-      if(mx||my||mz){tg.fx+=(CP.cy*mx+CP.sy*my)*s;tg.fy+=(-CP.sy*mx+CP.cy*my)*s;tg.fz+=mz*s;lastInput=now;idleDone=false}}
-    if(opt.spin&&mode==='map'&&!drag&&now-lastInput>4000)tg.yaw+=dt*.04;
+      if(mx||my||mz){const v=[(CP.cy*mx+CP.sy*my)*s,(-CP.sy*mx+CP.cy*my)*s,mz*s];lastInput=now;idleDone=false;
+        if(pilot){const k2=keys.has('shift')?4:1;v[0]*=k2;v[1]*=k2;v[2]*=k2;const d=Math.hypot(...v);
+          if(pilotConsume(d)){pilot.pos[0]+=v[0];pilot.pos[1]+=v[1];pilot.pos[2]+=v[2];pilot.dir=v.map(q=>q/d);pilot.moved+=d}else if(!pilot.warned){pilot.warned=1;toast('Sin astrófago para seguir avanzando. Busca una estrella con astrófago o activa el modo creativo.')}}
+        else{tg.fx+=v[0];tg.fy+=v[1];tg.fz+=v[2]}}}
+    if(pilot){tg.fx=cam.fx=pilot.pos[0];tg.fy=cam.fy=pilot.pos[1];tg.fz=cam.fz=pilot.pos[2]}
+    if(opt.spin&&!pilot&&mode==='map'&&!drag&&now-lastInput>4000)tg.yaw+=dt*.04;
   }
   const k=1-Math.exp(-dt*(drag?30:6));
   cam.yaw+=(tg.yaw-cam.yaw)*k;cam.pitch+=(tg.pitch-cam.pitch)*k;cam.R=Math.exp(lerp(Math.log(cam.R),Math.log(tg.R),k));
@@ -3427,7 +3435,7 @@ function frame(now){
   if(!idleDone&&now-lastInput>2200){idleDone=true;saveView()}
   requestAnimationFrame(frame);
 }
-function saveView(){D.cm=[cam.fx,cam.fy,cam.fz,cam.R,cam.yaw,cam.pitch].map(v=>+v.toFixed(4));D.op=[opt.color?1:0,opt.spin?1:0,opt.nav?1:0,opt.pet?1:0];D.c=seedStr(focusLoc(14));saveD();
+function saveView(){if(pilot){D.sp=pointAt(...pilot.pos).seed;_sp='';}D.cm=[cam.fx,cam.fy,cam.fz,cam.R,cam.yaw,cam.pitch].map(v=>+v.toFixed(4));D.op=[opt.color?1:0,opt.spin?1:0,opt.nav?1:0,opt.pet?1:0];D.c=seedStr(focusLoc(14));saveD();
   if(mode==='map'&&!travel)record('m',focusLoc())}
 
 /* ═════════ Entrada: ratón, táctil y teclado ═════════ */
@@ -3468,11 +3476,12 @@ cv.addEventListener('pointerup',e=>{
 cv.addEventListener('pointercancel',e=>{ptrs.delete(e.pointerId);drag=null});
 cv.addEventListener('dblclick',e=>{if(mode!=='map')return;const s=pickStar(...pos(e));if(s)selectStar(s,true)});
 cv.addEventListener('wheel',e=>{e.preventDefault();lastInput=performance.now();idleDone=false;tg.R=clamp(tg.R*Math.exp(clamp(e.deltaY,-200,200)*.0013),1,3000)},{passive:false});
-const KEYS=new Set(['w','a','s','d','q','e','arrowup','arrowdown','arrowleft','arrowright']);
+const KEYS=new Set(['w','a','s','d','q','e','shift','arrowup','arrowdown','arrowleft','arrowright']);
 document.addEventListener('keydown',e=>{
   if(e.target.matches('input,textarea,select'))return;if(e.ctrlKey||e.metaKey||e.altKey)return;const k=e.key.toLowerCase();
   if(modalOpen){if(k==='escape'&&!dq.length&&$('#no'))$('#no').click();return}
-  if(KEYS.has(k)){keys.add(k);e.preventDefault();return}
+  if(KEYS.has(k)){keys.add(k);if(k!=='shift')e.preventDefault();return}
+  if(k==='f'){togglePilot();return}
   if(k==='escape'){if(mode==='surface'){mode='system';surf=null;refresh()}else if(mode==='system')exitToMap();else{selStar=null;route=null;renderPanel()}}
   else if(k==='home'||k==='.')centerOnShip();
   else if(k==='+'||k==='=')tg.R=clamp(tg.R/1.4,1,3000);else if(k==='-')tg.R=clamp(tg.R*1.4,1,3000);
@@ -3482,13 +3491,33 @@ document.addEventListener('keydown',e=>{
 });
 document.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));addEventListener('blur',()=>keys.clear());
 
+/* ═════════ Pilotaje libre: la nave va a cualquier punto del espacio ═════════ */
+function pilotConsume(d){
+  if(!d)return true;if(D.cr){D.st.ly+=d;return true}const sp=SPEC[D.ship.d],s=D.st,need=d*sp.burn;if(s.fuel<need)return false;
+  s.fuel-=need;const days=d*365.25*.32;s.days+=days;s.yrs+=d*1.05;s.ly+=d;if(sp.prov)s.prov=Math.max(0,s.prov-crewCount()*days*(D.hib&&sp.hib?.15:1)*(1-(sp.farm||0)));return true;
+}
+function togglePilot(){
+  if(travel)return;if(pilot){stopPilot();return}if(mode!=='map')exitToMap();
+  if(crewCount()<SPEC[D.ship.d].crew[0]){toast('Tripulación insuficiente para pilotar.');return}
+  const p=shipPos();pilot={pos:[p[0],p[1],p[2]],dir:null,moved:0};selStar=null;route=null;flyTo(p[0],p[1],p[2],Math.min(Math.max(tg.R,4),40));
+  toast('Pilotaje libre: <b>WASD</b> mover · <b>Q/E</b> bajar/subir · <b>Shift</b> turbo · rueda = velocidad/zoom · <b>F</b> para detenerte');refresh();
+}
+function stopPilot(){
+  const p=pilot.pos;let best=null,bd=.5;starsNear(p[0],p[1],p[2],.5,(s,d)=>{if(d<bd){bd=d;best=s}});
+  const moved=pilot.moved;pilot=null;
+  if(best){D.sp=seedOf(best);_sp='';toast(`Te detienes junto a <b>${esc(starName(best))}</b>`,'Entrar al sistema',()=>enterSystem(best))}
+  else{D.sp=pointAt(p[0],p[1],p[2]).seed;_sp='';toast(`Nave detenida en el espacio profundo · recorriste ${fmtLen(moved)}`)}
+  if(moved>0){D.st.jumps++;record('j',D.sp,true);if(best)questEvent({type:'arrive',star:best})}
+  ping=performance.now();saveD();refresh();
+}
 function centerOnShip(){if(travel)return;if(mode!=='map')exitToMap();const p=shipPos();flyTo(p[0],p[1],p[2],Math.max(legMax(D.ship.d)*1.3,8));ping=performance.now()}
 $('#ctr').onclick=centerOnShip;
 $('#zoom').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.id==='spinBtn'){opt.spin=!opt.spin;syncToggles();saveView();return}tg.R=clamp(tg.R*(+b.dataset.z>0?1.5:1/1.5),1,3000);lastInput=performance.now()});
 $('#toggles').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;opt[b.dataset.o]=!opt[b.dataset.o];syncToggles();saveView()});
 function syncToggles(){document.querySelectorAll('#toggles button').forEach(b=>b.classList.toggle('on',!!opt[b.dataset.o]));$('#spinBtn').classList.toggle('on',opt.spin)}
 $('#views').addEventListener('click',e=>{
-  const b=e.target.closest('button');if(!b||travel)return;if(mode!=='map')exitToMap();const T=A_BY('tceti'),S0=shipStar();
+  const b=e.target.closest('button');if(!b||travel)return;if(b.dataset.v==='pilot'){togglePilot();return}if(pilot)stopPilot();if(mode!=='map')exitToMap();const T=A_BY('tceti'),S0=shipStar();
+  if(b.dataset.v==='here'){selectStar(pointAt(cam.fx,cam.fy,cam.fz));return}
   if(b.dataset.v==='sol'){selStar=null;route=null;flyTo(SOL.gx,SOL.gy,SOL.gz,18,.5);renderPanel()}
   else if(b.dataset.v==='tau')selectStar(T,true);
   else if(b.dataset.v==='traj'){selectStar(T);flyTo((S0.gx+T.gx)/2,(S0.gy+T.gy)/2,(S0.gz+T.gz)/2,Math.max(gd(S0,T)*.85,8),.75)}
@@ -3509,10 +3538,11 @@ function updateHud(){
    <div><span>TRIPULACIÓN</span><b>${c} / ${sp.crew[1]}</b>${meter(mor,100,mor<35?'#ff6b6b':'#78dcff')}<em>moral ${Math.round(mor)}%</em></div>
    <div><span>CASCO</span><b>${Math.round(s.hull)}%</b>${meter(s.hull,100,s.hull<35?'#ff6b6b':'#cfd6e2')}<em>minerales ${Math.round(s.min)} t</em></div>
    <div><span>MISIÓN</span><b>τ ${fmtT(s.days/365.25)}</b><em>Tierra ${(2026+s.yrs).toFixed(1)}</em></div>`;
+  if(pilot&&tab==='carta'&&mode==='map')renderCarta();
   if(document.activeElement!==$('#seedIn'))$('#seedIn').value=seedStr(focusLoc());
   $('#banner').style.display=D.anon?'block':'none';$('#crTag').style.display=D.cr?'block':'none';
 }
-function refresh(){renderPanel();updateHud();syncToggles();$('#backBtn').style.display=mode==='map'?'none':'block';$('#views').style.visibility=mode==='map'?'visible':'hidden'}
+function refresh(){renderPanel();updateHud();syncToggles();$('#backBtn').style.display=mode==='map'?'none':'block';$('#pilotBtn').classList.toggle('on',!!pilot);$('#views').style.visibility=mode==='map'?'visible':'hidden'}
 
 /* ═════════ Panel de mando ═════════ */
 function setTab(t){tab=t;document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('on',p.id==='p-'+t));if(t!=='ship')prevCv=null;renderPanel()}
@@ -3527,12 +3557,22 @@ function renderCarta(){
   if(mode==='system')return systemPanel(el);if(mode==='surface')return surfacePanel(el);
   const ship=shipStar(),sp=SPEC[D.ship.d],ml=legMax(D.ship.d);let h='';
   if(travel){h+=`<div class="kick">EN TRÁNSITO</div><h2>Rumbo a ${esc(starName(travel.legs[travel.legs.length-1].to))}</h2><p class="note">Salto ${travel.i+1} de ${travel.legs.length}.${D.hib&&sp.hib?' La tripulación duerme en las cápsulas.':''}</p>${travel.legs.length>travel.i+1?A('Detenerse tras este salto',()=>{travel.legs.length=travel.i+1;renderPanel()}):''}`;el.innerHTML=h;bindActs(el);return}
+  if(pilot){
+    let nb=null,nd=1e9;starsNear(pilot.pos[0],pilot.pos[1],pilot.pos[2],12,(s,d)=>{if(d<nd){nd=d;nb=s}});
+    h+=`<div class="kick">PILOTAJE LIBRE</div><h2>${esc(D.ship.n||SHIPS[D.ship.d].n)}</h2><p class="note">Mueve la nave a cualquier lugar: WASD/flechas, Q/E para bajar o subir, Shift para turbo. La velocidad depende del zoom.${D.cr?' Modo creativo: sin consumo.':' Consume '+sp.burn+' t de astrófago por año luz.'}</p>
+    <div class="kv"><span>Posición</span><span>${pilot.pos.map(v=>v.toFixed(2)).join(', ')} al</span><span>Recorrido</span><span>${fmtLen(pilot.moved)}</span><span>Estrella más cercana</span><span>${nb?esc(starName(nb))+' · '+fmtLen(nd):'ninguna a menos de 12 al'}</span></div>
+    <div class="row">${A('■ Detener la nave aquí',stopPilot,0,'pri')}${nb?A('Ir hasta '+esc(starName(nb)),()=>{pilot.pos=[nb.gx,nb.gy,nb.gz-.01];stopPilot()},!D.cr&&D.st.fuel<nd*sp.burn):''}</div>`;
+    el.innerHTML=h;bindActs(el);return;
+  }
+  if(selStar&&selStar.point){
+    const s=selStar;h+=`<div class="kick">DESTINO LIBRE</div><h2>Punto en el espacio profundo</h2><div class="kv"><span>Posición</span><span>${[s.gx,s.gy,s.gz].map(v=>v.toFixed(2)).join(', ')} al</span><span>Desde tu nave</span><span>${fmtLen(gd(ship,s))}</span><span>Desde el Sol</span><span>${fmtLen(Math.hypot(s.gx,s.gy,s.gz))}</span><span>Semilla</span><span class="seed">${esc(s.seed)}</span></div>`;
+  }
   if(selStar){
     const s=selStar,here=sameStar(s,ship),inf=infected(s);
-    h+=`<div class="kick">SISTEMA ESTELAR</div><h2 style="color:${opt.pet&&inf?'#ff3b5c':'#fff'}">${esc(starName(s))}</h2><div class="row">${s.anchor?'<span class="tag fx">mapa de la película</span>':''}${inf?'<span class="tag pet">astrófago</span>':''}${D.disc[sSeed(s)]?'<span class="tag hz">registrado</span>':''}</div>
+    if(!s.point)h+=`<div class="kick">SISTEMA ESTELAR</div><h2 style="color:${opt.pet&&inf?'#ff3b5c':'#fff'}">${esc(starName(s))}</h2><div class="row">${s.anchor?'<span class="tag fx">mapa de la película</span>':''}${inf?'<span class="tag pet">astrófago</span>':''}${D.disc[sSeed(s)]?'<span class="tag hz">registrado</span>':''}</div>
     ${s.anchor?`<p class="note">${esc(s.anchor.blurb)}</p>`:''}${starKV(s)}`;
     if(here)h+=`<p class="ok">Tu nave está en este sistema.</p><div class="row">${A('Entrar al sistema',()=>enterSystem(s),0,'pri')}</div>`;
-    else if(!route||route.none)h+=`<p class="bad">No hay ruta con saltos de hasta ${fmtLen(ml)} dentro de un corredor razonable${gd(ship,s)>400?' (máx. 400 al por plan)':''}. Prueba con un destino intermedio.</p><div class="row">${A('Ver sistema (sondeo remoto)',()=>enterSystem(s))}</div>`;
+    else if(!route||route.none)h+=`<p class="bad">No hay ruta con saltos de hasta ${fmtLen(ml)} dentro de un corredor razonable${gd(ship,s)>400?' (máx. 400 al por plan)':''}. Usa el <b>pilotaje libre</b> (tecla F), el modo creativo o un destino intermedio.</p><div class="row">${A('✈ Pilotar libremente',togglePilot,0,'pri')}${s.point?'':A('Ver sistema (sondeo remoto)',()=>enterSystem(s))}</div>`;
     else{
       const t=route.tot,L0=route.legs[0],err=route.legs.find(l=>l.err),vmax=Math.max(...route.legs.map(l=>l.v));
       h+=`<h3>Cálculo de navegación</h3><div class="calc"><span>Distancia</span><span>${fmtLen(t.d)} · ${route.legs.length} salto${route.legs.length>1?'s':''}</span>
@@ -3542,7 +3582,7 @@ function renderCarta(){
       <span>Provisiones</span><span class="${!sp.prov||D.cr||t.prov<=D.st.prov?'ok':'bad'}">${sp.prov?fmtI(t.prov)+' de '+fmtI(D.st.prov)+' días-persona':'no aplica'}</span></div>
       ${sp.hib?`<label class="chk"><input type="checkbox" id="hibT" ${D.hib?'checked':''}> Hibernación en cápsulas de coma (provisiones ×0,15, riesgo al despertar)</label>`:''}
       ${err?`<p class="bad">✗ ${esc(cap(err.err))}${route.legs.indexOf(err)>0?` (salto ${route.legs.indexOf(err)+1})`:''}</p>`:'<p class="ok">✓ Todo listo para el salto.</p>'}
-      <div class="row">${A('▶ Iniciar viaje',startTravel,!!L0.err,'pri')}${A('Ver sistema',()=>enterSystem(s))}${A('Centrar',()=>flyTo(s.gx,s.gy,s.gz,Math.min(tg.R,16)))}</div>
+      <div class="row">${A('▶ Iniciar viaje',startTravel,!!L0.err,'pri')}${s.point?'':A('Ver sistema',()=>enterSystem(s))}${A('Centrar',()=>flyTo(s.gx,s.gy,s.gz,Math.min(tg.R,16)))}</div>
       ${route.legs.length>1?`<h3>Escalas</h3><div class="lst">${route.legs.map((l,i)=>`<div class="item ${l.err?'err':l.pend?'pend':''}"><span class="dim">${i+1}</span><div class="m"><b>${esc(starName(l.to))}</b><i>${fmtLen(l.d)} · τ ${fmtT(l.tau)} · ${l.fuel.toFixed(1)} t${l.err?' · '+esc(l.err):''}</i></div></div>`).join('')}</div>`:''}`;
     }
     h+=`<div class="row">${A('Quitar selección',()=>{selStar=null;route=null;renderPanel()})}</div>`;
@@ -3550,10 +3590,10 @@ function renderCarta(){
     const fl=focusLoc(),list=[];starsNear(ship.gx,ship.gy,ship.gz,ml,(s,d)=>{if(!sameStar(s,ship))list.push([d,s])});list.sort((a,b)=>a[0]-b[0]);
     h+=`<div class="kick">REGIÓN</div><h2>${esc(regionName(fl))}</h2><div class="seed">${esc(seedStr(fl))}</div>
     <div class="kv"><span>Sector</span><span>${esc(fl.head)} · (${fl.sx}, ${fl.sy}, ${fl.sz})</span><span>Foco (x, y, z)</span><span>${[cam.fx,cam.fy,cam.fz].map(v=>v.toFixed(2)).join(', ')} al</span><span>Desde el Sol</span><span>${fmtLen(Math.hypot(cam.fx,cam.fy,cam.fz))}</span><span>Densidad</span><span>${Math.round(density(cam.fx,cam.fy,cam.fz)*100)}%</span></div>
-    <div class="row">${A('Copiar semilla',()=>copy(seedStr(fl),'Semilla copiada'))}${A('Copiar enlace',()=>copy(baseUrl()+'#s='+encodeURIComponent(seedStr(fl)),'Enlace copiado'))}</div>
+    <div class="row">${A('⌖ Fijar destino en el foco',()=>selectStar(pointAt(cam.fx,cam.fy,cam.fz)),0,'pri')}${A('✈ Pilotar',togglePilot)}${A('Copiar semilla',()=>copy(seedStr(fl),'Semilla copiada'))}${A('Copiar enlace',()=>copy(baseUrl()+'#s='+encodeURIComponent(seedStr(fl)),'Enlace copiado'))}</div>
     <h3>Sistemas a un salto de ${esc(starName(ship))} (máx. ${fmtLen(ml)})</h3><div class="lst">${list.slice(0,14).map(([d,s],i)=>{ACTS.push(()=>selectStar(s,true));const ok=D.cr||d*sp.burn<=D.st.fuel;
       return`<div class="item" data-a="${ACTS.length-1}"><span style="color:${opt.pet&&infected(s)?'#ff3b5c':s.P.col}">●</span><div class="m"><b>${esc(starName(s))}</b><i>${s.P.k} · ${fmtLen(d)}${D.disc[sSeed(s)]?' · registrado':''}</i></div><span class="${ok?'ok':'bad'}">${ok?'✓':'✗'}</span></div>`}).join('')||'<p class="note">Ninguna estrella al alcance. Recolecta astrófago o cambia de nave.</p>'}</div>
-    <p class="note">Clic en una estrella para calcular el salto. Doble clic para centrarla.</p>`;
+    <p class="note">Clic en una estrella para calcular el salto · «Fijar destino» viaja a cualquier punto (la retícula del centro) · «Pilotar» (F) mueve la nave libremente.</p>`;
   }
   el.innerHTML=h;bindActs(el);
   const hb=$('#hibT');if(hb)hb.onchange=()=>{D.hib=hb.checked?1:0;saveD();if(route&&route.stars)route=buildLegs(route.stars);renderPanel();updateHud()};
@@ -3678,7 +3718,7 @@ function renderNav(){
   <h3>Por coordenadas</h3><div class="field"><label>x (al)</label><input id="cx" type="number" step="any" value="${cam.fx.toFixed(2)}"></div><div class="field"><label>y (al)</label><input id="cy" type="number" step="any" value="${cam.fy.toFixed(2)}"></div><div class="field"><label>z (al)</label><input id="cz" type="number" step="any" value="${cam.fz.toFixed(2)}"></div>
   <div class="row"><button class="pri" id="cgo">Ir</button><button id="rnd2">🎲 Lugar aleatorio</button></div>
   <h3>Cómo leer una semilla</h3><p class="note"><b>CABECERA-DETALLE</b>. La cabecera (A … Z, AA, AB, AC … AAA …) numera sectores de ${SEC} al en capas alrededor del Sol; crece al alejarte, así que no hay borde. Cada carácter de detalle (0-9, A-Q) afina la posición 3 veces por eje: 3 caracteres ≈ ${fmtLen(SEC/27)}, 6 ≈ ${fmtLen(SEC/729)}, 14 identifican una estrella.</p>
-  <p class="note">Controles: arrastrar = orbitar · Shift/botón derecho/dos dedos = desplazar · rueda o pellizco = zoom · WASD/flechas = volar · Q/E = bajar/subir · Inicio = tu nave · M = panel · Intro = iniciar viaje.</p>`;
+  <p class="note">Controles: arrastrar = orbitar · Shift/botón derecho/dos dedos = desplazar · rueda o pellizco = zoom · WASD/flechas = volar · Q/E = bajar/subir · Inicio = tu nave · M = panel · Intro = iniciar viaje · F = pilotaje libre (WASD mueve la nave, Shift turbo).</p>`;
   bindActs(el);
   $('#cgo').onclick=()=>{const v=['#cx','#cy','#cz'].map(s=>parseFloat($(s).value));if(v.some(n=>!isFinite(n)||Math.abs(n)>1e6)){toast('Coordenadas fuera de rango (±1 000 000 al).');return}if(mode!=='map')exitToMap();flyTo(v[0],v[1],v[2],10)};
   $('#rnd2').onclick=randomPlace;
