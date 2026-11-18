@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Ad Astra · Explorador de Semillas</title>
+<title>Ad Astra · Carta Estelar de Semillas</title>
 <meta name="description" content="Explorador interactivo de un mapa espacial generativo por semillas alfanuméricas. Sin servidor, sin cuenta.">
 <style>
 :root{--bg:#04060c;--panel:#0a101e;--panel2:#0e1730;--line:#1b2744;--tx:#cdd7ea;--dim:#7f8da8;--amb:#ffb454;--cy:#58d0ff;--ok:#7ee787;--bad:#ff6b6b}
@@ -30,8 +30,19 @@ canvas{display:block;width:100%;height:100%;touch-action:none;cursor:crosshair}
 #crumb{left:10px;top:10px;display:flex;flex-wrap:wrap;gap:3px;max-width:calc(100% - 20px)}
 #crumb button{padding:1px 7px;background:#0a1224cc;font-size:13px}
 #crumb button.cur{border-color:var(--amb);color:var(--amb)}
-#dpad{left:10px;bottom:10px;display:grid;grid-template-columns:repeat(3,34px);grid-template-rows:repeat(3,34px);gap:3px}
-#dpad button{padding:0;background:#0a1224cc}
+#dpad{left:10px;bottom:10px;display:flex;gap:3px;flex-wrap:wrap;max-width:60%}
+#dpad button{padding:3px 8px;background:#0a1224cc}
+#views{left:10px;bottom:46px;display:flex;gap:3px;flex-wrap:wrap;max-width:75%}
+#views button{padding:3px 8px;background:#0a1224cc;font-size:12px}
+#views button.on{border-color:var(--amb);color:var(--amb)}
+.mini{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;width:96px}
+.mini button{padding:2px 0;font-size:12px;background:#0b1630}
+.mini button.h{border-color:var(--amb);color:var(--amb)}
+.minis{display:flex;gap:10px;flex-wrap:wrap}
+.ships{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.ships button{padding:6px 2px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px}
+.ships button.on{border-color:var(--amb);color:var(--amb)}
+.ships svg{width:52px;height:52px}
 #hint{right:10px;bottom:8px;color:var(--dim);font-size:12px;text-align:right;pointer-events:none;max-width:60%}
 #tip{pointer-events:none;background:#050a16ee;border:1px solid var(--line);padding:4px 8px;border-radius:6px;font-size:12px;display:none;white-space:nowrap}
 #banner{right:10px;top:10px;background:#3a0f0fcc;border:1px solid var(--bad);color:#ffb3b3;padding:2px 8px;border-radius:6px;font-size:12px;display:none}
@@ -79,7 +90,7 @@ textarea{width:100%;height:70px;resize:vertical;font-size:11px}
 <header>
   <div class="logo">AD ASTRA<small>explorador de semillas</small></div>
   <form id="seedForm" autocomplete="off">
-    <input id="seedIn" placeholder="Semilla: 7K3Q9  ·  con sector: 3,-2/7K3Q9" spellcheck="false" maxlength="40" aria-label="Semilla">
+    <input id="seedIn" placeholder="Semilla: A-3K9Q  ·  AB-7C2  ·  (sector - detalle)" spellcheck="false" maxlength="48" aria-label="Semilla">
     <button class="pri" type="submit">Teletransportar</button>
     <button type="button" id="rndBtn" title="Semilla aleatoria">🎲</button>
   </form>
@@ -89,12 +100,9 @@ textarea{width:100%;height:70px;resize:vertical;font-size:11px}
   <canvas id="cv"></canvas>
   <div class="ov" id="crumb"></div>
   <div class="ov" id="banner">sin registro</div>
-  <div class="ov" id="dpad">
-    <span></span><button data-d="0,-1" title="Norte (↑)">▲</button><span></span>
-    <button data-d="-1,0" title="Oeste (←)">◀</button><button id="upBtn" title="Subir un nivel (Retroceso)">⤒</button><button data-d="1,0" title="Este (→)">▶</button>
-    <span></span><button data-d="0,1" title="Sur (↓)">▼</button><span></span>
-  </div>
-  <div class="ov" id="hint">Clic en una celda = añade su letra · teclas 0-9/A-Z · flechas = celdas vecinas · Retroceso = subir</div>
+  <div class="ov" id="dpad"><button data-d="-1,0,0" title="Sector/celda X− (←)">X−</button><button data-d="1,0,0" title="X+ (→)">X+</button><button data-d="0,-1,0" title="Y− (↓)">Y−</button><button data-d="0,1,0" title="Y+ (↑)">Y+</button><button data-d="0,0,-1" title="Z− (AvPág)">Z−</button><button data-d="0,0,1" title="Z+ (RePág)">Z+</button><button id="upBtn" title="Subir un nivel (Retroceso)">⤒</button></div>
+  <div class="ov" id="views"><button data-v="sol">Sol</button><button data-v="traj">Trayectoria</button><button data-v="tau">Tau Ceti</button><button data-v="sector">Sector</button><button data-v="route" id="routeBtn">Ruta</button><button data-v="color" id="colorBtn">Color</button></div>
+  <div class="ov" id="hint">Arrastra = orbitar · rueda = zoom · clic en una celda = añade su carácter (0-9, A-Q) · flechas/RePág = celdas vecinas · Retroceso = subir</div>
   <div class="ov" id="tip"></div>
 </section>
 
@@ -103,11 +111,13 @@ textarea{width:100%;height:70px;resize:vertical;font-size:11px}
     <button data-t="info" class="on">Ubicación</button>
     <button data-t="hist">Bitácora</button>
     <button data-t="trav">Viajar</button>
+    <button data-t="ship">Nave</button>
     <button data-t="share">Compartir</button>
   </div>
   <div class="pane on" id="p-info"></div>
   <div class="pane" id="p-hist"></div>
   <div class="pane" id="p-trav"></div>
+  <div class="pane" id="p-ship"></div>
   <div class="pane" id="p-share"></div>
 </aside>
 </div>
@@ -2418,66 +2428,95 @@ var qrcode = function() {
 <script>
 (()=>{'use strict';
 /* ═════════ Constantes y utilidades ═════════ */
-const TILE=4096, B=6, MAXD=14, SC=2, LY_AU=63241.077, AU_KM=149597870.7;
-const ALPHA='0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-const LS_KEY='adastra.explorer.v1';
+const SEC=240,HALF=120,SC=8,NC=30,MAXD=18,MAXHEAD=10,LY_AU=63241.077,AU_KM=149597870.7;
+const DETAIL='0123456789ABCDEFGHIJKLMNOPQ'; // 27 símbolos = 3×3×3 celdas por nivel
+const LS_KEY='adastra.explorer.v2';
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
 const lerp=(a,b,t)=>a+(b-a)*t;
 const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
 const cap=s=>s[0].toUpperCase()+s.slice(1);
-
 function mix(h){h^=h>>>16;h=Math.imul(h,0x85ebca6b);h^=h>>>13;h=Math.imul(h,0xc2b2ae35);h^=h>>>16;return h>>>0}
 function hash(...v){let h=0x12345678;for(const n of v){h=mix(h^(n|0));h=(h+0x9e3779b9)|0}return h>>>0}
 function rng(seed){let a=seed>>>0;return()=>{a=(a+0x6D2B79F5)>>>0;let t=a;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296}}
-function vnoise(x,y,salt){const xi=Math.floor(x),yi=Math.floor(y),fx=x-xi,fy=y-yi,u=fx*fx*(3-2*fx),v=fy*fy*(3-2*fy);
-  const r=(i,j)=>hash(i,j,salt)/4294967296;return lerp(lerp(r(xi,yi),r(xi+1,yi),u),lerp(r(xi,yi+1),r(xi+1,yi+1),u),v)}
-function density(gx,gy){return .5*vnoise(gx/900,gy/900,11)+.3*vnoise(gx/260,gy/260,23)+.2*vnoise(gx/70,gy/70,37)}
-const starP=d=>.03+.7*d*d;
-
+function vn3(x,y,z,salt){const xi=Math.floor(x),yi=Math.floor(y),zi=Math.floor(z),fx=x-xi,fy=y-yi,fz=z-zi,
+  u=fx*fx*(3-2*fx),v=fy*fy*(3-2*fy),w=fz*fz*(3-2*fz),r=(i,j,k)=>hash(i,j,k,salt)/4294967296;
+  return lerp(lerp(lerp(r(xi,yi,zi),r(xi+1,yi,zi),u),lerp(r(xi,yi+1,zi),r(xi+1,yi+1,zi),u),v),
+              lerp(lerp(r(xi,yi,zi+1),r(xi+1,yi,zi+1),u),lerp(r(xi,yi+1,zi+1),r(xi+1,yi+1,zi+1),u),v),w)}
+function eq2ecl(raD,decD,d){const a=raD*Math.PI/180,de=decD*Math.PI/180,e=23.4393*Math.PI/180,x=d*Math.cos(de)*Math.cos(a),y=d*Math.cos(de)*Math.sin(a),z=d*Math.sin(de);
+  return[x,y*Math.cos(e)+z*Math.sin(e),-y*Math.sin(e)+z*Math.cos(e)]}
+const NGP=eq2ecl(192.8595,27.1283,1); // polo norte galáctico en eclíptica J2000
+function density(gx,gy,gz){const h=gx*NGP[0]+gy*NGP[1]+gz*NGP[2],f=Math.exp(-Math.abs(h)/350)+.015,
+  n=.6*vn3(gx/150,gy/150,gz/150,11)+.4*vn3(gx/45,gy/45,gz/45,23);return clamp(f*(.4+n),0,1)}
+const lambda=d=>1.6*d*d;
 function fmtLen(ly){
-  if(ly>=1000)return (ly/1000).toFixed(2)+' kly';
+  if(ly>=1000)return (ly/1000).toFixed(2)+' kal';
   if(ly>=1)return ly.toFixed(ly>=100?0:2)+' al';
   const au=ly*LY_AU; if(au>=.1)return au.toFixed(au>=100?0:2)+' UA';
   const km=au*AU_KM; return km>=1e4?(km/1e6).toFixed(2)+' M km':km.toFixed(0)+' km';
 }
-function fmtNum(n){return n>=1e9?(n/1e9).toFixed(1)+' mil M':n>=1e6?(n/1e6).toFixed(1)+' M':n>=1e3?(n/1e3).toFixed(1)+' mil':Math.round(n).toString()}
-const DEPTH_NAMES=['Teselado','Cuadrante','Sector','Región','Vecindad','Bolsillo','Zona','Franja','Celda','Parcela','Punto','Mota','Grano','Átomo','Quark'];
+const fmtNum=n=>n>=1e9?(n/1e9).toFixed(1)+' mil M':n>=1e6?(n/1e6).toFixed(1)+' M':n>=1e3?(n/1e3).toFixed(1)+' mil':Math.round(n).toString();
+const DEPTH_NAMES=['Sector','Cubo','Bloque','Zona','Vecindad','Bolsillo','Pozo','Celda','Parcela','Punto','Mota','Grano','Átomo','Quark'];
 
-/* ═════════ Semillas ⇄ coordenadas ═════════
-   El espacio es un plano infinito de "teselas" de 4096 al. Cada letra (0-9A-Z = 36 símbolos)
-   elige una celda de la rejilla 6×6 de la celda actual: 1 letra → 683 al, 2 → 114 al, 3 → 19 al … */
-function seedStr(l){return (l.tx||l.ty?`${l.tx},${l.ty}/`:'')+l.path}
+/* ═════════ Semillas ═════════
+   Semilla = CABECERA-DETALLE.  Cabecera: letras A-Z estilo columnas de hoja de cálculo (A…Z, AA, AB, AC…, AAA…): numera
+   sectores cúbicos de 240 al en capas concéntricas alrededor del Sol (A = sector del Sol) → el mapa es infinito y la
+   cabecera crece con la distancia.  Detalle: cada carácter (0-9, A-Q) elige 1 de 3×3×3 subceldas. */
+const cube=n=>n*n*n;
+function sToXYZ(s){
+  if(s===0)return[0,0,0];
+  let k=Math.max(1,Math.floor((Math.cbrt(s)-1)/2));while(cube(2*k+1)<=s)k++;while(k>1&&cube(2*k-1)>s)k--;
+  let t=s-cube(2*k-1);const n1=(2*k+1)**2,m=(2*k-1)*(2*k+1),m3=(2*k-1)**2,o=2*k-1,w=2*k+1;
+  if(t<n1)return[k,t%w-k,Math.floor(t/w)-k];t-=n1;
+  if(t<n1)return[-k,t%w-k,Math.floor(t/w)-k];t-=n1;
+  if(t<m)return[t%o-(k-1),k,Math.floor(t/o)-k];t-=m;
+  if(t<m)return[t%o-(k-1),-k,Math.floor(t/o)-k];t-=m;
+  if(t<m3)return[t%o-(k-1),Math.floor(t/o)-(k-1),k];t-=m3;
+  return[t%o-(k-1),Math.floor(t/o)-(k-1),-k];
+}
+function xyzToS(x,y,z){
+  const k=Math.max(Math.abs(x),Math.abs(y),Math.abs(z));if(!k)return 0;
+  const base=cube(2*k-1),n1=(2*k+1)**2,m=(2*k-1)*(2*k+1),m3=(2*k-1)**2,o=2*k-1,w=2*k+1;
+  if(x===k)return base+(z+k)*w+(y+k);if(x===-k)return base+n1+(z+k)*w+(y+k);
+  if(y===k)return base+2*n1+(z+k)*o+(x+k-1);if(y===-k)return base+2*n1+m+(z+k)*o+(x+k-1);
+  if(z===k)return base+2*n1+2*m+(y+k-1)*o+(x+k-1);return base+2*n1+2*m+m3+(y+k-1)*o+(x+k-1);
+}
+function sToHead(s){let n=s+1,h='';while(n>0){n--;h=String.fromCharCode(65+n%26)+h;n=Math.floor(n/26)}return h}
+function headToS(h){let n=0;for(const c of h)n=n*26+(c.charCodeAt(0)-64);return n-1}
+function mkLoc(head,path){const[sx,sy,sz]=sToXYZ(headToS(head));return{head,path,sx,sy,sz}}
+function mkLocXYZ(sx,sy,sz,path){return{head:sToHead(xyzToS(sx,sy,sz)),path,sx,sy,sz}}
+const seedStr=l=>l.head+(l.path?'-'+l.path:'');
 function parseSeed(s){
-  s=(s||'').trim().toUpperCase();let tx=0,ty=0;
-  const m=s.match(/^\(?\s*(-?\d+)\s*[,;]\s*(-?\d+)\s*\)?\s*(?:[\/:|·]\s*(.*))?$/);
-  if(m){tx=+m[1];ty=+m[2];s=m[3]||''}
-  s=s.replace(/[\s\-_.]/g,'');
-  if(!/^[0-9A-Z]*$/.test(s))return{err:'Solo se admiten dígitos y letras A-Z.'};
-  if(Math.abs(tx)>99999||Math.abs(ty)>99999)return{err:'El sector debe estar entre -99999 y 99999.'};
-  let trunc=false;if(s.length>MAXD){s=s.slice(0,MAXD);trunc=true}
-  return{loc:{tx,ty,path:s},trunc};
+  s=(s||'').trim().toUpperCase().replace(/[\s_.·]/g,'');
+  let head,path;
+  if(s.includes('-')){const i=s.indexOf('-');head=s.slice(0,i);path=s.slice(i+1).replace(/-/g,'')}
+  else{const m=s.match(/^([A-Z]*)(.*)$/);head=m[1];path=m[2];if(!head){head='A'}}
+  if(!/^[A-Z]{1,10}$/.test(head))return{err:'La cabecera son 1-10 letras A-Z (A, B… Z, AA, AB…).'};
+  if(!/^[0-9A-Q]*$/.test(path))return{err:'El detalle solo admite 0-9 y A-Q (27 celdas por nivel). Separa cabecera y detalle con «-».'};
+  let trunc=false;if(path.length>MAXD){path=path.slice(0,MAXD);trunc=true}
+  return{loc:mkLoc(head,path),trunc};
 }
 function cellOf(l){
-  let s=TILE,x=-TILE/2,y=-TILE/2;
-  for(const ch of l.path){const i=ALPHA.indexOf(ch);s/=B;x+=(i%B)*s;y+=Math.floor(i/B)*s}
-  return{tx:l.tx,ty:l.ty,x0:x,y0:y,size:s,depth:l.path.length,path:l.path};
+  let s=SEC,x=-HALF,y=-HALF,z=-HALF;
+  for(const ch of l.path){const i=DETAIL.indexOf(ch);s/=3;x+=(i%3)*s;y+=(Math.floor(i/3)%3)*s;z+=Math.floor(i/9)*s}
+  return{sx:l.sx,sy:l.sy,sz:l.sz,head:l.head,x0:x,y0:y,z0:z,size:s,depth:l.path.length,path:l.path};
 }
-function pointToLoc(tx,ty,lx,ly,depth){
-  while(lx>=TILE/2){lx-=TILE;tx++}while(lx<-TILE/2){lx+=TILE;tx--}
-  while(ly>=TILE/2){ly-=TILE;ty++}while(ly<-TILE/2){ly+=TILE;ty--}
-  let u=(lx+TILE/2)/TILE,v=(ly+TILE/2)/TILE,p='';
-  for(let i=0;i<depth;i++){u*=B;v*=B;const c=clamp(Math.floor(u),0,B-1),r=clamp(Math.floor(v),0,B-1);u-=c;v-=r;p+=ALPHA[r*B+c]}
-  return{tx,ty,path:p};
+function posToLoc(sx,sy,sz,lx,ly,lz,depth){
+  const w=(v,n)=>{while(v>=HALF){v-=SEC;n++}while(v<-HALF){v+=SEC;n--}return[v,n]};
+  [lx,sx]=w(lx,sx);[ly,sy]=w(ly,sy);[lz,sz]=w(lz,sz);
+  let u=(lx+HALF)/SEC,v=(ly+HALF)/SEC,q=(lz+HALF)/SEC,p='';
+  for(let i=0;i<depth;i++){u*=3;v*=3;q*=3;const a=clamp(Math.floor(u),0,2),b=clamp(Math.floor(v),0,2),c=clamp(Math.floor(q),0,2);u-=a;v-=b;q-=c;p+=DETAIL[a+3*b+9*c]}
+  return mkLocXYZ(sx,sy,sz,p);
 }
-function globalToLoc(gx,gy,depth){const tx=Math.floor((gx+TILE/2)/TILE),ty=Math.floor((gy+TILE/2)/TILE);return pointToLoc(tx,ty,gx-tx*TILE,gy-ty*TILE,depth)}
-const cellCenterG=c=>[c.tx*TILE+c.x0+c.size/2,c.ty*TILE+c.y0+c.size/2];
+function globalToLoc(gx,gy,gz,depth){const sx=Math.floor((gx+HALF)/SEC),sy=Math.floor((gy+HALF)/SEC),sz=Math.floor((gz+HALF)/SEC);return posToLoc(sx,sy,sz,gx-sx*SEC,gy-sy*SEC,gz-sz*SEC,depth)}
+const cellCenter=c=>[c.x0+c.size/2,c.y0+c.size/2,c.z0+c.size/2];
+const cellCenterG=c=>{const m=cellCenter(c);return[c.sx*SEC+m[0],c.sy*SEC+m[1],c.sz*SEC+m[2]]};
 
 /* ═════════ Nombres ═════════ */
 const SYL=['ka','ve','lo','mi','ra','tu','an','el','or','sha','zen','dor','nix','pha','lum','tor','vi','cae','ur','as','be','yn','th','qui'];
 function genName(h){const r=rng(h^0x77aa);const n=2+(r()*2|0);let s='';for(let i=0;i<n;i++)s+=SYL[r()*SYL.length|0];return cap(s)}
-const regionName=l=>genName(hash(l.tx,l.ty,...[...l.path].map(c=>ALPHA.indexOf(c)+1)));
+const regionName=l=>genName(hash(l.sx,l.sy,l.sz,...[...l.path].map(c=>DETAIL.indexOf(c)+1)));
 
 /* ═════════ Estrellas ═════════ */
 const CLS=[
@@ -2491,58 +2530,80 @@ const CLS=[
  {k:'B',w:.015,lab:'Estrella azul',T:[11000,25000],m:[3,10],L:[100,10000],R:[3,7],col:'#a9c4ff'},
  {k:'O',w:.005,lab:'Supergigante azul',T:[30000,45000],m:[16,40],L:[3e4,1e5],R:[7,12],col:'#8fb2ff'}];
 function genProps(h){
-  const r=rng(h^0xabcdef);let u=r(),c=CLS[0];for(const k of CLS){if(u<k.w){c=k;break}u-=k.w}
+  const r=rng(h^0xabcdef);let u=r(),c=CLS[0],ci=0;for(let i=0;i<CLS.length;i++){if(u<CLS[i].w){c=CLS[i];ci=i;break}u-=CLS[i].w}
   const f=a=>lerp(a[0],a[1],r());
-  return{k:c.k,lab:c.lab,T:Math.round(f(c.T)),mass:f(c.m),lum:c.L[0]*Math.pow(c.L[1]/c.L[0],r()),rad:f(c.R),col:c.col};
+  return{k:c.k,ci,lab:c.lab,T:Math.round(f(c.T)),mass:f(c.m),lum:c.L[0]*Math.pow(c.L[1]/c.L[0],r()),rad:f(c.R),col:c.col};
 }
-/* Anclas del mapa de la película (posiciones aproximadas sobre el plano galáctico, en años luz desde el Sol) */
+const MONO='#cdd7ea';
+/* Anclas: estrellas del vecindario del mapa de la película, en eclíptica J2000 centrada en el Sol (RA/Dec/distancia reales, al) */
 const ANCH=[
- {id:'sol',name:'Sol',gx:0,gy:0,props:{k:'G',lab:'Enana amarilla (G2V)',T:5772,mass:1,lum:1,rad:1,col:'#ffe28a'},blurb:'Nuestro sistema. En la historia, el Astrófago lo está apagando.',
+ {id:'sol',name:'Sol',pos:[0,0,0],props:{k:'G',ci:2,lab:'Enana amarilla (G2V)',T:5772,mass:1,lum:1,rad:1,col:'#ffe28a'},blurb:'Nuestro sistema. En la historia, el Astrófago lo está apagando.',
   planets:[
    {name:'Mercurio',a:.387,r:.38,kind:'barren',moons:0},{name:'Venus',a:.723,r:.95,kind:'desert',moons:0},
    {name:'Tierra',a:1,r:1,kind:'ocean',moons:1,hz:1},{name:'Marte',a:1.524,r:.53,kind:'barren',moons:2},
    {name:'Júpiter',a:5.2,r:11.2,kind:'gas',moons:95},{name:'Saturno',a:9.58,r:9.45,kind:'gas',moons:146,ring:1},
    {name:'Urano',a:19.2,r:4,kind:'icegiant',moons:28},{name:'Neptuno',a:30.07,r:3.88,kind:'icegiant',moons:16}],
   belts:[[2.2,3.2],[40,50]]},
- {id:'acen',name:'Alfa Centauri A',gx:3.13,gy:3.05,props:{k:'G',lab:'Enana amarilla (G2V)',T:5790,mass:1.1,lum:1.52,rad:1.22,col:'#ffe28a'},blurb:'El vecino más cercano (4,4 al). Planetas generados proceduralmente.',proc:1},
- {id:'sirius',name:'Sirius A',gx:-5.82,gy:6.19,props:{k:'A',lab:'Estrella blanca (A1V)',T:9940,mass:2.06,lum:25.4,rad:1.71,col:'#dfe8ff'},blurb:'La más brillante del cielo nocturno, con una enana blanca compañera (Sirius B).',proc:1},
- {id:'eeri',name:'Epsilon Eridani',gx:-6.74,gy:1.92,props:{k:'K',lab:'Enana naranja (K2V)',T:5084,mass:.82,lum:.34,rad:.74,col:'#ffb067'},blurb:'Joven, con dos cinturones de escombros. En la historia, el Astrófago pasó por aquí rumbo al Sol.',
+ {id:'acen',name:'Alfa Centauri A',pos:eq2ecl(219.90,-60.834,4.37),props:{k:'G',ci:2,lab:'Enana amarilla (G2V)',T:5790,mass:1.1,lum:1.52,rad:1.22,col:'#ffe28a'},blurb:'El vecino más cercano (4,4 al). Planetas generados proceduralmente.',proc:1},
+ {id:'barnard',name:'Estrella de Barnard',pos:eq2ecl(269.45,4.693,5.96),props:{k:'M',ci:0,lab:'Enana roja (M4V)',T:3270,mass:.16,lum:.0034,rad:.19,col:'#ff8a5c'},blurb:'Enana roja con gran movimiento propio.',proc:1},
+ {id:'sirius',name:'Sirius A',pos:eq2ecl(101.287,-16.716,8.6),props:{k:'A',ci:5,lab:'Estrella blanca (A1V)',T:9940,mass:2.06,lum:25.4,rad:1.71,col:'#dfe8ff'},blurb:'La más brillante del cielo nocturno, con una enana blanca compañera.',proc:1},
+ {id:'eeri',name:'Epsilon Eridani',pos:eq2ecl(53.233,-9.458,10.5),props:{k:'K',ci:1,lab:'Enana naranja (K2V)',T:5084,mass:.82,lum:.34,rad:.74,col:'#ffb067'},blurb:'Joven, con dos cinturones de escombros. En la historia, el Astrófago pasó por aquí rumbo al Sol.',
   planets:[{name:'Epsilon Eridani b',a:3.4,r:11,kind:'gas',moons:0,note:'Candidato real, aún en disputa.'}],belts:[[2.5,3.5],[20,25]]},
- {id:'tceti',name:'Tau Ceti',gx:-3.39,gy:-.41,props:{k:'G',lab:'Enana amarilla (G8.5V)',T:5344,mass:.78,lum:.52,rad:.79,col:'#ffe28a'},blurb:'Inmune al Astrófago: destino de la misión Hail Mary.',proc:1,
+ {id:'procyon',name:'Procyon A',pos:eq2ecl(114.825,5.225,11.46),props:{k:'F',ci:3,lab:'Estrella blanco-amarilla (F5IV)',T:6530,mass:1.5,lum:6.9,rad:2.05,col:'#fff6d5'},blurb:'Brillante vecina con una enana blanca compañera.',proc:1},
+ {id:'tceti',name:'Tau Ceti',pos:eq2ecl(26.017,-15.937,11.91),props:{k:'G',ci:2,lab:'Enana amarilla (G8.5V)',T:5344,mass:.78,lum:.52,rad:.79,col:'#ffe28a'},blurb:'Inmune al Astrófago: destino de la misión Hail Mary.',proc:1,
   planets:[{name:'Adrian',a:.78,r:1.1,kind:'temperate',moons:0,hz:1,fiction:1,note:'Planeta de la historia donde llega la Hail Mary (ficción).'}]},
- {id:'40eri',name:'40 Eridani A',gx:-12,gy:4.53,props:{k:'K',lab:'Enana naranja (K1V)',T:5100,mass:.84,lum:.44,rad:.81,col:'#ffb067'},blurb:'Sistema triple; hogar de Rocky y los erideanos en la historia.',proc:1,
-  planets:[{name:'Erid',a:.7,r:1.15,kind:'temperate',moons:0,hz:1,fiction:1,note:'Mundo natal de Rocky (ficción).'}]}];
-function anchorSeed(a){return seedStr(globalToLoc(a.gx,a.gy,10))}
+ {id:'40eri',name:'40 Eridani A',pos:eq2ecl(63.817,-7.653,16.26),props:{k:'K',ci:1,lab:'Enana naranja (K1V)',T:5100,mass:.84,lum:.44,rad:.81,col:'#ffb067'},blurb:'Sistema triple; hogar de Rocky y los erideanos en la historia.',proc:1,
+  planets:[{name:'Erid',a:.7,r:1.15,kind:'temperate',moons:0,hz:1,fiction:1,note:'Mundo natal de Rocky (ficción).'}]},
+ {id:'vega',name:'Vega',pos:eq2ecl(279.234,38.784,25.04),props:{k:'A',ci:5,lab:'Estrella blanca (A0V)',T:9602,mass:2.1,lum:40,rad:2.36,col:'#dfe8ff'},blurb:'Una de las estrellas más brillantes del cielo del norte.',proc:1}];
+const ANCHSTARS=ANCH.map(a=>({anchor:a,sx:0,sy:0,sz:0,lx:a.pos[0],ly:a.pos[1],lz:a.pos[2],h:hash(a.id.length,a.id.charCodeAt(0),a.id.charCodeAt(1)),P:a.props}));
+const A_BY=id=>ANCHSTARS.find(s=>s.anchor.id===id);
+const same=(a,b)=>!!(a&&b&&a.lx===b.lx&&a.ly===b.ly&&a.lz===b.lz&&a.sx===b.sx&&a.sy===b.sy&&a.sz===b.sz);
+const starName=st=>st.anchor?st.anchor.name:genName(st.h);
+const starLoc=(st,d=14)=>posToLoc(st.sx,st.sy,st.sz,st.lx,st.ly,st.lz,d);
+const starG=st=>[st.sx*SEC+st.lx,st.sy*SEC+st.ly,st.sz*SEC+st.lz];
 
-const starCache=new Map();
-function starAt(i,j){
-  const h=hash(i,j,77),r=rng(h),d=density((i+.5)*SC,(j+.5)*SC);
-  if(r()>starP(d))return null;
-  const st={i,j,h,gx:(i+r())*SC,gy:(j+r())*SC};
-  if(Math.abs(st.gx)<40&&Math.abs(st.gy)<40)for(const a of ANCH)if(Math.hypot(a.gx-st.gx,a.gy-st.gy)<.8)return null;
-  return st;
+function cellStars(sx,sy,sz,i,j,k,out){
+  const h=hash(sx,sy,sz,i|(j<<5)|(k<<10),77),r=rng(h);
+  const gx=sx*SEC+(i+.5)*SC-HALF,gy=sy*SEC+(j+.5)*SC-HALF,gz=sz*SEC+(k+.5)*SC-HALF;
+  let n=Math.floor(lambda(density(gx,gy,gz))+r());if(n>4)n=4;
+  for(let q=0;q<n;q++){
+    const lx=-HALF+(i+r())*SC,ly=-HALF+(j+r())*SC,lz=-HALF+(k+r())*SC;
+    if(sx===0&&sy===0&&sz===0&&Math.abs(lx)<40&&Math.abs(ly)<40&&Math.abs(lz)<40){let bad=false;for(const a of ANCH)if(Math.hypot(a.pos[0]-lx,a.pos[1]-ly,a.pos[2]-lz)<.8){bad=true;break}if(bad)continue}
+    const sh=hash(h,q+1);out.push({sx,sy,sz,lx,ly,lz,h:sh,P:genProps(sh)});
+  }
 }
-function starsIn(cell){
-  const out=[],gx0=cell.tx*TILE+cell.x0,gy0=cell.ty*TILE+cell.y0,s=cell.size;
-  const i0=Math.floor(gx0/SC),i1=Math.floor((gx0+s)/SC),j0=Math.floor(gy0/SC),j1=Math.floor((gy0+s)/SC);
-  if((i1-i0+1)*(j1-j0+1)>2500)return out;
-  for(let j=j0;j<=j1;j++)for(let i=i0;i<=i1;i++){const st=starAt(i,j);if(st&&st.gx>=gx0&&st.gx<=gx0+s&&st.gy>=gy0&&st.gy<=gy0+s)out.push(st)}
-  for(const a of ANCH)if(a.gx>=gx0&&a.gx<=gx0+s&&a.gy>=gy0&&a.gy<=gy0+s)out.push({anchor:a,gx:a.gx,gy:a.gy,h:hash(a.id.length,a.gx*100|0,a.gy*100|0)});
+/* estrellas dentro de la celda (más un margen) */
+function starsIn(c,pad=0,limit=45000){
+  const lo=[c.x0-pad,c.y0-pad,c.z0-pad].map(v=>Math.max(-HALF,v)),hi=[c.x0+c.size+pad,c.y0+c.size+pad,c.z0+c.size+pad].map(v=>Math.min(HALF-1e-9,v));
+  const ir=lo.map((v,a)=>[clamp(Math.floor((v+HALF)/SC),0,NC-1),clamp(Math.floor((hi[a]+HALF)/SC),0,NC-1)]);
+  if((ir[0][1]-ir[0][0]+1)*(ir[1][1]-ir[1][0]+1)*(ir[2][1]-ir[2][0]+1)>limit)return[];
+  const raw=[],out=[];
+  for(let k=ir[2][0];k<=ir[2][1];k++)for(let j=ir[1][0];j<=ir[1][1];j++)for(let i=ir[0][0];i<=ir[0][1];i++)cellStars(c.sx,c.sy,c.sz,i,j,k,raw);
+  if(c.sx===0&&c.sy===0&&c.sz===0)for(const a of ANCHSTARS)raw.push(a);
+  for(const s of raw){
+    if(s.lx<lo[0]||s.lx>hi[0]||s.ly<lo[1]||s.ly>hi[1]||s.lz<lo[2]||s.lz>hi[2])continue;
+    s.out=!(s.lx>=c.x0&&s.lx<=c.x0+c.size&&s.ly>=c.y0&&s.ly<=c.y0+c.size&&s.lz>=c.z0&&s.lz<=c.z0+c.size);
+    out.push(s);
+  }
   return out;
 }
-function starProps(st){return st.anchor?st.anchor.props:(starCache.get(st.h)||(starCache.set(st.h,genProps(st.h)),starCache.get(st.h)))}
-const starName=st=>st.anchor?st.anchor.name:genName(st.h);
-const starLoc=(st,d=10)=>globalToLoc(st.gx,st.gy,d);
-function starInCell(cell){const e=cell.size*.02;return starsIn({...cell,x0:cell.x0-e,y0:cell.y0-e,size:cell.size+2*e})[0]||null}
-function nearestStar(cell){
-  const [cx,cy]=cellCenterG(cell);let best=null,bd=1e18;
-  for(const R of[6,40]){
-    const ci=Math.floor(cx/SC),cj=Math.floor(cy/SC);
-    for(let j=cj-R;j<=cj+R;j++)for(let i=ci-R;i<=ci+R;i++){const st=starAt(i,j);if(st){const d=Math.hypot(st.gx-cx,st.gy-cy);if(d<bd){bd=d;best=st}}}
-    for(const a of ANCH){const d=Math.hypot(a.gx-cx,a.gy-cy);if(d<bd){bd=d;best={anchor:a,gx:a.gx,gy:a.gy,h:hash(a.id.length,a.gx*100|0,a.gy*100|0)}}}
-    if(best)break;
+function starInCell(c){const e=c.size*.02;return starsIn({...c,x0:c.x0-e,y0:c.y0-e,z0:c.z0-e,size:c.size+2*e},0,500)[0]||null}
+function nearestStar(c){
+  const m=cellCenter(c);let best=null,bd=1e18;
+  for(const R of[2,6,12]){
+    const ci=[0,1,2].map(a=>clamp(Math.floor((m[a]+HALF)/SC),0,NC-1)),raw=[];
+    for(let k=Math.max(0,ci[2]-R);k<=Math.min(NC-1,ci[2]+R);k++)for(let j=Math.max(0,ci[1]-R);j<=Math.min(NC-1,ci[1]+R);j++)for(let i=Math.max(0,ci[0]-R);i<=Math.min(NC-1,ci[0]+R);i++)cellStars(c.sx,c.sy,c.sz,i,j,k,raw);
+    if(c.sx===0&&c.sy===0&&c.sz===0)raw.push(...ANCHSTARS);
+    for(const s of raw){const d=Math.hypot(s.lx-m[0],s.ly-m[1],s.lz-m[2]);if(d<bd){bd=d;best=s}}
+    if(best&&bd<R*SC*.9)break;
   }
-  return best?{st:best,d:bd,dx:best.gx-cx,dy:best.gy-cy}:null;
+  return best?{st:best,d:bd}:null;
+}
+const listCache=new Map();
+function cellList(c){
+  const key=seedStr({head:c.head,path:c.path});if(listCache.has(key))return listCache.get(key);
+  const L=starsIn(c,c.size<128?c.size*.5:0);
+  listCache.set(key,L);if(listCache.size>10)listCache.delete(listCache.keys().next().value);return L;
 }
 
 /* ═════════ Sistemas planetarios ═════════ */
@@ -2550,21 +2611,17 @@ const KIND={lava:['Mundo de lava','#ff6a3d'],desert:['Mundo desértico','#d9a35b
   ice:['Mundo helado','#a9d6e8'],frozen:['Mundo congelado','#c8d4e0'],barren:['Rocoso estéril','#9b9186'],gas:['Gigante gaseoso','#d8b48a'],icegiant:['Gigante helado','#6fb6d8']};
 const ROMAN='bcdefghijk';
 function genSystem(st){
-  const P=starProps(st),a0=st.anchor,name=starName(st),r=rng(st.h^0x5eed),sq=Math.sqrt(P.lum);
-  const frost=2.7*sq,hz=[.95*sq,1.4*sq];
-  let planets=[],belts=[];
+  const P=st.P,a0=st.anchor,name=starName(st),r=rng(st.h^0x5eed),sq=Math.sqrt(P.lum);
+  const frost=2.7*sq,hz=[.95*sq,1.4*sq];let planets=[],belts=[];
   if(a0&&!a0.proc){planets=a0.planets.map(p=>({...p}));belts=(a0.belts||[]).slice()}
   else{
     let n=P.k==='O'?0:P.k==='B'?(r()<.6?0:1+(r()*2|0)):P.k==='WD'||P.k==='RG'?(r()*4|0):(r()*9|0);
     let a=Math.max(.03,.13*sq)*(.5+r());
     for(let i=0;i<n&&a<90*Math.max(1,sq);i++){
-      a*=1.35+r()*.75;
-      const T=255*Math.pow(P.lum,.25)/Math.sqrt(a);let kind,rad;
-      const hotg=a<frost*.5&&r()<.06;
+      a*=1.35+r()*.75;const T=255*Math.pow(P.lum,.25)/Math.sqrt(a);let kind,rad;const hotg=a<frost*.5&&r()<.06;
       if(hotg||a>=frost*.9&&r()<.6){if(!hotg&&r()<.4){kind='icegiant';rad=2.5+r()*2.5}else{kind='gas';rad=6+r()*7}}
       else{rad=.3+Math.pow(r(),1.6)*1.7;
-        if(T>700)kind='lava';else if(T>340)kind='desert';
-        else if(T>=245){kind=(rad>.75&&rad<1.7&&r()<.5)?'ocean':(r()<.5?'temperate':'barren')}
+        if(T>700)kind='lava';else if(T>340)kind='desert';else if(T>=245){kind=(rad>.75&&rad<1.7&&r()<.5)?'ocean':(r()<.5?'temperate':'barren')}
         else if(T>170)kind=r()<.5?'ice':'barren';else kind='frozen'}
       planets.push({name:'',a,r:rad,kind,moons:kind==='gas'?(r()*7|0):kind==='icegiant'?(r()*4|0):(r()<.3?(r()*2|0)+1:0),ring:kind==='gas'&&r()<.25?1:0});
     }
@@ -2573,246 +2630,298 @@ function genSystem(st){
   }
   planets.sort((x,y)=>x.a-y.a);
   planets.forEach((p,i)=>{
-    p.name=p.name||`${name} ${ROMAN[i]||i}`;
-    p.T=Math.round(255*Math.pow(P.lum,.25)/Math.sqrt(p.a));
-    p.period=365.25*Math.sqrt(p.a**3/P.mass);
-    const gas=p.kind==='gas'||p.kind==='icegiant';
-    p.mass=gas?Math.pow(p.r,2.1)*(p.kind==='gas'?1.2:.9):Math.pow(p.r,3.2);
-    p.g=p.mass/(p.r*p.r);
+    p.name=p.name||`${name} ${ROMAN[i]||i}`;p.T=Math.round(255*Math.pow(P.lum,.25)/Math.sqrt(p.a));p.period=365.25*Math.sqrt(p.a**3/P.mass);
+    const gas=p.kind==='gas'||p.kind==='icegiant';p.mass=gas?Math.pow(p.r,2.1)*(p.kind==='gas'?1.2:.9):Math.pow(p.r,3.2);p.g=p.mass/(p.r*p.r);
     if(p.hz==null)p.hz=(!gas&&p.a>=hz[0]&&p.a<=hz[1]&&p.r>=.7&&p.r<=1.7&&p.T>=240&&p.T<=320)?1:0;
     p.phase=hash(st.h,i)/4294967296*6.283;
   });
   return{star:st,name,P,planets,belts,hz,frost};
 }
 
+/* ═════════ Nave del jugador ═════════ */
+const SHIPS={
+ corbeta:{n:'Corbeta',d:'Ágil y versátil, para explorar sin compromisos.',vel:7,alc:6,car:3,tri:6,
+  p:[['M50 6 L62 40 L60 78 L40 78 L38 40 Z',1],['M38 46 L14 74 L14 84 L40 72 Z M62 46 L86 74 L86 84 L60 72 Z',2],['M43 78 L57 78 L54 90 L46 90 Z','w']]},
+ carguero:{n:'Carguero',d:'Gran bodega para misiones de suministro.',vel:3,alc:6,car:10,tri:12,
+  p:[['M34 14 L66 14 L70 84 L30 84 Z',1],['M24 36 L34 36 L34 70 L24 70 Z M66 36 L76 36 L76 70 L66 70 Z',2],['M42 8 L58 8 L62 14 L38 14 Z',2],['M34 84 L44 84 L42 94 L36 94 Z M56 84 L66 84 L64 94 L58 94 Z','w']]},
+ sonda:{n:'Sonda',d:'Autónoma y ligera; ideal para cartografiar.',vel:5,alc:9,car:1,tri:0,
+  p:[['M50 8 L58 30 L58 70 L42 70 L42 30 Z',1],['M30 28 Q50 8 70 28 Z',2],['M18 44 L42 44 L42 56 L18 56 Z M58 44 L82 44 L82 56 L58 56 Z',2],['M49 70 L51 70 L51 92 L49 92 Z','w']]},
+ velero:{n:'Velero solar',d:'Velas de luz: lento pero casi sin combustible.',vel:2,alc:10,car:2,tri:2,
+  p:[['M49 10 L51 10 L51 86 L49 86 Z','w'],['M51 14 L88 50 L51 82 Z',2],['M49 20 L22 50 L49 78 Z',1],['M42 84 L58 84 L54 94 L46 94 Z','w']]},
+ generacional:{n:'Generacional',d:'Una ciudad en órbita propia para viajes larguísimos.',vel:2,alc:10,car:8,tri:200,
+  p:[['M50 8 L60 24 L60 80 L40 80 L40 24 Z',1],['M18 52 A32 12 0 1 0 82 52 A32 12 0 1 0 18 52 Z',2],['M44 80 L56 80 L54 94 L46 94 Z','w']]},
+ caza:{n:'Caza',d:'Rápido y compacto; poca autonomía.',vel:10,alc:3,car:1,tri:1,
+  p:[['M50 6 L56 36 L90 70 L90 80 L58 66 L56 84 L44 84 L42 66 L10 80 L10 70 L44 36 Z',1],['M47 30 L53 30 L54 60 L46 60 Z',2]]},
+ carguero2:{n:'Expedición',d:'Nave de investigación con cúpula y cuatro motores.',vel:5,alc:7,car:5,tri:8,
+  p:[['M50 10 Q66 12 68 40 L68 76 L32 76 L32 40 Q34 12 50 10 Z',1],['M40 20 Q50 14 60 20 L60 32 L40 32 Z',2],['M20 52 L32 52 L32 76 L20 76 Z M68 52 L80 52 L80 76 L68 76 Z',2],['M24 76 L30 76 L28 90 L26 90 Z M70 76 L76 76 L74 90 L72 90 Z M38 76 L44 76 L43 88 L39 88 Z M56 76 L62 76 L61 88 L57 88 Z','w']]},
+ plataforma:{n:'Plataforma',d:'Base móvil con paneles y torre de comunicaciones.',vel:1,alc:8,car:9,tri:30,
+  p:[['M30 30 L70 30 L70 70 L30 70 Z',1],['M8 42 L30 42 L30 58 L8 58 Z M70 42 L92 42 L92 58 L70 58 Z',2],['M48 8 L52 8 L52 30 L48 30 Z M42 12 L58 12 L58 16 L42 16 Z','w'],['M40 70 L60 70 L56 84 L44 84 Z','w']]}};
+const DEF_SHIP={d:'corbeta',n:'',c1:'#58d0ff',c2:'#ffb454'};
+const shipCol=(k,c1,c2)=>k===1?c1:k===2?c2:'#8793a8';
+function shipSVG(d,c1,c2,px){const s=SHIPS[d]||SHIPS.corbeta;return `<svg viewBox="0 0 100 100" width="${px||52}" height="${px||52}">${s.p.map(([p,k])=>`<path d="${p}" fill="${shipCol(k,c1,c2)}" stroke="#04060c" stroke-width="1.5" stroke-linejoin="round"/>`).join('')}</svg>`}
+const pathCache={};
+function drawShip(ctx,x,y,sz,ang,sh){
+  const s=SHIPS[sh.d]||SHIPS.corbeta;ctx.save();ctx.translate(x,y);ctx.rotate(ang);ctx.scale(sz/100,sz/100);ctx.translate(-50,-50);
+  for(const [p,k] of s.p){const P2=pathCache[p]||(pathCache[p]=new Path2D(p));ctx.fillStyle=shipCol(k,sh.c1,sh.c2);ctx.fill(P2);ctx.strokeStyle='#04060c';ctx.lineWidth=1.5;ctx.lineJoin='round';ctx.stroke(P2)}
+  ctx.restore();
+}
+
 /* ═════════ Estado y persistencia ═════════ */
-let D={v:1,n:'',h:[],base:'',anon:false};
+let D={v:2,n:'',h:[],base:'',anon:false,ship:{...DEF_SHIP}};
 try{const raw=localStorage.getItem(LS_KEY);if(raw)D=Object.assign(D,JSON.parse(raw))}catch(e){}
+D.ship=Object.assign({...DEF_SHIP},D.ship||{});
 const saveD=()=>{try{localStorage.setItem(LS_KEY,JSON.stringify(D))}catch(e){}};
-let loc={tx:0,ty:0,path:''};
+let loc=mkLoc('A','');
 try{if(D.c){const p=parseSeed(D.c);if(p.loc)loc=p.loc}}catch(e){}
-let cell=cellOf(loc),mode='map',SYS=null,selStar=null,selPlanet=null,hoverIdx=-1,hits=[];
-let anim=null,fade=0,recTimer=null,tab='info';
+let cell=cellOf(loc),curList=[],mode='map',SYS=null,selStar=null,selPlanet=null,hoverIdx=-1,hoverStar=null,anim=null,fade=0,recTimer=null,tab='info';
+const opt={route:false,color:true};
+const cam={yaw:.7,pitch:.45,zoom:2.3};
 
 function record(kind,l,force){
-  if(D.anon)return;
-  const s=seedStr(l);const last=D.h[D.h.length-1];
+  if(D.anon)return;const s=seedStr(l),last=D.h[D.h.length-1];
   if(!force&&last&&last.s===s&&last.k===kind)return;
-  D.h.push({s,t:Date.now(),k:kind,f:0,n:''});
-  if(D.h.length>3000)D.h.splice(0,D.h.length-3000);
+  D.h.push({s,t:Date.now(),k:kind,f:0,n:''});if(D.h.length>3000)D.h.splice(0,D.h.length-3000);
   D.c=seedStr(loc);saveD();if(tab==='hist')renderHist();
 }
 function scheduleRecord(){clearTimeout(recTimer);recTimer=setTimeout(()=>{if(mode==='map')record('m',loc)},1800)}
 
 /* ═════════ Navegación ═════════ */
-const FULL={fx:0,fy:0,fs:1};
-const childWin=i=>({fx:(i%B)/B,fy:Math.floor(i/B)/B,fs:1/B});
+const viewOf=c=>{const m=cellCenter(c);return{x:m[0],y:m[1],z:m[2],size:c.size}};
 function go(nl,opts={}){
   if(mode==='system')exitSystem(true);
-  const old=loc,oc=cell,nc=cellOf(nl);loc=nl;cell=nc;selStar=null;
-  const sameTile=old.tx===nl.tx&&old.ty===nl.ty;
-  if(opts.animate!==false&&sameTile&&nl.path.length===old.path.length+1&&nl.path.startsWith(old.path)){
-    anim={t0:performance.now(),dur:380,content:oc,from:FULL,to:childWin(ALPHA.indexOf(nl.path.at(-1))),after:null};cell=oc;anim.final=nc;
-  }else if(opts.animate!==false&&sameTile&&old.path.length===nl.path.length+1&&old.path.startsWith(nl.path)){
-    anim={t0:performance.now(),dur:380,content:nc,from:childWin(ALPHA.indexOf(old.path.at(-1))),to:FULL,final:nc};
-  }else{fade=1}
+  const old=loc,oc=cell,nc=cellOf(nl),sameSec=old.head===nl.head;loc=nl;selStar=null;
+  if(opts.animate!==false&&sameSec&&nl.path.length===old.path.length+1&&nl.path.startsWith(old.path)){
+    anim={t0:performance.now(),dur:420,list:curList,content:oc,from:viewOf(oc),to:viewOf(nc),final:nc};cell=oc;
+  }else if(opts.animate!==false&&sameSec&&old.path.length===nl.path.length+1&&old.path.startsWith(nl.path)){
+    anim={t0:performance.now(),dur:420,list:cellList(nc),content:nc,from:viewOf(oc),to:viewOf(nc),final:nc};cell=nc;
+  }else{cell=nc;fade=1}
+  if(!anim)curList=cellList(cell);
   D.c=seedStr(loc);saveD();
   if(opts.record)record('m',loc,true);else scheduleRecord();
   syncUI();
 }
-function dive(ch){if(mode!=='map'||anim||loc.path.length>=MAXD)return;if(ALPHA.indexOf(ch)<0)return;go({...loc,path:loc.path+ch})}
-function up(n=1){if(mode==='system'){exitSystem();return}if(anim||!loc.path.length)return;go({...loc,path:loc.path.slice(0,Math.max(0,loc.path.length-n))})}
-function neighbor(dx,dy){
+function dive(ch){if(mode!=='map'||anim||loc.path.length>=MAXD)return;if(DETAIL.indexOf(ch)<0)return;go({...loc,path:loc.path+ch})}
+function up(){if(mode==='system'){exitSystem();return}if(anim||!loc.path.length)return;go({...loc,path:loc.path.slice(0,-1)})}
+function neighbor(dx,dy,dz){
   if(mode!=='map'||anim)return;
-  if(!loc.path.length){go({tx:loc.tx+dx,ty:loc.ty+dy,path:''},{animate:false});return}
-  const [cx,cy]=cellCenterG(cell);go(globalToLoc(cx+dx*cell.size,cy+dy*cell.size,loc.path.length),{animate:false});
+  if(!loc.path.length){go(mkLocXYZ(loc.sx+dx,loc.sy+dy,loc.sz+dz,''),{animate:false});return}
+  const m=cellCenter(cell),s=cell.size;go(posToLoc(loc.sx,loc.sy,loc.sz,m[0]+dx*s,m[1]+dy*s,m[2]+dz*s,loc.path.length),{animate:false});
 }
-function teleport(nl,note){go(nl,{animate:false,record:true});toast(note||'')}
+function teleport(nl,note){go(nl,{animate:false,record:true});if(note)setMsg(note)}
 function teleportStr(s){
   const p=parseSeed(s);if(p.err){setMsg(p.err,1);return false}
   setMsg(p.trunc?`Semilla recortada a ${MAXD} caracteres (límite de precisión).`:'');teleport(p.loc);return true;
 }
 function enterSystem(st){
-  const sl=starLoc(st);loc=sl;cell=cellOf(sl);
-  SYS=genSystem(st);mode='system';selPlanet=null;anim=null;
-  D.c=seedStr(loc);saveD();record('s',sl,true);syncUI();
+  const sl=starLoc(st);loc=sl;cell=cellOf(sl);curList=cellList(cell);anim=null;
+  SYS=genSystem(st);mode='system';selPlanet=null;D.c=seedStr(loc);saveD();record('s',sl,true);syncUI();
 }
 function exitSystem(silent){if(mode!=='system')return;mode='map';SYS=null;selPlanet=null;if(!silent)syncUI()}
 
-/* ═════════ Canvas ═════════ */
+/* ═════════ Render 3D en canvas ═════════ */
 const cv=$('#cv'),ctx=cv.getContext('2d');let W=0,H=0,dpr=1;
 function resize(){const r=cv.getBoundingClientRect();dpr=Math.min(2,window.devicePixelRatio||1);W=r.width;H=r.height;cv.width=W*dpr;cv.height=H*dpr}
 new ResizeObserver(resize).observe(cv);
-const sq=()=>{const P=Math.max(80,Math.min(W,H)-28);return{P,x:(W-P)/2,y:(H-P)/2}};
-function tint(c){ // color de fondo para una celda, a partir de la densidad
-  const [gx,gy]=cellCenterG(c),d=density(gx,gy),hh=hash(c.tx,c.ty,gx*7|0,gy*7|0)%60;
-  return{d,col:`hsla(${205+hh},55%,${10+d*34}%,${.25+d*.55})`};
+const dust=Array.from({length:260},(_,i)=>{const r=rng(i*977+5);return[r(),r(),.3+r()*r()*1.2,.15+r()*.4]});
+let CP=null,cellPts=[]; // proyección vigente
+function camSetup(V){
+  const cy=Math.cos(cam.yaw),sy=Math.sin(cam.yaw),cp=Math.cos(cam.pitch),sp=Math.sin(cam.pitch);
+  const dist=V.size*cam.zoom,F=Math.min(W,H)*1.5;
+  CP={V,cy,sy,cp,sp,dist,F,cxs:W/2,cys:H/2};
 }
-let tFrame=0;
+const _p=[0,0,0];
+function proj(x,y,z){ // x,y,z locales de sector → [sx,sy,depth]; false si detrás
+  const c=CP,rx=x-c.V.x,ry=y-c.V.y,rz=z-c.V.z,x1=rx*c.cy-ry*c.sy,y1=rx*c.sy+ry*c.cy,Y=y1*c.cp-rz*c.sp,Z=y1*c.sp+rz*c.cp,d=Y+c.dist;
+  if(d<c.dist*.05)return false;const k=c.F/d;_p[0]=c.cxs+x1*k;_p[1]=c.cys-Z*k;_p[2]=d;return true;
+}
 function frame(now){
-  tFrame=now;ctx.setTransform(dpr,0,0,dpr,0,0);
-  ctx.fillStyle='#04060c';ctx.fillRect(0,0,W,H);
+  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle='#04060c';ctx.fillRect(0,0,W,H);
   if(mode==='system')drawSystem(now);else drawMap(now);
   requestAnimationFrame(frame);
 }
+function drawBoxEdges(x,y,z,s){
+  const v=[[0,0,0],[1,0,0],[1,1,0],[0,1,0],[0,0,1],[1,0,1],[1,1,1],[0,1,1]].map(a=>[x+a[0]*s,y+a[1]*s,z+a[2]*s]);
+  const e=[[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+  ctx.beginPath();for(const [a,b] of e){if(!proj(...v[a]))continue;const ax=_p[0],ay=_p[1];if(!proj(...v[b]))continue;ctx.moveTo(ax,ay);ctx.lineTo(_p[0],_p[1])}ctx.stroke();
+}
 function drawMap(now){
-  const {P,x:sx,y:sy}=sq();let win=FULL,c=cell;
-  if(anim){const t=clamp((now-anim.t0)/anim.dur,0,1),e=ease(t);c=anim.content;
-    const fs=Math.exp(lerp(Math.log(anim.from.fs),Math.log(anim.to.fs),e));
-    // mantener continuidad de centro
-    const cx=lerp(anim.from.fx+anim.from.fs/2,anim.to.fx+anim.to.fs/2,e),cy=lerp(anim.from.fy+anim.from.fs/2,anim.to.fy+anim.to.fs/2,e);
-    win={fx:cx-fs/2,fy:cy-fs/2,fs};
-    if(t>=1){cell=anim.final;c=cell;win=FULL;anim=null;syncInfo()}}
-  const S=c.size,wx0=c.x0+win.fx*S,wy0=c.y0+win.fy*S,scale=P/(win.fs*S);
-  const X=lx=>sx+(lx-wx0)*scale,Y=ly=>sy+(ly-wy0)*scale;
-  ctx.save();ctx.beginPath();ctx.rect(sx,sy,P,P);ctx.clip();
-  hits=[];
-  const cs=S/B,px=cs*scale,starView=S<=64;
-  const gxBase=c.tx*TILE,gyBase=c.ty*TILE;
-  for(let i=0;i<36;i++){
-    const col=i%B,row=(i/B)|0,x=X(c.x0+col*cs),y=Y(c.y0+row*cs);
-    if(x>sx+P||y>sy+P||x+px<sx||y+px<sy)continue;
-    const sub={tx:c.tx,ty:c.ty,x0:c.x0+col*cs,y0:c.y0+row*cs,size:cs,depth:c.depth+1,path:c.path+ALPHA[i]};
-    const t=tint(sub);
-    ctx.fillStyle=t.col;ctx.fillRect(x,y,px,px);
-    if(!starView){ // polvo estelar decorativo, escala con la densidad
-      const r=rng(hash(c.tx,c.ty,...[...sub.path].map(ch=>ALPHA.indexOf(ch))));const n=Math.round(t.d*26);
-      ctx.fillStyle='rgba(205,220,255,.55)';
-      for(let k=0;k<n;k++){const dx=x+r()*px,dy=y+r()*px,z=.4+r()*r()*1.4;ctx.fillRect(dx,dy,z,z)}
-    }
-    if(!anim&&i===hoverIdx){ctx.fillStyle='rgba(255,180,84,.14)';ctx.fillRect(x,y,px,px);ctx.strokeStyle='#ffb454';ctx.lineWidth=1.5;ctx.strokeRect(x+.5,y+.5,px-1,px-1)}
-    if(px>34){ctx.fillStyle=`rgba(190,210,245,${clamp(px/260,.18,.5)})`;ctx.font=`${Math.min(px*.45,70)}px ui-monospace,Menlo,monospace`;
-      ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(ALPHA[i],x+px/2,y+px/2)}
-  }
-  ctx.strokeStyle='rgba(110,150,210,.2)';ctx.lineWidth=1;
-  for(let k=0;k<=B;k++){const a=X(c.x0+k*cs),b=Y(c.y0+k*cs);
-    ctx.beginPath();ctx.moveTo(a,sy);ctx.lineTo(a,sy+P);ctx.moveTo(sx,b);ctx.lineTo(sx+P,b);ctx.stroke()}
-  // estrellas reales de la celda visible
-  if(starView){
-    const list=starsIn(c);
+  let c=cell,V=viewOf(c),list=curList;
+  if(anim){const t=clamp((now-anim.t0)/anim.dur,0,1),e=ease(t);c=anim.content;list=anim.list;
+    V={x:lerp(anim.from.x,anim.to.x,e),y:lerp(anim.from.y,anim.to.y,e),z:lerp(anim.from.z,anim.to.z,e),size:Math.exp(lerp(Math.log(anim.from.size),Math.log(anim.to.size),e))};
+    if(t>=1){cell=anim.final;c=cell;curList=cellList(cell);list=curList;V=viewOf(c);anim=null;syncInfo()}}
+  camSetup(V);
+  // polvo de fondo (profundidad visual)
+  ctx.fillStyle='rgba(190,205,240,.35)';for(const d of dust)ctx.fillRect(d[0]*W,d[1]*H,d[2],d[2]);
+  // estrellas
+  const cc=CP,cy=cc.cy,sy=cc.sy,cp=cc.cp,sp=cc.sp,vx=V.x,vy=V.y,vz=V.z,dist=cc.dist,F=cc.F,near=dist*.05,cxs=cc.cxs,cys=cc.cys;
+  ctx.globalCompositeOperation='lighter';
+  const sizeBoost=clamp(Math.log10(240/Math.max(c.size,.001))*.35,0,1.6);
+  const dens=list.length>4000,af=clamp(4000/Math.max(1,list.length),.3,1);
+  for(const pass of[0,1]){
+    ctx.globalAlpha=(pass?.35:1)*af;
     for(const st of list){
-      const lx=st.gx-gxBase,ly=st.gy-gyBase,x=X(lx),y=Y(ly);if(x<sx||y<sy||x>sx+P||y>sy+P)continue;
-      const p=starProps(st),rad=clamp(1.4+Math.log10(p.lum+1.2)*2.2,1.4,6)+(S<2?2:0);
-      const g=ctx.createRadialGradient(x,y,0,x,y,rad*3.4);g.addColorStop(0,p.col);g.addColorStop(.25,p.col+'aa');g.addColorStop(1,'rgba(0,0,0,0)');
-      ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,rad*3.4,0,7);ctx.fill();
-      ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x,y,Math.max(1,rad*.5),0,7);ctx.fill();
-      if(selStar&&selStar.gx===st.gx&&selStar.gy===st.gy){ctx.strokeStyle='#58d0ff';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(x,y,rad*2.2+4,0,7);ctx.stroke()}
-      if(st.anchor||S<8){ctx.font='12px ui-monospace,Menlo,monospace';ctx.textBaseline='middle';
-        ctx.fillStyle=st.anchor?'#ffb454':'rgba(205,215,235,.75)';const lab=(st.anchor?'◆ ':'')+starName(st),flip=x>sx+P-150;
-        ctx.textAlign=flip?'right':'left';ctx.fillText(lab,flip?x-rad*2.2-5:x+rad*2.2+5,y)}
-      hits.push({x,y,r:Math.max(12,rad*3),st});
+      if(!!st.out!==!!pass)continue;
+      const rx=st.lx-vx,ry=st.ly-vy,rz=st.lz-vz,x1=rx*cy-ry*sy,y1=rx*sy+ry*cy,Y=y1*cp-rz*sp,Z=y1*sp+rz*cp,d=Y+dist;if(d<near)continue;
+      const k=F/d,x=cxs+x1*k,y=cys-Z*k;if(x<-20||y<-20||x>W+20||y>H+20)continue;
+      const P=st.P,r=clamp(.7+Math.log10(P.lum+1.2)*1.3+sizeBoost,.8,dens?2.4:7);
+      ctx.fillStyle=opt.color?P.col:MONO;
+      if(r<2.2)ctx.fillRect(x-r/2,y-r/2,r,r);else{ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill()}
+      if(r>=3&&!dens){ctx.globalAlpha=(pass?.35:1)*.18;ctx.beginPath();ctx.arc(x,y,r*3,0,7);ctx.fill();ctx.globalAlpha=pass?.35:1}
     }
-  }else if(S<=1200){ // anclas visibles como marcadores a escalas amplias
-    for(const a of ANCH){const x=X(a.gx-gxBase),y=Y(a.gy-gyBase);if(x<sx||y<sy||x>sx+P||y>sy+P)continue;
-      ctx.fillStyle='#ffb454';ctx.beginPath();ctx.arc(x,y,3,0,7);ctx.fill();
-      if(S<=130||a.id==='sol'){ctx.font='11px ui-monospace,Menlo,monospace';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(a.name,x+7,y)}}
   }
-  ctx.restore();
-  ctx.strokeStyle='rgba(88,208,255,.35)';ctx.lineWidth=1;ctx.strokeRect(sx+.5,sy+.5,P-1,P-1);
+  ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
+  // rejilla 3×3×3 y borde de la celda
+  const s=c.size,u=s/3;ctx.lineWidth=1;ctx.strokeStyle='rgba(110,150,210,.22)';ctx.beginPath();
+  for(let a=0;a<=3;a++)for(let b=0;b<=3;b++){
+    for(let ax=0;ax<3;ax++){const p0=[c.x0,c.y0,c.z0],p1=[c.x0,c.y0,c.z0],o=[(ax+1)%3,(ax+2)%3];
+      p0[o[0]]+=a*u;p0[o[1]]+=b*u;p1[o[0]]+=a*u;p1[o[1]]+=b*u;p1[ax]+=s;
+      if(!proj(...p0))continue;const x0=_p[0],y0=_p[1];if(!proj(...p1))continue;ctx.moveTo(x0,y0);ctx.lineTo(_p[0],_p[1])}}
+  ctx.stroke();ctx.strokeStyle='rgba(88,208,255,.8)';ctx.lineWidth=1.4;drawBoxEdges(c.x0,c.y0,c.z0,s);
+  // ruta Sol → Tau Ceti
+  if(opt.route&&c.sx===0&&c.sy===0&&c.sz===0){const a=A_BY('sol'),b=A_BY('tceti');
+    if(proj(a.lx,a.ly,a.lz)){const x0=_p[0],y0=_p[1];if(proj(b.lx,b.ly,b.lz)){ctx.setLineDash([6,5]);ctx.strokeStyle='rgba(255,180,84,.8)';ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(_p[0],_p[1]);ctx.stroke();ctx.setLineDash([])}}}
+  // centros de subceldas (etiquetas y selección)
+  cellPts=[];const lab=[];
+  for(let i=0;i<27;i++){const ix=i%3,iy=Math.floor(i/3)%3,iz=Math.floor(i/9),
+    x=c.x0+(ix+.5)*u,y=c.y0+(iy+.5)*u,z=c.z0+(iz+.5)*u;if(!proj(x,y,z))continue;
+    cellPts.push({i,x:_p[0],y:_p[1],d:_p[2],px:CP.F*u/_p[2]});lab.push(cellPts[cellPts.length-1])}
+  lab.sort((a,b)=>b.d-a.d);
+  if(!anim&&hoverIdx>=0){const i=hoverIdx,ix=i%3,iy=Math.floor(i/3)%3,iz=Math.floor(i/9);
+    ctx.strokeStyle='#ffb454';ctx.lineWidth=2;drawBoxEdges(c.x0+ix*u,c.y0+iy*u,c.z0+iz*u,u)}
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  for(const p of lab){const fs=clamp(p.px*.32,10,34),near=1-clamp((p.d-CP.dist*.6)/(CP.dist*1.0),0,1);
+    ctx.font=`${fs}px ui-monospace,Menlo,monospace`;ctx.fillStyle=p.i===hoverIdx?'#ffb454':`rgba(190,210,245,${.16+.34*near})`;ctx.fillText(DETAIL[p.i],p.x,p.y)}
+  // anclas
+  ctx.font='12px ui-monospace,Menlo,monospace';
+  for(const st of list){if(!st.anchor)continue;if(!proj(st.lx,st.ly,st.lz))continue;const x=_p[0],y=_p[1];
+    ctx.fillStyle='#ffb454';ctx.beginPath();ctx.moveTo(x,y-5);ctx.lineTo(x+5,y);ctx.lineTo(x,y+5);ctx.lineTo(x-5,y);ctx.closePath();ctx.fill();
+    ctx.textAlign='left';ctx.fillText(st.anchor.name,x+9,y)}
+  const mark=st=>{if(!st||!proj(st.lx,st.ly,st.lz))return;ctx.strokeStyle='#58d0ff';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(_p[0],_p[1],11,0,7);ctx.stroke();
+    ctx.fillStyle='#58d0ff';ctx.textAlign='left';ctx.fillText(starName(st),_p[0]+15,_p[1]-12)};
+  if(selStar)mark(selStar);if(hoverStar&&!same(hoverStar,selStar)){if(proj(hoverStar.lx,hoverStar.ly,hoverStar.lz)){ctx.strokeStyle='rgba(255,255,255,.6)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(_p[0],_p[1],9,0,7);ctx.stroke()}}
+  // tu nave, en el centro de la celda actual
+  const m=cellCenter(c);if(proj(m[0],m[1],m[2])){drawShip(ctx,_p[0],_p[1]-18,26,0,D.ship);ctx.fillStyle='rgba(205,215,235,.7)';ctx.textAlign='center';ctx.font='11px ui-monospace,Menlo,monospace';ctx.fillText(D.ship.n||SHIPS[D.ship.d].n,_p[0],_p[1]+2)}
   if(fade>0){ctx.fillStyle=`rgba(4,6,12,${fade})`;ctx.fillRect(0,0,W,H);fade=Math.max(0,fade-.06)}
 }
-
-/* — Vista de sistema — */
+/* — Vista de sistema (cenital) — */
+let sysHits=[];
 function drawSystem(now){
-  const S=SYS,P=S.P,cx=W/2,cy=H/2,Rmax=Math.min(W,H)/2-26,t=now/1000;
-  const starPx=clamp(6+Math.log10(P.rad+1)*14,7,34);
-  const all=S.planets.map(p=>p.a).concat(S.belts.flat());const amax=Math.max(...all,S.hz[1],.5)*1.12,amin=Math.min(...all,S.hz[0])*.55,a0=amin;
+  const S=SYS,P=S.P,cx=W/2,cy=H/2,Rmax=Math.min(W,H)/2-26,t=now/1000,starPx=clamp(6+Math.log10(P.rad+1)*14,7,34);
+  const all=S.planets.map(p=>p.a).concat(S.belts.flat());const amax=Math.max(...all,S.hz[1],.5)*1.12,a0=Math.min(...all,S.hz[0])*.55;
   const rp=a=>starPx+12+(Rmax-starPx-12)*Math.log(1+Math.max(a,0)/a0)/Math.log(1+amax/a0);
-  // zona habitable
   {const ro=rp(S.hz[1]),ri=rp(S.hz[0]);ctx.beginPath();ctx.arc(cx,cy,ro,0,7);ctx.moveTo(cx+ri,cy);ctx.arc(cx,cy,ri,0,7);ctx.fillStyle='rgba(126,231,135,.08)';ctx.fill('evenodd')}
-  for(const [a,b] of S.belts){const r=rng(hash(S.star.h,a*100|0));ctx.fillStyle='rgba(170,170,170,.55)';
-    for(let k=0;k<160;k++){const ang=r()*6.283+t*.02,rr=lerp(rp(a),rp(b),r());ctx.fillRect(cx+Math.cos(ang)*rr,cy+Math.sin(ang)*rr,1.4,1.4)}}
+  for(const [a,b] of S.belts){const r=rng(hash(S.star.h,a*100|0));ctx.fillStyle='rgba(170,170,170,.55)';for(let k=0;k<160;k++){const ang=r()*6.283+t*.02,rr=lerp(rp(a),rp(b),r());ctx.fillRect(cx+Math.cos(ang)*rr,cy+Math.sin(ang)*rr,1.4,1.4)}}
   const g=ctx.createRadialGradient(cx,cy,0,cx,cy,starPx*3);g.addColorStop(0,P.col);g.addColorStop(.35,P.col+'88');g.addColorStop(1,'rgba(0,0,0,0)');
   ctx.fillStyle=g;ctx.beginPath();ctx.arc(cx,cy,starPx*3,0,7);ctx.fill();ctx.fillStyle=P.col;ctx.beginPath();ctx.arc(cx,cy,starPx,0,7);ctx.fill();
-  hits=[];
-  S.planets.forEach((p,i)=>{
+  sysHits=[];let shipPos=[cx+starPx+22,cy-starPx-22];
+  S.planets.forEach(p=>{
     const R=rp(p.a);ctx.strokeStyle=p===selPlanet?'rgba(88,208,255,.6)':'rgba(120,150,200,.2)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(cx,cy,R,0,7);ctx.stroke();
-    const w=Math.min(1.6,.35*Math.pow(Math.max(p.a,.03),-.75)),ang=p.phase+t*w,x=cx+Math.cos(ang)*R,y=cy+Math.sin(ang)*R;
-    const pr=clamp(2.5+Math.log2(p.r+.5)*2.6,2.5,13),col=KIND[p.kind][1];
-    ctx.fillStyle=col;ctx.beginPath();ctx.arc(x,y,pr,0,7);ctx.fill();
+    const w=Math.min(1.6,.35*Math.pow(Math.max(p.a,.03),-.75)),ang=p.phase+t*w,x=cx+Math.cos(ang)*R,y=cy+Math.sin(ang)*R,pr=clamp(2.5+Math.log2(p.r+.5)*2.6,2.5,13);
+    ctx.fillStyle=KIND[p.kind][1];ctx.beginPath();ctx.arc(x,y,pr,0,7);ctx.fill();
     if(p.ring){ctx.strokeStyle='rgba(230,210,170,.7)';ctx.lineWidth=1.3;ctx.beginPath();ctx.ellipse(x,y,pr*1.9,pr*.6,-.4,0,7);ctx.stroke()}
     if(p.hz){ctx.strokeStyle='#7ee787';ctx.lineWidth=1.2;ctx.beginPath();ctx.arc(x,y,pr+3,0,7);ctx.stroke()}
-    if(p===selPlanet){ctx.strokeStyle='#58d0ff';ctx.lineWidth=1.6;ctx.beginPath();ctx.arc(x,y,pr+6,0,7);ctx.stroke()}
+    if(p===selPlanet){ctx.strokeStyle='#58d0ff';ctx.lineWidth=1.6;ctx.beginPath();ctx.arc(x,y,pr+6,0,7);ctx.stroke();shipPos=[x+pr+16+Math.cos(t*2)*4,y-pr-16+Math.sin(t*2)*4]}
     if(Rmax>150||p===selPlanet){ctx.font='11px ui-monospace,Menlo,monospace';ctx.fillStyle=p===selPlanet?'#58d0ff':'rgba(205,215,235,.65)';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(p.name.replace(S.name+' ',''),x+pr+5,y)}
-    hits.push({x,y,r:Math.max(12,pr+6),planet:p});
+    sysHits.push({x,y,r:Math.max(12,pr+6),planet:p});
   });
+  drawShip(ctx,shipPos[0],shipPos[1],24,.6,D.ship);
   ctx.font='12px ui-monospace,Menlo,monospace';ctx.fillStyle='rgba(126,231,135,.7)';ctx.textAlign='left';ctx.fillText('▮ zona habitable',12,H-16);
 }
 
 /* ═════════ Interacción del canvas ═════════ */
-function cellIdxAt(mx,my){const {P,x,y}=sq();const u=(mx-x)/P,v=(my-y)/P;if(u<0||v<0||u>=1||v>=1)return-1;return Math.floor(v*B)*B+Math.floor(u*B)}
-function hitAt(mx,my){let best=null,bd=1e9;for(const h of hits){const d=Math.hypot(h.x-mx,h.y-my);if(d<h.r&&d<bd){bd=d;best=h}}return best}
 const tip=$('#tip');
-function showTip(html,mx,my){tip.innerHTML=html;tip.style.display='block';const r=$('#stage').getBoundingClientRect();tip.style.left=Math.min(r.width-tip.offsetWidth-6,mx+14)+'px';tip.style.top=Math.max(4,my-30)+'px'}
-function pos(e){const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top]}
+function showTip(html,mx,my){tip.innerHTML=html;tip.style.display='block';const r=$('#stage').getBoundingClientRect();tip.style.left=Math.max(4,Math.min(r.width-tip.offsetWidth-6,mx+14))+'px';tip.style.top=Math.max(4,my-30)+'px'}
+const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top]};
+function pickCell(mx,my){let best=null;for(const p of cellPts){const R=Math.max(14,p.px*.5);if(Math.hypot(p.x-mx,p.y-my)<R&&(!best||p.d<best.d))best=p}return best?best.i:-1}
+function pickStar(mx,my){
+  if(!CP)return null;let best=null,bd=100;
+  for(const st of curList){if(st.out)continue;if(!proj(st.lx,st.ly,st.lz))continue;const d=Math.hypot(_p[0]-mx,_p[1]-my)-Math.log10(st.P.lum+1.2)*1.5;if(d<bd&&d<11){bd=d;best=st}}
+  return best;
+}
+const ptrs=new Map();let drag=null,pinch0=0;
+cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,[e.clientX,e.clientY]);drag={x:e.clientX,y:e.clientY,moved:0,yaw:cam.yaw,pitch:cam.pitch};if(ptrs.size===2){const a=[...ptrs.values()];pinch0=Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]);drag.pz=cam.zoom}});
 cv.addEventListener('pointermove',e=>{
-  if(anim)return;const [mx,my]=pos(e),h=hitAt(mx,my);
-  if(h){hoverIdx=-1;cv.style.cursor='pointer';
-    showTip(h.st?`★ ${esc(starName(h.st))} · ${esc(starProps(h.st).lab)}`:`● ${esc(h.planet.name)} · ${KIND[h.planet.kind][0]}`,mx,my);return}
-  cv.style.cursor=mode==='map'?'crosshair':'default';
-  if(mode!=='map'){tip.style.display='none';return}
-  hoverIdx=cellIdxAt(mx,my);
-  if(hoverIdx>=0&&loc.path.length<MAXD){const ch=ALPHA[hoverIdx],c=cellOf({...loc,path:loc.path+ch});showTip(`<b style="color:#ffb454">${ch}</b> → ${esc(regionName({...loc,path:loc.path+ch}))} · ${fmtLen(c.size)}`,mx,my)}else tip.style.display='none';
+  const [mx,my]=pos(e);
+  if(ptrs.has(e.pointerId)){ptrs.set(e.pointerId,[e.clientX,e.clientY]);
+    if(ptrs.size===2&&drag.pz){const a=[...ptrs.values()],d=Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]);cam.zoom=clamp(drag.pz*pinch0/Math.max(20,d),.7,9);drag.moved=99;return}
+    if(drag&&mode==='map'){const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.moved=Math.max(drag.moved,Math.hypot(dx,dy));
+      if(drag.moved>4){cam.yaw=drag.yaw-dx*.008;cam.pitch=clamp(drag.pitch+dy*.008,-1.5,1.5);tip.style.display='none';return}}}
+  if(anim||ptrs.size)return;
+  if(mode==='system'){let h=null;for(const k of sysHits){if(Math.hypot(k.x-mx,k.y-my)<k.r)h=k}
+    cv.style.cursor=h?'pointer':'default';if(h)showTip(`● ${esc(h.planet.name)} · ${KIND[h.planet.kind][0]}`,mx,my);else tip.style.display='none';return}
+  hoverStar=pickStar(mx,my);
+  if(hoverStar){hoverIdx=-1;cv.style.cursor='pointer';showTip(`★ ${esc(starName(hoverStar))} · ${esc(hoverStar.P.lab)}`,mx,my);return}
+  hoverIdx=pickCell(mx,my);cv.style.cursor=hoverIdx>=0?'pointer':'grab';
+  if(hoverIdx>=0&&loc.path.length<MAXD){const nl={...loc,path:loc.path+DETAIL[hoverIdx]};showTip(`<b style="color:#ffb454">${DETAIL[hoverIdx]}</b> → ${esc(regionName(nl))} · ${fmtLen(cell.size/3)}`,mx,my)}else tip.style.display='none';
+  syncMini();
 });
-cv.addEventListener('pointerleave',()=>{hoverIdx=-1;tip.style.display='none'});
-cv.addEventListener('click',e=>{
-  if(anim)return;const [mx,my]=pos(e),h=hitAt(mx,my);
-  if(h){
-    if(h.st){selStar=h.st;syncInfo();setTab('info')}
-    else{selPlanet=h.planet;syncInfo();setTab('info')}
-    return}
-  if(mode==='map'){const i=cellIdxAt(mx,my);if(i>=0)dive(ALPHA[i])}
-});
-cv.addEventListener('wheel',e=>{e.preventDefault();if(anim)return;if(e.deltaY>0)up();else if(mode==='map'){const i=cellIdxAt(...pos(e));if(i>=0)dive(ALPHA[i])}},{passive:false});
+cv.addEventListener('pointerup',e=>{
+  const wasClick=drag&&drag.moved<5&&ptrs.size===1;ptrs.delete(e.pointerId);if(ptrs.size===0){const d=drag;drag=null;if(!wasClick||!d)return;
+    const [mx,my]=pos(e);if(anim)return;
+    if(mode==='system'){for(const k of sysHits)if(Math.hypot(k.x-mx,k.y-my)<k.r){selPlanet=k.planet;syncInfo();setTab('info');return}return}
+    const st=pickStar(mx,my);if(st){selStar=st;syncInfo();setTab('info');return}
+    const i=pickCell(mx,my);if(i>=0)dive(DETAIL[i])}});
+cv.addEventListener('pointerleave',()=>{hoverIdx=-1;hoverStar=null;tip.style.display='none';syncMini()});
+cv.addEventListener('wheel',e=>{e.preventDefault();cam.zoom=clamp(cam.zoom*(e.deltaY>0?1.1:.91),.7,9)},{passive:false});
+cv.addEventListener('dblclick',()=>{cam.yaw=.7;cam.pitch=.45;cam.zoom=2.3});
 document.addEventListener('keydown',e=>{
   if(e.target.matches('input,textarea,select'))return;
   if(e.key==='Escape'){closeModal();if(mode==='system')exitSystem();return}
-  if(e.ctrlKey||e.metaKey||e.altKey)return;
-  const k=e.key;
-  if(k==='ArrowUp')neighbor(0,-1);else if(k==='ArrowDown')neighbor(0,1);else if(k==='ArrowLeft')neighbor(-1,0);else if(k==='ArrowRight')neighbor(1,0);
-  else if(k==='Backspace')up();
-  else if(k==='/'){e.preventDefault();$('#seedIn').focus()}
-  else if(/^[0-9a-zA-Z]$/.test(k))dive(k.toUpperCase());
-  else return;
-  if(k.startsWith('Arrow'))e.preventDefault();
+  if(e.ctrlKey||e.metaKey||e.altKey)return;const k=e.key;
+  if(k==='ArrowLeft')neighbor(-1,0,0);else if(k==='ArrowRight')neighbor(1,0,0);else if(k==='ArrowUp')neighbor(0,1,0);else if(k==='ArrowDown')neighbor(0,-1,0);
+  else if(k==='PageUp')neighbor(0,0,1);else if(k==='PageDown')neighbor(0,0,-1);
+  else if(k==='Backspace')up();else if(k==='/'){e.preventDefault();$('#seedIn').focus()}
+  else if(/^[0-9a-qA-Q]$/.test(k))dive(k.toUpperCase());else return;
+  if(k.startsWith('Arrow')||k.startsWith('Page'))e.preventDefault();
 });
-$('#dpad').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.id==='upBtn')up();else{const [dx,dy]=b.dataset.d.split(',').map(Number);neighbor(dx,dy)}});
+$('#dpad').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.id==='upBtn')up();else neighbor(...b.dataset.d.split(',').map(Number))});
+
+/* — Vistas rápidas (como en el visor de Hail Mary) — */
+function setCam(y,p,z){cam.yaw=y;cam.pitch=p;cam.zoom=z}
+$('#views').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;const v=b.dataset.v;
+  if(v==='route'){opt.route=!opt.route;b.classList.toggle('on',opt.route);return}
+  if(v==='color'){opt.color=!opt.color;b.classList.toggle('on',!opt.color);return}
+  if(v==='sol'){setCam(.7,.45,2.3);teleport(starLoc(A_BY('sol'),9))}
+  else if(v==='tau'){setCam(.7,.45,2.3);teleport(starLoc(A_BY('tceti'),9))}
+  else if(v==='traj'){setCam(.5,.6,2.2);teleport(mkLoc('A','DD'))}
+  else if(v==='sector'){setCam(.7,.45,2.3);teleport(mkLoc('A',''))}
+});
 
 /* ═════════ UI ═════════ */
-let msgTimer;function toast(s){if(s)setMsg(s)}
-function setMsg(s,bad){const m=$('#msg');if(m){m.textContent=s||'';m.className='note '+(bad?'bad':'ok');clearTimeout(msgTimer);if(s)msgTimer=setTimeout(()=>{if(m)m.textContent=''},5000)}}
+let msgTimer;
+function setMsg(s,bad){const m=$('#msg');if(m){m.textContent=s||'';m.className='note '+(bad?'bad':'ok');clearTimeout(msgTimer);if(s)msgTimer=setTimeout(()=>{if(m)m.textContent=''},5000)}else if(bad)alert(s)}
 function setTab(t){tab=t;document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
   document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('on',p.id==='p-'+t));
-  if(t==='hist')renderHist();if(t==='share')renderShare();if(t==='trav')renderTrav()}
+  if(t==='hist')renderHist();if(t==='share')renderShare();if(t==='trav')renderTrav();if(t==='ship')renderShip()}
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>setTab(b.dataset.t));
-
 function syncUI(){
-  $('#seedIn').value=seedStr(loc);hoverIdx=-1;tip.style.display='none';
-  $('#dpad').style.visibility=mode==='system'?'hidden':'visible';$('#hint').style.display=mode==='system'?'none':'';
+  $('#seedIn').value=seedStr(loc);hoverIdx=-1;hoverStar=null;tip.style.display='none';
+  $('#dpad').style.visibility=mode==='system'?'hidden':'visible';$('#views').style.visibility=mode==='system'?'hidden':'visible';$('#hint').style.display=mode==='system'?'none':'';
   const cr=$('#crumb');cr.innerHTML='';
   const mk=(txt,n,cur)=>{const b=document.createElement('button');b.textContent=txt;if(cur)b.className='cur';b.onclick=()=>{if(mode==='system')exitSystem(true);if(n!==loc.path.length||mode==='system')go({...loc,path:loc.path.slice(0,n)})};cr.appendChild(b)};
-  mk(loc.tx||loc.ty?`[${loc.tx},${loc.ty}]`:'·',0,!loc.path.length);
-  [...loc.path].forEach((ch,i)=>mk(ch,i+1,i===loc.path.length-1));
-  $('#banner').style.display=D.anon?'block':'none';
-  $('#upBtn').disabled=!loc.path.length&&mode!=='system';
+  mk(loc.head,0,!loc.path.length);[...loc.path].forEach((ch,i)=>mk(ch,i+1,i===loc.path.length-1));
+  $('#banner').style.display=D.anon?'block':'none';$('#upBtn').disabled=!loc.path.length&&mode!=='system';
   syncInfo();
 }
-function planetCard(p){
-  const k=KIND[p.kind];
-  return `<h3>Planeta</h3><h2 style="color:${k[1]}">${esc(p.name)}</h2>
+function planetCard(p){const k=KIND[p.kind];return `<h3>Planeta</h3><h2 style="color:${k[1]}">${esc(p.name)}</h2>
   <div class="row">${p.hz?'<span class="tag hz">zona habitable</span>':''}${p.fiction?'<span class="tag fx">ficción</span>':''}<span class="tag">${k[0]}</span></div>
-  <div class="kv"><span>Distancia</span><span>${p.a.toFixed(p.a<10?3:1)} UA</span><span>Radio</span><span>${p.r.toFixed(2)} R⊕</span>
-  <span>Gravedad</span><span>${p.g.toFixed(2)} g</span><span>Temp. aprox.</span><span>${p.T} K (${Math.round(p.T-273)} °C)</span>
-  <span>Año</span><span>${p.period<700?p.period.toFixed(0)+' días':(p.period/365.25).toFixed(1)+' años'}</span><span>Lunas</span><span>${p.moons}${p.ring?' · anillos':''}</span></div>
-  ${p.note?`<p class="note">${esc(p.note)}</p>`:''}`;
-}
-function starCard(st,sysBtn){
-  const P=starProps(st),sl=starLoc(st),d=Math.hypot(st.gx,st.gy);
+  <div class="kv"><span>Distancia</span><span>${p.a.toFixed(p.a<10?3:1)} UA</span><span>Radio</span><span>${p.r.toFixed(2)} R⊕</span><span>Gravedad</span><span>${p.g.toFixed(2)} g</span>
+  <span>Temp. aprox.</span><span>${p.T} K (${Math.round(p.T-273)} °C)</span><span>Año</span><span>${p.period<700?p.period.toFixed(0)+' días':(p.period/365.25).toFixed(1)+' años'}</span><span>Lunas</span><span>${p.moons}${p.ring?' · anillos':''}</span></div>
+  ${p.note?`<p class="note">${esc(p.note)}</p>`:''}`}
+function starCard(st){
+  const P=st.P,sl=starLoc(st),g=starG(st),d=Math.hypot(...g);
   return `<h3>Estrella</h3><h2 style="color:${P.col}">${esc(starName(st))}</h2>
   ${st.anchor?`<span class="tag fx">mapa de la película</span> <span class="note">${esc(st.anchor.blurb)}</span>`:''}
   <div class="kv"><span>Clase</span><span>${P.k} · ${P.lab}</span><span>Temp.</span><span>${P.T} K</span><span>Luminosidad</span><span>${P.lum<.01?P.lum.toExponential(1):P.lum.toFixed(2)} L☉</span>
-  <span>Masa / radio</span><span>${P.mass.toFixed(2)} M☉ · ${P.rad.toFixed(2)} R☉</span><span>Distancia al Sol</span><span>${d<.01?'—':fmtLen(d)}</span><span>Semilla</span><span class="seed" style="font-size:13px">${esc(seedStr(sl))}</span></div>
-  <div class="row">${sysBtn?`<button class="pri" id="enterSys">Entrar al sistema</button>`:''}<button id="goStar">Teletransportar aquí</button></div>`;
+  <span>Masa / radio</span><span>${P.mass.toFixed(2)} M☉ · ${P.rad.toFixed(2)} R☉</span><span>Distancia al Sol</span><span>${d<.01?'—':fmtLen(d)}</span><span>Semilla</span><span class="seed" style="font-size:12px">${esc(seedStr(sl))}</span></div>
+  <div class="row"><button class="pri" id="enterSys">Entrar al sistema</button><button id="goStar">Teletransportar aquí</button></div>`;
+}
+function syncMini(){document.querySelectorAll('.mini button').forEach(b=>b.classList.toggle('h',+b.dataset.i===hoverIdx))}
+function miniHTML(){
+  if(loc.path.length>=MAXD)return '';
+  const layer=z=>`<div><div class="note" style="margin:0 0 2px">Z ${['−','0','+'][z]}</div><div class="mini">${[2,1,0].map(y=>[0,1,2].map(x=>{const i=x+3*y+9*z;return `<button data-i="${i}">${DETAIL[i]}</button>`}).join('')).join('')}</div></div>`;
+  return `<h3>Subdividir (3×3×3)</h3><div class="minis">${layer(0)}${layer(1)}${layer(2)}</div><p class="note">Filas: Y de norte (arriba) a sur · columnas: X de oeste a este.</p>`;
 }
 function syncInfo(){
   const el=$('#p-info');
@@ -2820,57 +2929,50 @@ function syncInfo(){
     const S=SYS;
     el.innerHTML=`<h2>${esc(S.name)}</h2><div class="note">${esc(S.P.lab)} · ${S.planets.length} planeta${S.planets.length===1?'':'s'}${S.belts.length?` · ${S.belts.length} cinturón${S.belts.length>1?'es':''}`:''}</div>
     <div class="row"><button id="exitSys" class="pri">⤒ Salir al mapa</button></div>
-    ${selPlanet?planetCard(selPlanet):'<p class="note">Haz clic en un planeta para ver su ficha.</p>'}
+    ${selPlanet?planetCard(selPlanet):'<p class="note">Haz clic en un planeta para ver su ficha; tu nave lo acompañará.</p>'}
     <h3>Planetas</h3><div class="lst">${S.planets.map((p,i)=>`<div class="item" data-p="${i}" style="cursor:pointer"><span style="color:${KIND[p.kind][1]}">●</span><div class="m"><b>${esc(p.name)}</b><i>${KIND[p.kind][0]} · ${p.a.toFixed(2)} UA${p.hz?' · habitable':''}</i></div></div>`).join('')||'<p class="note">Sin planetas conocidos.</p>'}</div>
     ${S.star.anchor&&S.star.anchor.proc?'<p class="note">Los planetas de este sistema se generan proceduralmente (excepto los marcados).</p>':''}
-    <h3>Estrella</h3><div class="kv"><span>Semilla</span><span class="seed" style="font-size:13px">${esc(seedStr(loc))}</span></div>`;
-    $('#exitSys').onclick=()=>exitSystem();
-    el.querySelectorAll('[data-p]').forEach(n=>n.onclick=()=>{selPlanet=S.planets[+n.dataset.p];syncInfo()});
-    return;
+    <h3>Estrella</h3><div class="kv"><span>Semilla</span><span class="seed" style="font-size:12px">${esc(seedStr(loc))}</span></div>`;
+    $('#exitSys').onclick=()=>exitSystem();el.querySelectorAll('[data-p]').forEach(n=>n.onclick=()=>{selPlanet=S.planets[+n.dataset.p];syncInfo()});return;
   }
-  const c=cell,[gx,gy]=cellCenterG(c),d=density(gx,gy),dist=Math.hypot(gx,gy);
-  const dens=d<.3?'Vacío profundo':d<.45?'Disperso':d<.6?'Moderado':d<.75?'Denso':'Cúmulo denso';
-  const expect=c.size>64?Math.round(starP(d)*(c.size/SC)**2):null;
-  let stars=[];if(c.size<=64)stars=starsIn(c);
-  const inCell=c.depth>=10?starInCell(c):null;
-  let near='';
-  if(!stars.length&&c.size<64){const n=nearestStar(c);if(n){const ang=Math.atan2(n.dy,n.dx);const arrow='→↘↓↙←↖↑↗'[Math.round(((ang+Math.PI*2)%(Math.PI*2))/(Math.PI/4))%8];
-    near=`<h3>Estrella más cercana</h3><div class="item"><div class="m"><b>${esc(starName(n.st))}</b><i>${arrow} ${fmtLen(n.d)} · clase ${starProps(n.st).k}</i></div><button class="sm" id="goNear">Ir</button></div>`;window._near=n.st}}
-  el.innerHTML=`<h2>${esc(regionName(loc))}</h2><div class="note">${DEPTH_NAMES[c.depth]||'Nivel '+c.depth} · nivel ${c.depth}/${MAXD} · celdas de ${fmtLen(c.size)}</div>
-  <div class="seed">${esc(seedStr(loc)||'· RAÍZ ·')}</div>
+  const c=cell,g=cellCenterG(c),d=density(...cellCenter(c).map((v,i)=>[c.sx,c.sy,c.sz][i]*SEC+v)),dist=Math.hypot(...g);
+  const dens=d<.12?'Vacío profundo':d<.3?'Disperso':d<.5?'Moderado':d<.7?'Denso':'Muy denso';
+  const stars=c.size<=240?curList.filter(s=>!s.out):[];
+  const expect=c.size>240?null:Math.round(lambda(d)*(c.size/SC)**3);
+  const inCell=c.depth>=9?starInCell(c):null;
+  let near='';window._near=null;
+  if(!stars.length&&c.size<60){const n=nearestStar(c);if(n){window._near=n.st;near=`<h3>Estrella más cercana</h3><div class="item"><div class="m"><b>${esc(starName(n.st))}</b><i>${fmtLen(n.d)} · clase ${n.st.P.k}</i></div><button class="sm" id="goNear">Ir</button></div>`}}
+  const shown=selStar||inCell;
+  el.innerHTML=`<h2>${esc(regionName(loc))}</h2><div class="note">${DEPTH_NAMES[c.depth]||'Nivel '+c.depth} · nivel ${c.depth}/${MAXD} · cubo de ${fmtLen(c.size)}</div>
+  <div class="seed">${esc(seedStr(loc))}</div>
   <div class="row"><button id="cpSeed">Copiar semilla</button><button id="cpLink">Copiar enlace</button></div><div id="msg" class="note"></div>
-  <div class="kv"><span>Centro (x, y)</span><span>${gx.toFixed(Math.abs(gx)<10?3:1)}, ${gy.toFixed(Math.abs(gy)<10?3:1)} al</span><span>Distancia al Sol</span><span>${fmtLen(dist)}</span>
-  <span>Densidad</span><span>${dens} (${Math.round(d*100)}%)</span>${expect!=null?`<span>Estrellas aprox.</span><span>~${fmtNum(expect)}</span>`:`<span>Estrellas aquí</span><span>${stars.length}</span>`}
-  <span>Sector</span><span>${loc.tx}, ${loc.ty}</span></div>
-  ${selStar?starCard(selStar,true):inCell?starCard(inCell,true):''}
-  ${near}
-  ${stars.length&&!selStar&&!inCell?`<h3>Estrellas en esta celda</h3><div class="lst">${stars.sort((a,b)=>starProps(b).lum-starProps(a).lum).slice(0,10).map((s,i)=>`<div class="item" data-s="${i}" style="cursor:pointer"><span style="color:${starProps(s).col}">★</span><div class="m"><b>${esc(starName(s))}</b><i>${starProps(s).k} · ${esc(starProps(s).lab)}</i></div></div>`).join('')}</div>`:''}
-  <p class="note">${c.depth<10?'Sigue añadiendo letras: a partir del nivel 10 una celda aísla una sola estrella.':''}</p>`;
-  window._list=stars;
+  <div class="kv"><span>Sector</span><span>${esc(loc.head)} · (${loc.sx}, ${loc.sy}, ${loc.sz})</span><span>Centro (x,y,z)</span><span>${g.map(v=>Math.abs(v)<10?v.toFixed(3):v.toFixed(1)).join(', ')} al</span>
+  <span>Distancia al Sol</span><span>${fmtLen(dist)}</span><span>Densidad</span><span>${dens} (${Math.round(d*100)}%)</span>
+  ${c.size>240?'':expect!=null?`<span>Estrellas aquí</span><span>${stars.length}</span>`:''}</div>
+  ${shown?starCard(shown):''}${near}
+  ${stars.length>1&&!shown&&stars.length<=60?`<h3>Estrellas en esta celda</h3><div class="lst">${stars.slice().sort((a,b)=>b.P.lum-a.P.lum).slice(0,12).map((s,i)=>`<div class="item" data-s="${i}" style="cursor:pointer"><span style="color:${s.P.col}">★</span><div class="m"><b>${esc(starName(s))}</b><i>${s.P.k} · ${esc(s.P.lab)}</i></div></div>`).join('')}</div>`:''}
+  ${miniHTML()}
+  <p class="note">${c.depth<9?'Con 9 caracteres de detalle una celda ya es menor a 1 000 UA; a partir de ahí suele aislar una sola estrella.':''}</p>`;
+  window._list=stars.slice().sort((a,b)=>b.P.lum-a.P.lum);
   const q=id=>el.querySelector(id);
-  q('#cpSeed').onclick=()=>copy(seedStr(loc),'Semilla copiada');
-  q('#cpLink').onclick=()=>copy(baseUrl()+'#s='+encodeURIComponent(seedStr(loc)),'Enlace copiado');
-  if(q('#enterSys'))q('#enterSys').onclick=()=>enterSystem(selStar||inCell);
-  if(q('#goStar'))q('#goStar').onclick=()=>teleport(starLoc(selStar||inCell,12));
-  if(q('#goNear'))q('#goNear').onclick=()=>teleport(starLoc(window._near,10));
+  q('#cpSeed').onclick=()=>copy(seedStr(loc),'Semilla copiada');q('#cpLink').onclick=()=>copy(baseUrl()+'#s='+encodeURIComponent(seedStr(loc)),'Enlace copiado');
+  if(q('#enterSys'))q('#enterSys').onclick=()=>enterSystem(shown);if(q('#goStar'))q('#goStar').onclick=()=>teleport(starLoc(shown,16));
+  if(q('#goNear'))q('#goNear').onclick=()=>teleport(starLoc(window._near,12));
   el.querySelectorAll('[data-s]').forEach(n=>n.onclick=()=>{selStar=window._list[+n.dataset.s];syncInfo()});
+  el.querySelectorAll('.mini button').forEach(b=>{b.onclick=()=>dive(DETAIL[+b.dataset.i]);b.onmouseenter=()=>{hoverIdx=+b.dataset.i;syncMini()};b.onmouseleave=()=>{hoverIdx=-1;syncMini()}});
 }
 function copy(txt,ok){(navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>setMsg(ok)).catch(()=>{prompt('Copia manualmente:',txt)})}
 
 /* — Bitácora — */
-function entryLabel(e){
-  const p=parseSeed(e.s);if(!p.loc)return e.s;const c=cellOf(p.loc);
-  if(e.k==='s'){const st=starInCell(c);return st?'★ '+starName(st):'★ Sistema'}
-  return regionName(p.loc)+' · '+(DEPTH_NAMES[c.depth]||'');
-}
+function entryLabel(e){const p=parseSeed(e.s);if(!p.loc)return e.s;const c=cellOf(p.loc);
+  if(e.k==='s'){const st=starInCell(c);return st?'★ '+starName(st):'★ Sistema'}return regionName(p.loc)+' · '+(DEPTH_NAMES[c.depth]||'')}
 function renderHist(){
-  const el=$('#p-hist');const favOnly=el.dataset.fav==='1';
-  const list=D.h.map((e,i)=>({e,i})).filter(x=>!favOnly||x.e.f).reverse();
+  const el=$('#p-hist'),favOnly=el.dataset.fav==='1',list=D.h.map((e,i)=>({e,i})).filter(x=>!favOnly||x.e.f).reverse();
   el.innerHTML=`<div class="row"><label><input type="checkbox" id="anon" ${D.anon?'checked':''}> No registrar mi exploración</label></div>
   <div class="note">${D.anon?'Modo sin registro: puedes explorar libremente, no se guarda nada nuevo.':'Se guarda solo en este navegador (localStorage). Para moverlo a otro dispositivo usa «Compartir».'}</div>
   <div class="row"><button class="sm" id="favF">${favOnly?'Ver todo':'Solo ★'}</button><button class="sm" id="clr">Borrar todo</button><span class="dim">${D.h.length} registros</span></div>
   <div class="lst">${list.slice(0,300).map(({e,i})=>`<div class="item"><button class="fav ${e.f?'on':''}" data-f="${i}">${e.f?'★':'☆'}</button>
-   <div class="m"><b>${esc(entryLabel(e))}</b><i>${esc(e.s||'RAÍZ')} · ${new Date(e.t).toLocaleString('es',{dateStyle:'short',timeStyle:'short'})}</i>${e.n?`<i style="color:var(--tx)">“${esc(e.n)}”</i>`:''}</div>
+   <div class="m"><b>${esc(entryLabel(e))}</b><i>${esc(e.s)} · ${new Date(e.t).toLocaleString('es',{dateStyle:'short',timeStyle:'short'})}</i>${e.n?`<i style="color:var(--tx)">“${esc(e.n)}”</i>`:''}</div>
    <button class="sm" data-n="${i}" title="Nota">✎</button><button class="sm" data-g="${i}">Ir</button><button class="sm" data-x="${i}" title="Quitar">✕</button></div>`).join('')||'<p class="note">Aún no hay registros. Explora y aparecerán aquí.</p>'}</div>`;
   $('#anon').onchange=e=>{D.anon=e.target.checked;saveD();syncUI();renderHist()};
   $('#favF').onclick=()=>{el.dataset.fav=favOnly?'0':'1';renderHist()};
@@ -2878,32 +2980,51 @@ function renderHist(){
   el.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{const e=D.h[+b.dataset.f];e.f=e.f?0:1;saveD();renderHist()});
   el.querySelectorAll('[data-n]').forEach(b=>b.onclick=()=>{const e=D.h[+b.dataset.n],v=prompt('Nota para este lugar:',e.n||'');if(v!==null){e.n=v.slice(0,120);saveD();renderHist()}});
   el.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>{D.h.splice(+b.dataset.x,1);saveD();renderHist()});
-  el.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{const e=D.h[+b.dataset.g],p=parseSeed(e.s);if(!p.loc)return;go(p.loc,{animate:false});
-    if(e.k==='s'){const st=starInCell(cell);if(st)enterSystem(st)}});
+  el.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{const e=D.h[+b.dataset.g],p=parseSeed(e.s);if(!p.loc)return;go(p.loc,{animate:false});if(e.k==='s'){const st=starInCell(cell);if(st)enterSystem(st)}});
 }
 
 /* — Viajar — */
 function renderTrav(){
   const el=$('#p-trav');
-  el.innerHTML=`<h3>Destinos del mapa</h3><div class="lst">${ANCH.map((a,i)=>`<div class="item"><span style="color:${a.props.col}">★</span><div class="m"><b>${esc(a.name)}</b><i>${fmtLen(Math.hypot(a.gx,a.gy))} del Sol</i></div><button class="sm" data-a="${i}">Ir</button></div>`).join('')}</div>
+  el.innerHTML=`<h3>Destinos del mapa</h3><div class="lst">${ANCHSTARS.map((s,i)=>`<div class="item"><span style="color:${s.P.col}">★</span><div class="m"><b>${esc(s.anchor.name)}</b><i>${fmtLen(Math.hypot(s.lx,s.ly,s.lz))} del Sol</i></div><button class="sm" data-a="${i}">Ir</button></div>`).join('')}</div>
   <h3>Por coordenadas (sin límites)</h3>
-  <div class="field"><label>x (al)</label><input id="cx" type="number" step="any" value="0"></div>
-  <div class="field"><label>y (al)</label><input id="cy" type="number" step="any" value="0"></div>
-  <div class="field"><label>Precisión</label><input id="cd" type="range" min="1" max="${MAXD}" value="9"><span></span></div>
-  <div class="note" id="cdl"></div>
+  <div class="field"><label>x (al)</label><input id="cx" type="number" step="any" value="0"></div><div class="field"><label>y (al)</label><input id="cy" type="number" step="any" value="0"></div><div class="field"><label>z (al)</label><input id="cz" type="number" step="any" value="0"></div>
+  <div class="field"><label>Precisión</label><input id="cd" type="range" min="0" max="${MAXD}" value="9"><span></span></div><div class="note" id="cdl"></div>
   <div class="row"><button class="pri" id="cgo">Convertir y teletransportar</button><button id="rnd2">🎲 Aleatorio</button></div>
-  <p class="note">Origen (0, 0) = el Sol; x crece al este, y al sur. El espacio se repite en teselas de ${TILE} al, así que no hay borde: sirve cualquier coordenada.</p>
-  <p class="note">Cada letra es una celda de una rejilla 6×6 del nivel anterior (0-9, A-Z): 1 letra ≈ 683 al, 3 ≈ 19 al, 6 ≈ 0,09 al, 9 ≈ 25 UA.</p>`;
-  const cd=$('#cd'),upd=()=>{$('#cdl').textContent=`Profundidad ${cd.value} → celda de ${fmtLen(TILE/Math.pow(B,+cd.value))}`};cd.oninput=upd;upd();
-  el.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>teleport(globalToLoc(ANCH[+b.dataset.a].gx,ANCH[+b.dataset.a].gy,9)));
-  $('#cgo').onclick=()=>{const x=parseFloat($('#cx').value),y=parseFloat($('#cy').value);
-    if(!isFinite(x)||!isFinite(y)||Math.abs(x)>4e8||Math.abs(y)>4e8){alert('Coordenadas fuera de rango (máx. ±400 millones de al).');return}
-    teleport(globalToLoc(x,y,+cd.value))};
+  <p class="note">Ejes: eclíptica J2000 centrada en el Sol (x al equinoccio, z al polo norte eclíptico).</p>
+  <h3>Cómo leer una semilla</h3>
+  <p class="note"><b>CABECERA-DETALLE</b>. La cabecera (A, B… Z, AA, AB, AC…, AAA…) numera sectores cúbicos de ${SEC} al en capas alrededor del Sol, así que el mapa no tiene borde y la cabecera se alarga al alejarte. Cada carácter de detalle (0-9, A-Q) elige una de las 27 subceldas: 1 → ${fmtLen(SEC/3)}, 3 → ${fmtLen(SEC/27)}, 6 → ${fmtLen(SEC/729)}, 9 → ${fmtLen(SEC/19683)}.</p>`;
+  const cd=$('#cd'),upd=()=>{$('#cdl').textContent=`Profundidad ${cd.value} → cubo de ${fmtLen(SEC/Math.pow(3,+cd.value))}`};cd.oninput=upd;upd();
+  el.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>{setCam(.7,.45,2.3);teleport(starLoc(ANCHSTARS[+b.dataset.a],9))});
+  $('#cgo').onclick=()=>{const v=['#cx','#cy','#cz'].map(s=>parseFloat($(s).value));if(v.some(n=>!isFinite(n)||Math.abs(n)>1e6)){alert('Coordenadas fuera de rango (máx. ±1 000 000 al).');return}teleport(globalToLoc(...v,+cd.value))};
   $('#rnd2').onclick=randomSeed;
 }
 function randomSeed(){
-  const r=Math.random;const far=r()<.35;let l={tx:far?Math.round((r()-.5)*40):0,ty:far?Math.round((r()-.5)*40):0,path:''};
-  const n=5+(r()*5|0);for(let i=0;i<n;i++)l.path+=ALPHA[r()*36|0];teleport(l);
+  const r=Math.random,far=r()<.5,L=l=>Array.from({length:l},()=>DETAIL[r()*27|0]).join('');
+  const l=far?mkLocXYZ(Math.round((r()-.5)*20),Math.round((r()-.5)*20),Math.round((r()-.5)*6),''):mkLoc('A','');teleport({...l,path:L(5+(r()*5|0))});
+}
+
+/* — Nave — */
+function renderShip(){
+  const el=$('#p-ship'),s=D.ship,S=SHIPS[s.d];
+  const bar=(v)=>`<span style="display:inline-block;width:90px;height:8px;background:#122040;border-radius:4px;vertical-align:middle"><span style="display:block;width:${v*10}%;height:100%;background:var(--cy);border-radius:4px"></span></span>`;
+  el.innerHTML=`<div style="display:flex;gap:12px;align-items:center"><div style="background:#060b17;border:1px solid var(--line);border-radius:10px;padding:6px">${shipSVG(s.d,s.c1,s.c2,92)}</div>
+   <div><h2 style="margin:0">${esc(s.n||S.n)}</h2><div class="note" style="margin:0">${esc(S.n)}</div></div></div>
+  <p class="note">${esc(S.d)}</p>
+  <div class="kv"><span>Velocidad</span><span>${bar(S.vel)}</span><span>Autonomía</span><span>${bar(S.alc)}</span><span>Carga</span><span>${bar(S.car)}</span><span>Tripulación</span><span>${S.tri?S.tri:'no tripulada'}</span></div>
+  <h3>Diseños prehechos</h3>
+  <div class="ships">${Object.entries(SHIPS).map(([k,v])=>`<button data-k="${k}" class="${k===s.d?'on':''}">${shipSVG(k,s.c1,s.c2,52)}<span>${v.n}</span></button>`).join('')}</div>
+  <h3>Personalizar</h3>
+  <div class="field"><label>Nombre</label><input id="sn" maxlength="24" placeholder="${esc(S.n)}" value="${esc(s.n)}"></div>
+  <div class="field"><label>Color 1</label><input id="sc1" type="color" value="${esc(s.c1)}" style="height:32px;padding:2px"></div>
+  <div class="field"><label>Color 2</label><input id="sc2" type="color" value="${esc(s.c2)}" style="height:32px;padding:2px"></div>
+  <div class="row"><button id="sreset">Restablecer colores</button></div>
+  <p class="note">Tu nave aparece en el centro de la celda que exploras y acompaña al planeta que selecciones en cada sistema. Se guarda con tu perfil y viaja en el enlace/QR de «Compartir».</p>`;
+  el.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{D.ship.d=b.dataset.k;saveD();renderShip()});
+  $('#sn').oninput=e=>{D.ship.n=e.target.value.slice(0,24);saveD()};
+  $('#sc1').oninput=e=>{D.ship.c1=e.target.value;saveD()};$('#sc2').oninput=e=>{D.ship.c2=e.target.value;saveD()};
+  $('#sc1').onchange=$('#sc2').onchange=renderShip;
+  $('#sreset').onclick=()=>{D.ship.c1=DEF_SHIP.c1;D.ship.c2=DEF_SHIP.c2;saveD();renderShip()};
 }
 
 /* ═════════ Compartir: enlace + QR ═════════ */
@@ -2912,90 +3033,72 @@ const b64u=u8=>{let s='';for(let i=0;i<u8.length;i+=8192)s+=String.fromCharCode.
 const unb64u=s=>{s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';const bin=atob(s),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u};
 async function pipe(u8,Ctor){const s=new Ctor('deflate-raw'),w=s.writable.getWriter();w.write(u8);w.close();return new Uint8Array(await new Response(s.readable).arrayBuffer())}
 async function encodeState(maxN){
-  const st={v:1,n:D.n||'',c:seedStr(loc),h:D.h.slice(-maxN).map(e=>[e.s,Math.round(e.t/1000).toString(36),e.k,e.f?1:0,e.n||''])};
+  const sh=D.ship,st={v:2,n:D.n||'',c:seedStr(loc),sh:[sh.d,sh.n||'',sh.c1,sh.c2],h:D.h.slice(-maxN).map(e=>[e.s,Math.round(e.t/1000).toString(36),e.k,e.f?1:0,e.n||''])};
   const raw=new TextEncoder().encode(JSON.stringify(st));
-  if(typeof CompressionStream!=='undefined')return 'z'+b64u(await pipe(raw,CompressionStream));
-  return 'p'+b64u(raw);
+  if(typeof CompressionStream!=='undefined')return 'z'+b64u(await pipe(raw,CompressionStream));return 'p'+b64u(raw);
 }
 async function decodeState(tok){
-  const kind=tok[0],u8=unb64u(tok.slice(1));
-  const raw=kind==='z'?await pipe(u8,DecompressionStream):u8;
-  const st=JSON.parse(new TextDecoder().decode(raw));
-  if(!st||st.v!==1||!Array.isArray(st.h))throw new Error('formato');
+  const kind=tok[0],u8=unb64u(tok.slice(1)),raw=kind==='z'?await pipe(u8,DecompressionStream):u8,st=JSON.parse(new TextDecoder().decode(raw));
+  if(!st||st.v!==2||!Array.isArray(st.h))throw new Error('formato');
   st.h=st.h.map(a=>({s:String(a[0]||''),t:parseInt(a[1],36)*1000,k:a[2]==='s'?'s':'m',f:a[3]?1:0,n:String(a[4]||'').slice(0,120)}));
+  if(Array.isArray(st.sh))st.ship=cleanShip({d:st.sh[0],n:st.sh[1],c1:st.sh[2],c2:st.sh[3]});
   return st;
 }
-let qrCache=null;
+const cleanShip=s=>({d:SHIPS[s.d]?s.d:'corbeta',n:String(s.n||'').slice(0,24),c1:/^#[0-9a-f]{6}$/i.test(s.c1)?s.c1:DEF_SHIP.c1,c2:/^#[0-9a-f]{6}$/i.test(s.c2)?s.c2:DEF_SHIP.c2});
 async function buildShare(){
-  const base=baseUrl();let n=D.h.length,tok=await encodeState(n),full=base+'#d='+tok,fullLen=full.length;
-  let qrText=full,qrN=n;
+  const base=baseUrl();let n=D.h.length,tok=await encodeState(n),full=base+'#d='+tok,qrText=full,qrN=n,qr=null;
   const tryQr=t=>{const q=qrcode(0,'L');q.addData(t,'Byte');q.make();return q};
-  let qr=null;
   while(true){try{qr=tryQr(qrText);break}catch(e){if(qrN<=0){qr=null;break}qrN=Math.floor(qrN*.8);tok=await encodeState(qrN);qrText=base+'#d='+tok}}
-  return{full,fullLen,qr,qrN,total:n,base};
+  return{full,fullLen:full.length,qr,qrN,total:n,base};
 }
-function drawQR(canvas,qr){
-  const n=qr.getModuleCount(),m=Math.max(2,Math.floor(300/(n+8)));canvas.width=canvas.height=(n+8)*m;const c=canvas.getContext('2d');
-  c.fillStyle='#fff';c.fillRect(0,0,canvas.width,canvas.height);c.fillStyle='#000';
-  for(let r=0;r<n;r++)for(let k=0;k<n;k++)if(qr.isDark(r,k))c.fillRect((k+4)*m,(r+4)*m,m,m);
-}
+function drawQR(canvas,qr){const n=qr.getModuleCount(),m=Math.max(2,Math.floor(300/(n+8)));canvas.width=canvas.height=(n+8)*m;const c=canvas.getContext('2d');
+  c.fillStyle='#fff';c.fillRect(0,0,canvas.width,canvas.height);c.fillStyle='#000';for(let r=0;r<n;r++)for(let k=0;k<n;k++)if(qr.isDark(r,k))c.fillRect((k+4)*m,(r+4)*m,m,m)}
 async function renderShare(){
   const el=$('#p-share');
   el.innerHTML=`<div class="field"><label>Apodo</label><input id="nick" maxlength="24" placeholder="tu nombre de explorador" value="${esc(D.n||'')}"></div>
-  <div class="field"><label>URL pública</label><input id="base" placeholder="https://…/ (para que el QR abra la herramienta)" value="${esc(D.base||'')}"></div>
-  <div id="shareBody" class="note">Generando…</div>`;
-  $('#nick').onchange=e=>{D.n=e.target.value.slice(0,24);saveD();renderShare()};
-  $('#base').onchange=e=>{D.base=e.target.value.trim();saveD();renderShare()};
+  <div class="field"><label>URL pública</label><input id="base" placeholder="https://…/ (para que el QR abra la herramienta)" value="${esc(D.base||'')}"></div><div id="shareBody" class="note">Generando…</div>`;
+  $('#nick').onchange=e=>{D.n=e.target.value.slice(0,24);saveD();renderShare()};$('#base').onchange=e=>{D.base=e.target.value.trim();saveD();renderShare()};
   const info=await buildShare();if(tab!=='share')return;
-  const hasBase=!!info.base;
-  $('#shareBody').innerHTML=`${hasBase?'':'<p class="bad">Estás abriendo el archivo localmente: escribe arriba la URL donde publiques la herramienta (p. ej. GitHub Pages) para que el enlace y el QR funcionen en otros dispositivos.</p>'}
-  <h3>Todo tu historial en un enlace</h3>
-  <textarea id="lnk" readonly>${esc(info.full)}</textarea>
+  $('#shareBody').innerHTML=`${info.base?'':'<p class="bad">Estás abriendo el archivo localmente: escribe arriba la URL donde publiques la herramienta (p. ej. GitHub Pages) para que el enlace y el QR funcionen en otros dispositivos.</p>'}
+  <h3>Historial + nave + datos en un enlace</h3><textarea id="lnk" readonly>${esc(info.full)}</textarea>
   <div class="row"><button class="pri" id="cpl">Copiar enlace</button><span class="dim">${info.total} registros · ${info.fullLen.toLocaleString()} caracteres</span></div>
-  <h3>QR</h3>
-  ${info.qr?`<div id="qrBox"><canvas id="qr"></canvas></div>
-   <div class="row"><button id="dlq">Descargar PNG</button></div>
-   <p class="note ${info.qrN<info.total?'bad':''}">${info.qrN<info.total?`El QR tiene capacidad limitada: incluye los últimos ${info.qrN} de ${info.total} registros. El enlace y el archivo llevan todo.`:'Incluye todo el historial. Escanéalo con la cámara del otro dispositivo.'}</p>`
-   :'<p class="bad">El QR no alcanza ni con el historial vacío (URL demasiado larga). Usa el enlace.</p>'}
+  <h3>QR</h3>${info.qr?`<div id="qrBox"><canvas id="qr"></canvas></div><div class="row"><button id="dlq">Descargar PNG</button></div>
+   <p class="note ${info.qrN<info.total?'bad':''}">${info.qrN<info.total?`El QR tiene capacidad limitada: incluye los últimos ${info.qrN} de ${info.total} registros (y tu nave). El enlace y el archivo llevan todo.`:'Incluye todo. Escanéalo con la cámara del otro dispositivo.'}</p>`:'<p class="bad">El QR no alcanza ni con el historial vacío (URL demasiado larga). Usa el enlace.</p>'}
   <h3>Archivo</h3><div class="row"><button id="exp">Exportar JSON</button><button id="imp">Importar JSON…</button><input type="file" id="impf" accept="application/json,.json" hidden></div>
-  <h3>Solo esta ubicación</h3><div class="row"><button id="cps">Copiar enlace a ${esc(seedStr(loc)||'RAÍZ')}</button></div>`;
+  <h3>Solo esta ubicación</h3><div class="row"><button id="cps">Copiar enlace a ${esc(seedStr(loc))}</button></div>`;
   if(info.qr)drawQR($('#qr'),info.qr);
-  $('#cpl').onclick=()=>copy(info.full,'Enlace copiado');
-  $('#cps').onclick=()=>copy(baseUrl()+'#s='+encodeURIComponent(seedStr(loc)),'Enlace copiado');
+  $('#cpl').onclick=()=>copy(info.full,'Enlace copiado');$('#cps').onclick=()=>copy(baseUrl()+'#s='+encodeURIComponent(seedStr(loc)),'Enlace copiado');
   if($('#dlq'))$('#dlq').onclick=()=>{const a=document.createElement('a');a.download='ad-astra-exploracion.png';a.href=$('#qr').toDataURL('image/png');a.click()};
-  $('#exp').onclick=()=>{const blob=new Blob([JSON.stringify({v:1,n:D.n,c:seedStr(loc),h:D.h},null,1)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='ad-astra-exploracion.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)};
+  $('#exp').onclick=()=>{const blob=new Blob([JSON.stringify({v:2,n:D.n,c:seedStr(loc),ship:D.ship,h:D.h},null,1)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='ad-astra-exploracion.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)};
   $('#imp').onclick=()=>$('#impf').click();
   $('#impf').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const j=JSON.parse(await f.text());if(!j||!Array.isArray(j.h))throw 0;
-    offerImport({n:j.n||'',c:j.c||'',h:j.h.map(x=>({s:String(x.s||''),t:+x.t||Date.now(),k:x.k==='s'?'s':'m',f:x.f?1:0,n:String(x.n||'').slice(0,120)}))})}catch(_){alert('Archivo no válido.')}};
+    offerImport({n:j.n||'',c:j.c||'',ship:j.ship?cleanShip(j.ship):null,h:j.h.map(x=>({s:String(x.s||''),t:+x.t||Date.now(),k:x.k==='s'?'s':'m',f:x.f?1:0,n:String(x.n||'').slice(0,120)}))})}catch(_){alert('Archivo no válido.')}};
 }
-/* — importación — */
 function closeModal(){$('#modal').style.display='none'}
 function offerImport(st){
-  const valid=st.h.filter(e=>parseSeed(e.s).loc);
-  const m=$('#modal'),b=$('#modalBox');
+  const valid=st.h.filter(e=>parseSeed(e.s).loc),m=$('#modal'),b=$('#modalBox');
   b.innerHTML=`<h2>Exploración recibida</h2><p>${st.n?`De <b>${esc(st.n)}</b>: `:''}<b>${valid.length}</b> registros${st.c?` · última posición <span class="seed" style="font-size:14px">${esc(st.c)}</span>`:''}.</p>
+  ${st.ship?`<div style="display:flex;gap:10px;align-items:center">${shipSVG(st.ship.d,st.ship.c1,st.ship.c2,44)}<span>Nave: <b>${esc(st.ship.n||SHIPS[st.ship.d].n)}</b></span></div>`:''}
   <p class="note">Tu bitácora actual tiene ${D.h.length} registros.</p>
   <div class="row"><button class="pri" id="mMerge">Fusionar</button><button id="mRep">Reemplazar la mía</button><button id="mNo">Cancelar</button></div>`;
   m.style.display='flex';
-  const finish=()=>{if(st.n&&!D.n)D.n=st.n;D.c=st.c||D.c;saveD();closeModal();const p=parseSeed(st.c);if(p.loc)go(p.loc,{animate:false});renderHist();if(tab==='share')renderShare()};
-  $('#mMerge').onclick=()=>{const seen=new Set(D.h.map(e=>e.s+'|'+e.t));for(const e of valid)if(!seen.has(e.s+'|'+e.t))D.h.push(e);D.h.sort((a,b)=>a.t-b.t);if(D.h.length>3000)D.h.splice(0,D.h.length-3000);finish()};
-  $('#mRep').onclick=()=>{if(D.h.length&&!confirm('Esto sustituye tu bitácora local. ¿Seguro?'))return;D.h=valid.sort((a,b)=>a.t-b.t);finish()};
+  const finish=(rep)=>{if(st.n&&(!D.n||rep))D.n=st.n;if(st.ship&&(rep||!D.ship.n&&D.ship.d===DEF_SHIP.d&&D.ship.c1===DEF_SHIP.c1&&D.ship.c2===DEF_SHIP.c2))D.ship=st.ship;
+    D.c=st.c||D.c;saveD();closeModal();const p=parseSeed(st.c);if(p.loc)go(p.loc,{animate:false});renderHist();if(tab==='share')renderShare();if(tab==='ship')renderShip()};
+  $('#mMerge').onclick=()=>{const seen=new Set(D.h.map(e=>e.s+'|'+e.t));for(const e of valid)if(!seen.has(e.s+'|'+e.t))D.h.push(e);D.h.sort((a,b)=>a.t-b.t);if(D.h.length>3000)D.h.splice(0,D.h.length-3000);finish(false)};
+  $('#mRep').onclick=()=>{if(D.h.length&&!confirm('Esto sustituye tu bitácora y tu nave locales. ¿Seguro?'))return;D.h=valid.sort((a,b)=>a.t-b.t);finish(true)};
   $('#mNo').onclick=closeModal;
 }
 async function handleHash(){
-  const h=location.hash.slice(1);if(!h)return;
-  const m=h.match(/^(s|d)=(.*)$/);if(!m)return;
-  history.replaceState(null,'',location.pathname+location.search);
-  if(m[1]==='s'){teleportStr(decodeURIComponent(m[2]))}
-  else{try{offerImport(await decodeState(m[2]))}catch(e){alert('El enlace de exploración está incompleto o dañado.')}}
+  const h=location.hash.slice(1),m=h.match(/^(s|d)=(.*)$/);if(!m)return;history.replaceState(null,'',location.pathname+location.search);
+  if(m[1]==='s')teleportStr(decodeURIComponent(m[2]));else{try{offerImport(await decodeState(m[2]))}catch(e){alert('El enlace de exploración está incompleto o dañado.')}}
 }
 
 /* ═════════ Arranque ═════════ */
 $('#seedForm').addEventListener('submit',e=>{e.preventDefault();teleportStr($('#seedIn').value);$('#seedIn').blur()});
 $('#rndBtn').onclick=randomSeed;
 $('#modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
-resize();syncUI();setTab('info');requestAnimationFrame(frame);scheduleRecord();handleHash();
-window.__adastra={parseSeed,cellOf,pointToLoc,globalToLoc,seedStr,starsIn,genSystem,anchorSeed,ANCH,encodeState,decodeState,get loc(){return loc},go,D:()=>D,teleportStr,enterSystem,starInCell,nearestStar,starProps,starLoc};
+resize();curList=cellList(cell);syncUI();setTab('info');requestAnimationFrame(frame);scheduleRecord();handleHash();
+window.__adastra={parseSeed,cellOf,posToLoc,globalToLoc,seedStr,sToXYZ,xyzToS,sToHead,headToS,starsIn,genSystem,ANCHSTARS,starLoc,starInCell,encodeState,decodeState,get loc(){return loc},go,D:()=>D,teleportStr,enterSystem,SHIPS,setTab,get cell(){return cell}};
 })();
 </script>
 </body>
