@@ -1,37 +1,37 @@
-# Carta Estelar de Semillas · Ad Astra
+# Ad Astra · Carta de Navegación Estelar
 
-Herramienta web estática (un solo `index.html`, sin servidor ni cuenta) para explorar un mapa espacial 3D, infinito y
-generativo, inspirado en la carta de navegación de *Proyecto fin del mundo* (*Project Hail Mary*) y en
-[valhovey.github.io/gaia-mary](https://valhovey.github.io/gaia-mary/). Los datos de Gaia no se cargan: las estrellas se
-generan de forma determinista; solo el vecindario del Sol (Sol, Alfa Centauri, Barnard, Sirius, Epsilon Eridani, Procyon,
-Tau Ceti, 40 Eridani, Vega) usa RA/Dec/distancia reales, en eclíptica J2000 centrada en el Sol.
+Simulador de rol espacial en un único `index.html` estático, sin servidor ni cuenta. La estética sigue la carta
+«Hail Mary – Stellar Navigation Chart» (valhovey.github.io/gaia-mary): fondo de cielo completo con la Vía Láctea,
+rejillas en perspectiva, nombres en mayúsculas con línea guía, trayectorias en arco y modo Petrova en rojo.
+Las estrellas se generan de forma determinista; el vecindario del Sol usa RA/Dec/distancia reales (eclíptica J2000).
 
-## Semillas: `CABECERA-DETALLE`
-- **Cabecera**: letras A-Z como columnas de hoja de cálculo (A…Z, AA, AB, AC…, AAA…). Numera sectores cúbicos de 240 al en
-  capas concéntricas alrededor del Sol (`A` = sector del Sol). El mapa no tiene borde; la cabecera crece con la distancia.
-- **Detalle**: cada carácter (`0-9`, `A-Q`) elige 1 de 3×3×3 subceldas. 1 → 80 al · 3 → 8,9 al · 6 → 0,33 al · 9 → ~12 000 UA…
-  hasta 18 caracteres. Con ~14 una celda aísla una estrella (su semilla canónica) y se puede entrar a su sistema.
-- Sin guion, la cabecera es la racha inicial de letras (`AB7K` = sector AB, detalle 7K); con guion es explícito (`AB-7K`).
+## Carta
+- Cámara libre y suave: arrastrar = orbitar · Shift/botón derecho/dos dedos = desplazar · rueda/pellizco = zoom
+  (1 al – 3 000 al) · WASD/flechas = volar · Q/E = bajar/subir · Inicio = tu nave · M = panel · Intro = viajar.
+- Interruptores Navegación (líneas de visión), Color (espectral) y Petrova (estrellas con astrófago y su esfera de 8 al).
+- Vistas: Sistema Solar, Trayectoria (ruta hacia Tau Ceti), Tau Ceti y Galáctica.
+- Semillas `CABECERA-DETALLE`: la cabecera (A…Z, AA, AB…) numera sectores de 240 al en capas alrededor del Sol, sin borde;
+  cada carácter de detalle (0-9, A-Q) afina la posición; 14 caracteres identifican una estrella.
 
-## Uso
-Arrastrar = orbitar · rueda/pellizco = zoom · clic en una celda = añade su carácter · flechas/RePág = celdas vecinas ·
-Retroceso = subir · Inicio = centrar en la nave · botones Sol / Trayectoria / Tau Ceti / Sector, ruta Sol→Tau Ceti y color espectral.
+## Viaje
+- Cálculo relativista con aceleración constante y volteo a mitad de camino: tiempo a bordo, tiempo en la Tierra,
+  velocidad máxima y factor γ. El astrófago consumido depende de la distancia; las provisiones, de la tripulación y del
+  tiempo a bordo (×0,15 con hibernación en cápsulas de coma, con riesgo al despertar).
+- Rutas automáticas con A* cuando el destino supera el alcance por salto (hasta 400 al por plan).
+- 8 naves con tamaño real (de 7 m a 2,4 km), comparadas con objetos conocidos; astillero en el Sistema Solar.
 
-## Nave 3D
-Pestaña «Nave»: 8 diseños prehechos en malla 3D (vista previa giratoria), nombre y dos colores. La nave tiene posición propia:
-se queda donde la dejas («Mover mi nave aquí») y viaja contigo al entrar a un sistema. Si te alejas, una flecha en el borde
-indica dónde está; **◎ Centrar** (o `Inicio`/`.`) hace un vuelo animado (subiendo y bajando de nivel, con salto warp si cambia
-el sector) y muestra la zona cercana.
+## Rol
+- Tripulación con especie, rol, seis estadísticas, rasgo, salud, moral, experiencia, nivel y biografía.
+- Eventos aleatorios con decisiones y tiradas (1d10 + habilidad contra dificultad) en tránsito y al llegar.
+- Sistemas: recolectar astrófago (sólo en estrellas infectadas), descansar, reparar, escanear planetas y reabastecer en la Tierra.
+- Aterrizaje (o lanzadera en naves grandes): atmósfera, gravedad, temperatura, condiciones anómalas y puntos de interés;
+  expediciones con equipo elegido, botín, heridas y experiencia.
+- Misiones con historia: Primer salto → La línea Petrova → Destino: Tau Ceti → Superficie de Adrian → El eco de 40 Eridani…
+- Modo creativo y rescate si te quedas varado.
 
-## Partida (archivo)
-«Compartir → Descargar partida» genera un archivo binario sin formato legible (`ADA` + versión + deflate + CRC32) con toda la
-sesión: bitácora, nave y posición, apodo, cámara y opciones. «Cargar partida…» o arrastrarlo a la ventana lo restaura
-(fusionar o reemplazar; detecta archivos dañados).
+## Partida
+- Se guarda en `localStorage`. «Partida» descarga un archivo binario comprimido (`ADA` + deflate + CRC32) con toda la sesión;
+  también hay enlace y QR. Al cargar se elige partida completa o sólo fusionar la bitácora.
+- Para que el enlace y el QR funcionen en otros dispositivos, publica el archivo (p. ej. GitHub Pages) y escribe la URL.
 
-## Historial y traslado
-- Bitácora en `localStorage` (favoritos, notas, modo «no registrar»).
-- «Compartir» genera un enlace (`#d=…`, deflate + base64url) y un QR que recrean historial, apodo y nave; también JSON.
-- Al abrir un enlace se ofrece Fusionar / Reemplazar / Cancelar. Para que el QR funcione en otro dispositivo, publica el
-  archivo (p. ej. GitHub Pages, gratis) y escribe esa URL en «Compartir».
-
-QR: [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) (MIT), incluido dentro de `index.html`.
+QR: [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) (MIT), incluido en `index.html`.

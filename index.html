@@ -2,163 +2,160 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Ad Astra · Carta Estelar de Semillas</title>
-<meta name="description" content="Explorador interactivo de un mapa espacial generativo por semillas alfanuméricas. Sin servidor, sin cuenta.">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Ad Astra · Carta de Navegación Estelar</title>
+<meta name="description" content="Simulador de rol espacial: carta estelar generativa e infinita por semillas, nave, tripulación, expediciones y eventos.">
 <style>
-:root{--bg:#04060c;--panel:#0a101e;--panel2:#0e1730;--line:#1b2744;--tx:#cdd7ea;--dim:#7f8da8;--amb:#ffb454;--cy:#58d0ff;--ok:#7ee787;--bad:#ff6b6b}
+:root{--bg:#060708;--panel:rgba(10,12,16,.86);--line:rgba(205,215,235,.16);--tx:#d6dce6;--dim:#6f7a8c;--cy:#78dcff;--amb:#e0aa46;--pet:#ff3b5c;--ok:#7ee787;--bad:#ff6b6b}
 *{box-sizing:border-box}
-html,body{height:100%;margin:0;background:var(--bg);color:var(--tx);font:14px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--tx);font:13px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;overflow:hidden}
 button,input,select,textarea{font:inherit;color:inherit}
-button{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:6px 10px;cursor:pointer}
-button:hover{border-color:var(--cy)}
-button:disabled{opacity:.4;cursor:default}
-button.pri{background:#3a2a0c;border-color:var(--amb);color:var(--amb)}
-button.pri:hover{background:#4d3610}
-button.sm{padding:2px 7px;font-size:12px}
-input,select,textarea{background:#060b17;border:1px solid var(--line);border-radius:6px;padding:6px 8px;min-width:0}
-input:focus,textarea:focus,select:focus{outline:1px solid var(--cy);border-color:var(--cy)}
-#app{display:grid;grid-template-columns:1fr 390px;grid-template-rows:auto 1fr;height:100dvh}
-header{grid-column:1/-1;display:flex;gap:8px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
-.logo{color:var(--amb);letter-spacing:.14em;font-weight:700;white-space:nowrap}
-.logo small{color:var(--dim);font-weight:400;letter-spacing:.05em;margin-left:6px}
-#seedForm{display:flex;gap:6px;flex:1;min-width:240px}
-#seedIn{flex:1;text-transform:uppercase;letter-spacing:.12em;font-size:15px}
-#stage{position:relative;overflow:hidden;min-height:0;min-width:0}
-canvas{display:block;width:100%;height:100%;touch-action:none;cursor:crosshair}
+button{background:rgba(14,18,26,.8);border:1px solid var(--line);border-radius:2px;padding:5px 10px;cursor:pointer;letter-spacing:.06em;transition:border-color .15s,background .15s,color .15s,transform .1s}
+button:hover:not(:disabled){border-color:rgba(205,215,235,.5)}button:active:not(:disabled){transform:scale(.96)}
+button:disabled{opacity:.35;cursor:default}
+button.pri{border-color:var(--cy);color:var(--cy)}button.pri:hover:not(:disabled){background:rgba(120,220,255,.12)}
+button.sm{padding:3px 8px;font-size:11px}
+input,select,textarea{background:rgba(0,0,0,.5);border:1px solid var(--line);border-radius:2px;padding:5px 8px;min-width:0}
+input:focus,textarea:focus{outline:none;border-color:var(--cy)}
+input[type=color]{padding:1px;height:28px;width:60px}
+#app{position:fixed;inset:0}
+#stage{position:absolute;inset:0;overflow:hidden}
+canvas#cv{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
 .ov{position:absolute;z-index:2}
-#crumb{left:10px;top:10px;display:flex;flex-wrap:wrap;gap:3px;max-width:calc(100% - 20px)}
-#crumb button{padding:1px 7px;background:#0a1224cc;font-size:13px}
-#crumb button.cur{border-color:var(--amb);color:var(--amb)}
-#dpad{left:10px;bottom:10px;display:flex;gap:3px;flex-wrap:wrap;max-width:60%}
-#dpad button{padding:3px 8px;background:#0a1224cc}
-#views{left:10px;bottom:46px;display:flex;gap:3px;flex-wrap:wrap;max-width:75%}
-#views button{padding:3px 8px;background:#0a1224cc;font-size:12px}
-#views button.on{border-color:var(--amb);color:var(--amb)}
-.mini{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;width:96px}
-.mini button{padding:2px 0;font-size:12px;background:#0b1630}
-.mini button.h{border-color:var(--amb);color:var(--amb)}
-.minis{display:flex;gap:10px;flex-wrap:wrap}
-.ships{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
-.ships button{padding:6px 2px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px}
-.ships button.on{border-color:var(--amb);color:var(--amb)}
-.ships svg{width:52px;height:52px}
-#hint{right:10px;bottom:8px;color:var(--dim);font-size:12px;text-align:right;pointer-events:none;max-width:60%}
-#tip{pointer-events:none;background:#050a16ee;border:1px solid var(--line);padding:4px 8px;border-radius:6px;font-size:12px;display:none;white-space:nowrap}
-#banner{right:10px;top:10px;background:#3a0f0fcc;border:1px solid var(--bad);color:#ffb3b3;padding:2px 8px;border-radius:6px;font-size:12px;display:none}
-aside{border-left:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;min-height:0}
+#stage::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:1;background:radial-gradient(ellipse at 50% 50%,transparent 60%,rgba(0,0,0,.55) 100%)}
+/* cabecera estilo carta */
+#brand{left:18px;top:16px;max-width:330px}
+#brand .t1{font-size:15px;letter-spacing:.42em;color:#f2f5fb}
+#brand .t2{font-size:12px;letter-spacing:.08em;color:#c9d1dd;margin-top:2px}
+#brand .t3{font-size:9px;letter-spacing:.24em;color:var(--dim);margin:3px 0 10px}
+#seedForm{display:flex;gap:4px;margin-bottom:10px}
+#seedIn{flex:1;text-transform:uppercase;letter-spacing:.14em;font-size:12px;width:190px}
+#seedForm button{padding:4px 8px;font-size:11px}
+.info{display:flex;flex-direction:column;gap:6px}
+.info div{display:flex;flex-direction:column}.info span{font-size:9px;letter-spacing:.24em;color:var(--dim);text-transform:uppercase}.info b{font-weight:400;font-size:13px;letter-spacing:.06em;color:#eef2f8}
+#toggles{left:50%;top:14px;transform:translateX(-50%);display:flex;gap:6px}
+#toggles button{font-size:10px;letter-spacing:.22em;text-transform:uppercase;padding:5px 12px;color:#8fa6c4;border-color:rgba(120,160,210,.35)}
+#toggles button.on{color:#cfe6ff;border-color:rgba(160,200,255,.7);background:rgba(60,90,130,.25)}
+#toggles button[data-o=pet].on{color:#ffd0d8;border-color:var(--pet);background:rgba(255,59,92,.18)}
+#hud{right:18px;top:16px;width:200px;display:flex;flex-direction:column;gap:7px;pointer-events:none;transition:right .3s ease}
+#hud div{display:flex;flex-direction:column;text-align:right}
+#hud span{font-size:9px;letter-spacing:.24em;color:var(--dim)}#hud b{font-weight:400;color:#eef2f8;font-size:12px}#hud em{font-style:normal;font-size:10px;color:var(--dim)}
+.mt{display:block;height:3px;background:rgba(205,215,235,.12);margin:2px 0}.mt i{display:block;height:100%;transition:width .5s ease}
+#views{left:50%;bottom:34px;transform:translateX(-50%);display:flex;gap:6px}
+#views button{font-size:10px;letter-spacing:.2em;text-transform:uppercase;padding:6px 12px;color:#c9d1dd}
+#foot{left:50%;bottom:10px;transform:translateX(-50%);font-size:9px;letter-spacing:.24em;color:var(--dim);white-space:nowrap;pointer-events:none}
+#foot em{color:var(--pet);font-style:normal;margin:0 6px}
+#zoom{left:18px;bottom:28px;display:flex;flex-direction:column;gap:4px}
+#zoom button{width:32px;height:32px;padding:0;font-size:15px}#zoom button.on{border-color:var(--cy);color:var(--cy)}
+#ctr{right:18px;bottom:28px;font-size:10px;letter-spacing:.22em;padding:8px 14px;color:var(--cy);border-color:var(--cy);transition:right .3s ease}
+#drawerBtn{right:18px;bottom:72px;font-size:10px;letter-spacing:.22em;padding:8px 14px;transition:right .3s ease}#drawerBtn.on{border-color:var(--amb);color:var(--amb)}
+#backBtn{left:50%;top:50px;transform:translateX(-50%);display:none;font-size:10px;letter-spacing:.22em;padding:6px 14px}
+#banner{left:18px;bottom:110px;color:var(--bad);font-size:10px;letter-spacing:.2em;display:none}#crTag{left:18px;bottom:96px;color:var(--amb);font-size:10px;letter-spacing:.2em;display:none}
+#tip{pointer-events:none;background:rgba(6,8,12,.92);border:1px solid var(--line);padding:5px 9px;font-size:11px;display:none;white-space:nowrap}
+#toast{left:50%;top:84px;transform:translateX(-50%);background:rgba(8,10,14,.94);border:1px solid rgba(120,220,255,.5);padding:8px 14px;display:none;max-width:min(560px,86%);z-index:4;text-align:center}
+#toast.show{display:block;animation:boxIn .25s ease}#toast button{margin-left:8px}
+#travel{left:50%;bottom:84px;transform:translateX(-50%);width:min(620px,80%);display:none;z-index:4;text-align:center}
+#travel.show{display:block;animation:fadeIn .3s}
+#travel .tl{font-size:10px;letter-spacing:.16em;color:#ffd0d8;margin-bottom:5px;text-shadow:0 0 8px #000}
+#travel .tb{height:2px;background:rgba(255,255,255,.12)}#travel .tb i{display:block;height:100%;width:0;background:var(--pet)}
+/* panel de mando (cajón) */
+#drawer{position:absolute;right:0;top:0;bottom:0;width:390px;max-width:100%;z-index:5;background:var(--panel);backdrop-filter:blur(8px);border-left:1px solid var(--line);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .32s ease}
+#drawer.open{transform:none}
+@media(min-width:861px){#app:has(#drawer.open) #stage{right:390px}}
 .tabs{display:flex;border-bottom:1px solid var(--line)}
-.tabs button{flex:1;border:0;border-radius:0;background:none;padding:9px 4px;color:var(--dim)}
-.tabs button.on{color:var(--amb);box-shadow:inset 0 -2px var(--amb)}
-.pane{display:none;padding:12px;overflow:auto;flex:1}
-.pane.on{display:block}
-h2{margin:0 0 4px;font-size:17px;color:var(--cy);font-weight:600}
-h3{margin:14px 0 6px;font-size:12px;color:var(--dim);letter-spacing:.12em;text-transform:uppercase;font-weight:500}
-.seed{font-size:18px;letter-spacing:.14em;color:var(--amb);word-break:break-all}
-.kv{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;font-size:13px}
-.kv span:nth-child(odd){color:var(--dim)}
+.tabs button{flex:1;border:0;border-radius:0;background:none;padding:11px 2px;color:var(--dim);font-size:10px;letter-spacing:.14em;text-transform:uppercase}
+.tabs button.on{color:#fff;box-shadow:inset 0 -1px #fff}
+.pane{display:none;padding:14px;overflow:auto;flex:1}.pane.on{display:block;animation:paneIn .28s ease both}
+.kick{font-size:9px;letter-spacing:.28em;color:var(--dim);margin-bottom:2px}
+h2{margin:0 0 6px;font-size:16px;font-weight:500;letter-spacing:.06em;color:#fff}
+h3{margin:16px 0 6px;font-size:9px;color:var(--dim);letter-spacing:.24em;text-transform:uppercase;font-weight:400;border-top:1px solid var(--line);padding-top:10px}
+.seed{letter-spacing:.14em;color:var(--amb);word-break:break-all}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:12px;margin:6px 0}.kv span:nth-child(odd){color:var(--dim)}
+.calc{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:12px;border:1px solid var(--line);padding:9px;background:rgba(0,0,0,.35);margin:6px 0}.calc span:nth-child(odd){color:var(--dim)}
 .row{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0;align-items:center}
 .lst{display:flex;flex-direction:column;gap:4px}
-.item{display:flex;gap:8px;align-items:center;border:1px solid var(--line);border-radius:6px;padding:5px 8px;background:var(--panel2)}
-.item .m{flex:1;min-width:0}
-.item .m b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
-.item .m i{font-style:normal;color:var(--dim);font-size:12px}
-.fav{color:var(--dim);background:none;border:0;padding:0 4px;font-size:16px}
-.fav.on{color:var(--amb)}
-.note{color:var(--dim);font-size:12px;margin:6px 0}
-.tag{display:inline-block;border:1px solid var(--line);border-radius:10px;padding:0 8px;font-size:11px;color:var(--dim)}
-.tag.hz{border-color:var(--ok);color:var(--ok)}
-.tag.fx{border-color:var(--amb);color:var(--amb)}
-.field{display:grid;grid-template-columns:70px 1fr;gap:6px;align-items:center;margin:4px 0}
-.field label{color:var(--dim);font-size:12px}
-#qrBox{background:#fff;padding:10px;border-radius:8px;display:inline-block;line-height:0}
-textarea{width:100%;height:70px;resize:vertical;font-size:11px}
-#modal{position:fixed;inset:0;background:#000a;display:none;align-items:center;justify-content:center;z-index:9;padding:16px}
-#modal .box{background:var(--panel);border:1px solid var(--amb);border-radius:10px;padding:16px;max-width:430px;width:100%}
-.ok{color:var(--ok)}.bad{color:var(--bad)}.dim{color:var(--dim)}
-@media(max-width:860px){
-  #app{grid-template-columns:minmax(0,1fr);grid-template-rows:auto 58vh minmax(0,1fr)}
-  #seedForm{min-width:0;flex-basis:100%}
-  aside{border-left:0;border-top:1px solid var(--line)}
-  .logo small{display:none}
-  #hint{display:none}
-}
-
-/* ── animaciones y estilo carta estelar ── */
-button{transition:background .15s,border-color .15s,color .15s,transform .12s}
-button:active:not(:disabled){transform:scale(.95)}
-.pane.on{animation:paneIn .28s ease both}
-@keyframes paneIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-#p-info.fadein>*{animation:rise .35s ease both}
-#p-info.fadein>*:nth-child(2){animation-delay:.03s}#p-info.fadein>*:nth-child(3){animation-delay:.06s}#p-info.fadein>*:nth-child(4){animation-delay:.09s}#p-info.fadein>*:nth-child(5){animation-delay:.12s}#p-info.fadein>*:nth-child(n+6){animation-delay:.16s}
-@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-.item{transition:border-color .15s,background .15s,transform .15s}.item:hover{border-color:var(--cy);transform:translateX(2px)}
-#crumb button{animation:pop .25s ease both}@keyframes pop{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:none}}
-#modal{animation:fadeIn .2s ease}#modal .box{animation:boxIn .25s ease}
-@keyframes fadeIn{from{opacity:0}to{opacity:1}}@keyframes boxIn{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}
-#stage::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:radial-gradient(ellipse at 50% 50%,transparent 55%,rgba(2,4,10,.65) 100%)}
-#stage::after{content:"";position:absolute;inset:8px;z-index:1;pointer-events:none;opacity:.7;
- background:linear-gradient(#58d0ff,#58d0ff) 0 0/18px 1px no-repeat,linear-gradient(#58d0ff,#58d0ff) 0 0/1px 18px no-repeat,
- linear-gradient(#58d0ff,#58d0ff) 100% 0/18px 1px no-repeat,linear-gradient(#58d0ff,#58d0ff) 100% 0/1px 18px no-repeat,
- linear-gradient(#58d0ff,#58d0ff) 0 100%/18px 1px no-repeat,linear-gradient(#58d0ff,#58d0ff) 0 100%/1px 18px no-repeat,
- linear-gradient(#58d0ff,#58d0ff) 100% 100%/18px 1px no-repeat,linear-gradient(#58d0ff,#58d0ff) 100% 100%/1px 18px no-repeat}
-#hud{right:16px;top:44px;display:flex;flex-direction:column;gap:5px;text-align:right;z-index:2;pointer-events:none}
-#hud div{display:flex;flex-direction:column;border-right:2px solid rgba(88,208,255,.5);padding-right:8px;background:linear-gradient(270deg,rgba(10,18,36,.7),transparent)}
-#hud span{font-size:10px;letter-spacing:.2em;color:var(--dim)}#hud b{font-weight:500;color:var(--cy);font-size:14px;letter-spacing:.05em}
-#hud b.tick{animation:tick .6s ease}@keyframes tick{0%{color:#fff;text-shadow:0 0 10px #58d0ff}100%{color:var(--cy);text-shadow:none}}
-#ctr{right:16px;bottom:64px;padding:8px 14px;box-shadow:0 0 0 0 rgba(255,180,84,.5);animation:pulse 2.6s ease-out infinite;z-index:3}
-@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,180,84,.45)}70%{box-shadow:0 0 0 12px rgba(255,180,84,0)}100%{box-shadow:0 0 0 0 rgba(255,180,84,0)}}
-#boot{position:fixed;inset:0;z-index:20;background:#04060c;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;pointer-events:none;transition:opacity .6s ease,visibility .6s}
+.item{display:flex;gap:8px;align-items:center;border:1px solid var(--line);padding:6px 8px;background:rgba(0,0,0,.25);transition:border-color .15s,transform .15s}
+.item[data-a]{cursor:pointer}.item[data-a]:hover,.rowi:hover{border-color:rgba(205,215,235,.45)}
+.item.col{flex-direction:column;align-items:stretch}.item.sel{border-color:var(--cy)}
+.rowi{display:flex;gap:8px;align-items:center;cursor:pointer}
+.item .m{flex:1;min-width:0}.item .m b{display:block;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.item .m i{font-style:normal;color:var(--dim);font-size:11px;display:block}
+.item.err{border-color:rgba(255,107,107,.6)}.item.pend{opacity:.5}.item.done b{color:var(--ok)}.item.cur{border-color:var(--amb)}.item.lock{opacity:.4}
+.fav{color:var(--dim);background:none;border:0;padding:0 4px;font-size:15px}.fav.on{color:var(--amb)}
+.note{color:var(--dim);font-size:11px;margin:6px 0}.ok{color:var(--ok)}.bad{color:var(--bad)}.dim{color:var(--dim)}
+.tag{display:inline-block;border:1px solid var(--line);padding:0 7px;font-size:10px;color:#c9d1dd;letter-spacing:.06em;margin:0 3px 3px 0}
+.tag.pet{border-color:var(--pet);color:#ffb3c0}.tag.fx{border-color:var(--amb);color:var(--amb)}.tag.hz{border-color:var(--ok);color:var(--ok)}
+.hzl{margin:4px 0}
+.chk{display:flex;gap:6px;align-items:flex-start;font-size:12px;margin:6px 0;cursor:pointer}
+.res{display:flex;justify-content:space-between;font-size:12px;margin-top:6px}.res span:last-child{color:var(--dim)}
+.scale-row{display:grid;grid-template-columns:120px 1fr 64px;gap:6px;align-items:center;font-size:11px;margin:3px 0}.scale-row span:last-child{text-align:right;color:var(--dim)}
+.scale-row i{display:block;height:6px;background:rgba(205,215,235,.3)}.scale-row.me i{background:var(--cy)}.scale-row.me span{color:var(--cy)}
+.ships{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
+.ships button{padding:6px 2px;display:flex;flex-direction:column;align-items:center;gap:1px;font-size:10px;letter-spacing:.04em}.ships button.on{border-color:var(--cy);color:var(--cy)}
+.field{display:grid;grid-template-columns:90px 1fr;gap:6px;align-items:center;margin:5px 0}.field label{color:var(--dim);font-size:11px}
+#shipPrev{width:100%;height:180px;display:block;border:1px solid var(--line);background:radial-gradient(ellipse at 50% 80%,#141b28,#05070a 70%);cursor:grab;touch-action:none}
+.card{border:1px solid var(--line);padding:10px;margin:8px 0;background:rgba(0,0,0,.25)}
+.dh{display:flex;gap:10px;align-items:center;margin-bottom:6px}
+.pt{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border:1px solid var(--line);font-size:22px;background:rgba(255,255,255,.04);flex:none}
+.stats{display:grid;grid-template-columns:86px 1fr 18px;gap:3px 6px;align-items:center;font-size:11px;margin-top:8px}.stats span:first-child{color:var(--dim)}
+.sb{display:block;height:4px;background:rgba(205,215,235,.12)}.sb i{display:block;height:100%;background:#cfd6e2}.stats b{font-weight:400;text-align:right}
+textarea{width:100%;height:64px;resize:vertical;font-size:10px}
+#qrBox{background:#fff;padding:10px;display:inline-block;line-height:0}
+/* diálogos */
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:9;padding:16px;animation:fadeIn .2s}
+#modal .box{background:rgba(10,12,16,.97);border:1px solid rgba(205,215,235,.35);padding:18px;max-width:480px;width:100%;max-height:90vh;overflow:auto;animation:boxIn .25s ease}
+.story{font-size:13px;line-height:1.6;color:#e6eaf1}.roll{font-size:11px;color:var(--amb);border-left:2px solid var(--amb);padding-left:8px}
+.opts{display:flex;flex-direction:column;gap:6px;margin-top:10px}.opts button{text-align:left;padding:8px 10px}
+/* arranque */
+#boot{position:fixed;inset:0;z-index:20;background:#060708;display:flex;align-items:center;justify-content:center;pointer-events:none;transition:opacity .6s ease,visibility .6s}
 #boot.out{opacity:0;visibility:hidden}
-#boot .bt{letter-spacing:.3em;color:#cdd7ea;font-size:13px;animation:fadeIn .6s ease}#boot .bs{letter-spacing:.2em;color:var(--dim);font-size:10px}
-#boot .bl{width:240px;height:1px;background:#1b2744;overflow:hidden}#boot .bl i{display:block;height:100%;width:40%;background:linear-gradient(90deg,transparent,#58d0ff,transparent);animation:scan 1s linear infinite}
+#boot .bx{border:1px solid rgba(205,215,235,.3);border-top-color:transparent;padding:36px 48px;text-align:center;position:relative}
+#boot .bx::before{content:"";position:absolute;left:12px;right:0;top:0;height:1px;background:rgba(205,215,235,.3)}
+#boot .bt{letter-spacing:.34em;color:#e6eaf1;font-size:12px}#boot .bs{letter-spacing:.22em;color:var(--dim);font-size:9px;margin-top:22px}
+#boot .bl{width:240px;height:1px;background:rgba(205,215,235,.15);overflow:hidden;margin:22px auto 0}#boot .bl i{display:block;height:100%;width:40%;background:linear-gradient(90deg,transparent,#fff,transparent);animation:scan 1.1s linear infinite}
 @keyframes scan{from{transform:translateX(-100%)}to{transform:translateX(250%)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}@keyframes boxIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes paneIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
-@media(max-width:860px){#hud{top:40px;right:10px}#hud div:nth-child(n+4){display:none}#ctr{bottom:96px}}
+@media(max-width:860px){
+  #brand{left:10px;top:10px;max-width:58%}#brand .t2,#brand .t3{display:none}#seedIn{width:120px}
+  .info{flex-direction:row;flex-wrap:wrap;gap:4px 12px}.info div:nth-child(n+3){display:none}
+  #toggles{left:10px;top:112px;transform:none}#toggles button{padding:3px 7px;letter-spacing:.08em;font-size:9px}
+  #hud{right:10px;top:10px;width:140px;gap:4px}#hud div:nth-child(n+4){display:none}
+  #views{bottom:30px;gap:3px}#views button{padding:5px 6px;letter-spacing:.06em;font-size:9px}#foot{display:none}
+  #zoom{left:10px;bottom:76px}#ctr{right:10px;bottom:76px}#drawerBtn{right:10px;bottom:120px}
+  #drawer{top:auto;height:62vh;width:100%;border-left:0;border-top:1px solid var(--line);transform:translateY(100%)}
+}
 </style>
 </head>
 <body>
-<div id="boot"><div class="bt">INICIALIZANDO CATÁLOGO ESTELAR</div><div class="bl"><i></i></div><div class="bs">ECL J2000 · SOL-CENTRADO · GENERADOR DETERMINISTA</div></div>
+<div id="boot"><div class="bx"><div class="bt">INICIALIZANDO CATÁLOGO ESTELAR</div><div class="bl"><i></i></div><div class="bs">GENERADOR DETERMINISTA · CIELO COMPLETO</div></div></div>
 <div id="app">
-<header>
-  <div class="logo">AD ASTRA<small>carta estelar · ecl J2000 · sol-centrado</small></div>
-  <form id="seedForm" autocomplete="off">
-    <input id="seedIn" placeholder="Semilla: A-3K9Q  ·  AB-7C2  ·  (sector - detalle)" spellcheck="false" maxlength="48" aria-label="Semilla">
-    <button class="pri" type="submit">Teletransportar</button>
-    <button type="button" id="rndBtn" title="Semilla aleatoria">🎲</button>
-  </form>
-</header>
-
 <section id="stage">
   <canvas id="cv"></canvas>
-  <div class="ov" id="crumb"></div>
-  <div class="ov" id="banner">sin registro</div>
-  <div class="ov" id="dpad"><button data-d="-1,0,0" title="Sector/celda X− (←)">X−</button><button data-d="1,0,0" title="X+ (→)">X+</button><button data-d="0,-1,0" title="Y− (↓)">Y−</button><button data-d="0,1,0" title="Y+ (↑)">Y+</button><button data-d="0,0,-1" title="Z− (AvPág)">Z−</button><button data-d="0,0,1" title="Z+ (RePág)">Z+</button><button id="upBtn" title="Subir un nivel (Retroceso)">⤒</button></div>
-  <div class="ov" id="views"><button data-v="sol">Sol</button><button data-v="traj">Trayectoria</button><button data-v="tau">Tau Ceti</button><button data-v="sector">Sector</button><button data-v="route" id="routeBtn">Ruta</button><button data-v="spin" id="spinBtn" class="on">Rotar</button><button data-v="color" id="colorBtn">Color</button></div>
-  <div class="ov" id="hud"><div><span>RANGO</span><b id="h1">—</b></div><div><span>CELDA</span><b id="h2">—</b></div><div><span>ESTRELLAS</span><b id="h3">—</b></div><div><span>NAVE</span><b id="h4">—</b></div><div><span>DEST</span><b>Tau Ceti</b></div></div>
-  <button class="ov pri" id="ctr" title="Volar a tu nave (Inicio)">◎ Centrar</button>
-  <div class="ov" id="hint">Arrastra = orbitar · rueda = zoom · clic en una celda = añade su carácter (0-9, A-Q) · flechas/RePág = celdas vecinas · Retroceso = subir</div>
+  <div class="ov" id="brand">
+    <div class="t1">AD ASTRA</div><div class="t2">Carta de navegación estelar</div><div class="t3">SEMILLAS · ECL J2000 · SOL-CENTRADA</div>
+    <form id="seedForm" autocomplete="off"><input id="seedIn" placeholder="A-DD5PN" spellcheck="false" maxlength="48" aria-label="Semilla"><button class="pri" type="submit">IR</button><button type="button" id="rndBtn" title="Lugar aleatorio">⚄</button></form>
+    <div class="info" id="info"></div>
+  </div>
+  <div class="ov" id="toggles"><button data-o="nav">◇ Navegación</button><button data-o="color">◇ Color</button><button data-o="pet">✦ Petrova</button></div>
+  <div class="ov" id="hud"></div>
+  <button class="ov" id="backBtn">⤒ VOLVER</button>
+  <div class="ov" id="toast"></div>
+  <div class="ov" id="travel"><div class="tl" id="trTxt"></div><div class="tb"><i id="trBar"></i></div></div>
+  <div class="ov" id="views"><button data-v="sol">Sistema Solar</button><button data-v="traj">Trayectoria</button><button data-v="tau">Tau Ceti</button><button data-v="gal">Galáctica</button></div>
+  <div class="ov" id="zoom"><button data-z="-1" title="Acercar">+</button><button data-z="1" title="Alejar">−</button><button id="spinBtn" title="Rotación automática">⟳</button></div>
+  <button class="ov" id="drawerBtn">☰ MANDO</button>
+  <button class="ov" id="ctr">◎ MI NAVE</button>
+  <div class="ov" id="foot">ARRASTRA ORBITAR · RUEDA ZOOM · SHIFT DESPLAZAR · WASD VOLAR<em>/</em>AD ASTRA CORPORATION</div>
+  <div class="ov" id="banner">SIN REGISTRO</div><div class="ov" id="crTag">MODO CREATIVO</div>
   <div class="ov" id="tip"></div>
 </section>
-
-<aside>
-  <div class="tabs">
-    <button data-t="info" class="on">Ubicación</button>
-    <button data-t="hist">Bitácora</button>
-    <button data-t="trav">Viajar</button>
-    <button data-t="ship">Nave</button>
-    <button data-t="share">Compartir</button>
-  </div>
-  <div class="pane on" id="p-info"></div>
-  <div class="pane" id="p-hist"></div>
-  <div class="pane" id="p-trav"></div>
-  <div class="pane" id="p-ship"></div>
-  <div class="pane" id="p-share"></div>
+<aside id="drawer">
+  <div class="tabs"><button data-t="carta" class="on">Carta</button><button data-t="ship">Nave</button><button data-t="crew">Tripul.</button><button data-t="hist">Bitácora</button><button data-t="nav">Navegar</button><button data-t="share">Partida</button></div>
+  <div class="pane on" id="p-carta"></div><div class="pane" id="p-ship"></div><div class="pane" id="p-crew"></div><div class="pane" id="p-hist"></div><div class="pane" id="p-nav"></div><div class="pane" id="p-share"></div>
 </aside>
 </div>
-
 <div id="modal"><div class="box" id="modalBox"></div></div>
-
 <script>
 /* qrcode-generator 2.x — MIT License — https://github.com/kazuhikoarase/qrcode-generator */
 //---------------------------------------------------------------------
@@ -2465,7 +2462,7 @@ var qrcode = function() {
 /* ═════════ Constantes y utilidades ═════════ */
 const SEC=240,HALF=120,SC=8,NC=30,MAXD=18,MAXHEAD=10,LY_AU=63241.077,AU_KM=149597870.7;
 const DETAIL='0123456789ABCDEFGHIJKLMNOPQ'; // 27 símbolos = 3×3×3 celdas por nivel
-const LS_KEY='adastra.explorer.v2';
+const LS_KEY='adastra.explorer.v3';
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
@@ -2604,7 +2601,7 @@ function cellStars(sx,sy,sz,i,j,k,out){
   for(let q=0;q<n;q++){
     const lx=-HALF+(i+r())*SC,ly=-HALF+(j+r())*SC,lz=-HALF+(k+r())*SC;
     if(sx===0&&sy===0&&sz===0&&Math.abs(lx)<40&&Math.abs(ly)<40&&Math.abs(lz)<40){let bad=false;for(const a of ANCH)if(Math.hypot(a.pos[0]-lx,a.pos[1]-ly,a.pos[2]-lz)<.8){bad=true;break}if(bad)continue}
-    const sh=hash(h,q+1);out.push({sx,sy,sz,lx,ly,lz,h:sh,P:genProps(sh)});
+    const sh=hash(h,q+1);out.push({sx,sy,sz,lx,ly,lz,gx:sx*SEC+lx,gy:sy*SEC+ly,gz:sz*SEC+lz,h:sh,P:genProps(sh)});
   }
 }
 /* estrellas dentro de la celda (más un margen) */
@@ -2761,574 +2758,1033 @@ function shipThumb(d,c1,c2,px){
 }
 const shipImg=(d,c1,c2,px)=>`<img src="${shipThumb(d,c1,c2,px)}" width="${px}" height="${px}" alt="">`;
 
-/* ═════════ Estado y persistencia ═════════ */
-let D={v:2,n:'',h:[],base:'',anon:false,ship:{...DEF_SHIP}};
-try{const raw=localStorage.getItem(LS_KEY);if(raw)D=Object.assign(D,JSON.parse(raw))}catch(e){}
-D.ship=Object.assign({...DEF_SHIP},D.ship||{});
-if(!D.sp||!parseSeed(D.sp).loc)D.sp=seedStr(starLoc(A_BY('sol'),14));
+
+/* ═════════ Especificaciones reales de cada nave ═════════
+   len: eslora real (m) · mass: masa seca (t) · acc: aceleración (g) · tank: astrófago (t) · burn: t por año luz
+   prov: días-persona de provisiones · crew: [mínimo, máximo] · c0: tripulación inicial · hib: cápsulas de coma · land: puede aterrizar */
+const SPEC={
+ corbeta:{len:46,mass:900,acc:1.5,tank:120,burn:10,cargo:60,prov:2500,crew:[2,6],c0:3,hib:1,land:1},
+ carguero:{len:310,mass:12000,acc:.6,tank:700,burn:60,cargo:2000,prov:9000,crew:[4,12],c0:6,hib:1,land:0},
+ sonda:{len:7,mass:4,acc:4,tank:20,burn:1,cargo:4,prov:0,crew:[0,0],c0:0,hib:0,land:1},
+ velero:{len:28,extra:'vela de 1,2 km',mass:60,acc:.3,tank:40,burn:2.5,cargo:8,prov:4000,crew:[1,3],c0:2,hib:1,solar:1,land:0},
+ generacional:{len:2400,mass:2e6,acc:.1,tank:6000,burn:240,cargo:2e4,prov:6e5,crew:[40,250],c0:120,hib:0,farm:.85,land:0},
+ caza:{len:19,mass:40,acc:4,tank:16,burn:3,cargo:4,prov:900,crew:[1,2],c0:1,hib:0,land:1},
+ carguero2:{len:120,mass:2600,acc:1.5,tank:320,burn:20,cargo:200,prov:7000,crew:[2,8],c0:3,hib:1,land:1},
+ plataforma:{len:620,mass:4e4,acc:.3,tank:1600,burn:100,cargo:5000,prov:5e4,crew:[8,40],c0:20,hib:1,land:0}};
+const legMax=d=>SPEC[d].tank/SPEC[d].burn;
+const REFS=[['Persona',1.8],['Autobús',12],['Boeing 747',71],['Estación Espacial Internacional',109],['Torre Eiffel',330],['Burj Khalifa',828],['Puente Golden Gate',2737]];
+const PETROVA=new Set(['M','K','G','F','A']);
+const smooth=(x,a,b)=>{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t)};
+const niceStep=v=>{const p=Math.pow(10,Math.floor(Math.log10(v))),m=v/p;return(m<1.5?1:m<3.5?2:m<7.5?5:10)*p};
+const fmtT=y=>{if(!isFinite(y))return '∞';const d=y*365.25;return d<1?(d*24).toFixed(1)+' h':d<120?d.toFixed(0)+' días':y.toFixed(y<10?2:1)+' años'};
+const fmtI=n=>Math.round(n).toLocaleString('es');
+const gd=(a,b)=>Math.hypot(a.gx-b.gx,a.gy-b.gy,a.gz-b.gz);
+const sameStar=(a,b)=>!!(a&&b&&a.h===b.h&&a.gx===b.gx&&a.gy===b.gy);
+const sSeed=st=>seedStr(starLoc(st,14));
+function starFromSeed(s){const p=parseSeed(s);return p.loc?starInCell(cellOf(p.loc)):null}
+const cleanShip=s=>({d:SHIPS[s.d]?s.d:'corbeta',n:String(s.n||'').slice(0,24),c1:/^#[0-9a-f]{6}$/i.test(s.c1)?s.c1:DEF_SHIP.c1,c2:/^#[0-9a-f]{6}$/i.test(s.c2)?s.c2:DEF_SHIP.c2});
+
+/* ═════════ Rejilla global de estrellas (celdas de 8 al, con caché) ═════════ */
+const gridCache=new Map();
+for(const a of ANCHSTARS){a.gx=a.lx;a.gy=a.ly;a.gz=a.lz;a.ck=[a.lx,a.ly,a.lz].map(v=>Math.floor((v+HALF)/SC)).join()}
+function gridStars(I,J,K){
+  const key=I+','+J+','+K;let a=gridCache.get(key);if(a)return a;
+  const sx=Math.floor(I/NC),sy=Math.floor(J/NC),sz=Math.floor(K/NC);a=[];cellStars(sx,sy,sz,I-sx*NC,J-sy*NC,K-sz*NC,a);
+  if(!sx&&!sy&&!sz)for(const s of ANCHSTARS)if(s.ck===key)a.push(s);
+  if(gridCache.size>260000)gridCache.clear();gridCache.set(key,a);return a;
+}
+const gi=v=>Math.floor((v+HALF)/SC);
+function starsNear(x,y,z,r,fn){
+  const i0=gi(x-r),i1=gi(x+r),j0=gi(y-r),j1=gi(y+r),k0=gi(z-r),k1=gi(z+r),rr=r*r,m=(r+SC*.87)**2;
+  for(let k=k0;k<=k1;k++){const cz=-HALF+(k+.5)*SC-z;for(let j=j0;j<=j1;j++){const cy=-HALF+(j+.5)*SC-y;for(let i=i0;i<=i1;i++){const cx=-HALF+(i+.5)*SC-x;
+    if(cx*cx+cy*cy+cz*cz>m)continue;
+    for(const s of gridStars(i,j,k)){const dx=s.gx-x,dy=s.gy-y,dz=s.gz-z,d2=dx*dx+dy*dy+dz*dz;if(d2<=rr)fn(s,Math.sqrt(d2))}}}}
+}
+
+/* ═════════ Estado del juego ═════════ */
+function freshState(d){const s=SPEC[d];return{fuel:s.tank,prov:s.prov,extra:0,hull:100,min:20,days:0,yrs:0,jumps:0,ly:0}}
+let D={v:3,n:'',h:[],base:'',anon:false,ship:{...DEF_SHIP},sp:'',st:null,crew:null,hib:0,cr:0,ex:{},scan:{},disc:{},q:0,qf:{},cm:null,op:null,c:''};
+try{const raw=localStorage.getItem(LS_KEY);if(raw)Object.assign(D,JSON.parse(raw));else{const o=localStorage.getItem('adastra.explorer.v2');if(o){const j=JSON.parse(o);for(const k of['n','h','base','anon','ship'])if(j[k]!=null)D[k]=j[k]}}}catch(e){}
 const saveD=()=>{try{localStorage.setItem(LS_KEY,JSON.stringify(D))}catch(e){}};
-let loc=mkLoc('A','');
-try{if(D.c){const p=parseSeed(D.c);if(p.loc)loc=p.loc}}catch(e){}
-let cell=cellOf(loc),curList=[],mode='map',SYS=null,selStar=null,selPlanet=null,hoverIdx=-1,hoverStar=null,anim=null,fade=0,recTimer=null,tab='info';
+D.ship=cleanShip(Object.assign({...DEF_SHIP},D.ship||{}));
+const SOL=A_BY('sol');
+if(!D.sp||!starFromSeed(D.sp))D.sp=sSeed(SOL);
+if(!Array.isArray(D.h))D.h=[];
+for(const k of['ex','scan','disc','qf'])if(!D[k]||typeof D[k]!=='object')D[k]={};
+let _sp='',_ss=null;
+function shipStar(){if(_sp!==D.sp){_sp=D.sp;_ss=starFromSeed(D.sp)||SOL}return _ss}
 const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
-const opt={route:false,color:true,spin:!RM};
-let warp=null,camAnim=null,flight=null,lastInput=0,ping=0,sysT0=0,animDur=420,shipHit=null,lastT=0,prevCv=null,prevSt={yaw:.8,pitch:.5,drag:null,last:0};
-const cam={yaw:.7,pitch:.45,zoom:2.3};
-if(Array.isArray(D.cm)&&D.cm.length===3){cam.yaw=+D.cm[0]||0;cam.pitch=clamp(+D.cm[1]||0,-1.5,1.5);cam.zoom=clamp(+D.cm[2]||2.3,.7,9)}
-if(Array.isArray(D.op)){opt.route=!!D.op[0];opt.color=D.op[1]!==0;opt.spin=D.op[2]!==0&&!RM}
+const opt={color:true,spin:!RM};if(Array.isArray(D.op)){opt.color=D.op[0]!==0;opt.spin=D.op[1]!==0&&!RM}
+
+/* ═════════ Cámara libre y suave ═════════ */
+const cam={fx:0,fy:0,fz:0,R:24,yaw:.6,pitch:.55},tg={...cam};
+(()=>{const s=shipStar();if(Array.isArray(D.cm)&&D.cm.length===6&&D.cm.every(v=>isFinite(v))){[cam.fx,cam.fy,cam.fz,cam.R,cam.yaw,cam.pitch]=D.cm.map(Number);cam.R=clamp(cam.R,1,3000);cam.pitch=clamp(cam.pitch,-1.45,1.45)}else{cam.fx=s.gx;cam.fy=s.gy;cam.fz=s.gz}Object.assign(tg,cam)})();
+let mode='map',SYS=null,selStar=null,selPlanet=null,route=null,hoverStar=null,travel=null,warp=null,surf=null;
+let lastInput=performance.now(),idleDone=true,lastT=0,lastUi=0,frameNo=0,ping=0,sysT0=0,tab='carta',modalOpen=false;
+const keys=new Set();
+function flyTo(x,y,z,R,pitch){
+  lastInput=performance.now();idleDone=false;const far=Math.hypot(x-cam.fx,y-cam.fy,z-cam.fz)>Math.max(cam.R,R||cam.R)*25;
+  tg.fx=x;tg.fy=y;tg.fz=z;if(R)tg.R=clamp(R,1,3000);if(pitch!=null)tg.pitch=pitch;
+  if(far){cam.fx=x;cam.fy=y;cam.fz=z;cam.R=tg.R;if(!RM)warp={t0:performance.now(),dur:900}}
+}
+const viewDepth=()=>clamp(Math.round(Math.log(SEC*2/cam.R)/Math.log(3)),0,MAXD);
+const focusLoc=d=>globalToLoc(cam.fx,cam.fy,cam.fz,d==null?viewDepth():d);
 
 function record(kind,l,force){
-  if(D.anon)return;const s=seedStr(l),last=D.h[D.h.length-1];
+  if(D.anon)return;const s=typeof l==='string'?l:seedStr(l),last=D.h[D.h.length-1];
   if(!force&&last&&last.s===s&&last.k===kind)return;
-  D.h.push({s,t:Date.now(),k:kind,f:0,n:''});if(D.h.length>3000)D.h.splice(0,D.h.length-3000);
-  D.c=seedStr(loc);saveD();if(tab==='hist')renderHist();
+  D.h.push({s,t:Date.now(),k:kind,f:0,n:''});if(D.h.length>3000)D.h.splice(0,D.h.length-3000);saveD();if(tab==='hist')renderHist();
 }
-function scheduleRecord(){clearTimeout(recTimer);recTimer=setTimeout(()=>{if(mode==='map')record('m',loc)},1800)}
 
-/* ═════════ Navegación ═════════ */
-const viewOf=c=>{const m=cellCenter(c);return{x:m[0],y:m[1],z:m[2],size:c.size}};
-function go(nl,opts={}){
-  if(!opts.fromFlight)flight=null;lastInput=performance.now();animDur=opts.fromFlight?240:420;
-  if(mode==='system')exitSystem(true);
-  const old=loc,oc=cell,nc=cellOf(nl),sameSec=old.head===nl.head;loc=nl;selStar=null;
-  if(opts.animate!==false&&sameSec&&nl.path.length===old.path.length+1&&nl.path.startsWith(old.path)){
-    anim={t0:performance.now(),dur:animDur,list:curList,content:oc,from:viewOf(oc),to:viewOf(nc),final:nc};cell=oc;
-  }else if(opts.animate!==false&&sameSec&&old.path.length===nl.path.length+1&&old.path.startsWith(nl.path)){
-    anim={t0:performance.now(),dur:animDur,list:cellList(nc),content:nc,from:viewOf(oc),to:viewOf(nc),final:nc};cell=nc;
-  }else{cell=nc;fade=1}
-  if(!anim)curList=cellList(cell);
-  if(opts.warp&&!RM)warp={t0:performance.now(),dur:opts.warp===2?520:900};
-  D.c=seedStr(loc);saveD();
-  if(opts.record)record('m',loc,true);else scheduleRecord();
-  syncUI();
-}
-function dive(ch){if(mode!=='map'||anim||loc.path.length>=MAXD)return;if(DETAIL.indexOf(ch)<0)return;go({...loc,path:loc.path+ch})}
-function up(){if(mode==='system'){exitSystem();return}if(anim||!loc.path.length)return;go({...loc,path:loc.path.slice(0,-1)})}
-function neighbor(dx,dy,dz){
-  if(mode!=='map'||anim)return;
-  if(!loc.path.length){go(mkLocXYZ(loc.sx+dx,loc.sy+dy,loc.sz+dz,''),{animate:false});return}
-  const m=cellCenter(cell),s=cell.size;go(posToLoc(loc.sx,loc.sy,loc.sz,m[0]+dx*s,m[1]+dy*s,m[2]+dz*s,loc.path.length),{animate:false});
-}
-function teleport(nl,note){go(nl,{animate:false,record:true,warp:true});if(note)setMsg(note)}
-function teleportStr(s){
-  const p=parseSeed(s);if(p.err){setMsg(p.err,1);return false}
-  setMsg(p.trunc?`Semilla recortada a ${MAXD} caracteres (límite de precisión).`:'');teleport(p.loc);return true;
-}
-function enterSystem(st){
-  const sl=starLoc(st);loc=sl;cell=cellOf(sl);curList=cellList(cell);anim=null;
-  SYS=genSystem(st);mode='system';selPlanet=null;sysT0=performance.now();D.sp=seedStr(sl);ping=sysT0;flight=null;
-  if(!RM)warp={t0:sysT0,dur:520};D.c=seedStr(loc);saveD();record('s',sl,true);syncUI();
-}
-function exitSystem(silent){if(mode!=='system')return;mode='map';SYS=null;selPlanet=null;if(!silent)syncUI()}
-
-/* ═════════ Render 3D en canvas ═════════ */
-const cv=$('#cv'),ctx=cv.getContext('2d');let W=0,H=0,dpr=1;
+/* ═════════ Canvas y proyección ═════════ */
+const cv=$('#cv'),ctx=cv.getContext('2d');let W=0,H=0,dpr=1,CP=null;
 function resize(){const r=cv.getBoundingClientRect();dpr=Math.min(2,window.devicePixelRatio||1);W=r.width;H=r.height;cv.width=W*dpr;cv.height=H*dpr}
 new ResizeObserver(resize).observe(cv);
-const dust=Array.from({length:260},(_,i)=>{const r=rng(i*977+5);return[r(),r(),.3+r()*r()*1.2,.15+r()*.4]});
-let CP=null,cellPts=[]; // proyección vigente
-function camSetup(V){
-  const cy=Math.cos(cam.yaw),sy=Math.sin(cam.yaw),cp=Math.cos(cam.pitch),sp=Math.sin(cam.pitch);
-  const dist=V.size*cam.zoom,F=Math.min(W,H)*1.5;
-  CP={V,cy,sy,cp,sp,dist,F,cxs:W/2,cys:H/2};
-}
+const dust=Array.from({length:240},(_,i)=>{const r=rng(i*977+5);return[r(),r(),.3+r()*r()*1.2]});
+function camSetup(){const c=cam;CP={cy:Math.cos(c.yaw),sy:Math.sin(c.yaw),cp:Math.cos(c.pitch),sp:Math.sin(c.pitch),dist:c.R*2.6,F:Math.min(W,H)*1.05,cx:W/2,cy0:H/2,fx:c.fx,fy:c.fy,fz:c.fz}}
 const _p=[0,0,0];
-function proj(x,y,z){ // x,y,z locales de sector → [sx,sy,depth]; false si detrás
-  const c=CP,rx=x-c.V.x,ry=y-c.V.y,rz=z-c.V.z,x1=rx*c.cy-ry*c.sy,y1=rx*c.sy+ry*c.cy,Y=y1*c.cp-rz*c.sp,Z=y1*c.sp+rz*c.cp,d=Y+c.dist;
-  if(d<c.dist*.05)return false;const k=c.F/d;_p[0]=c.cxs+x1*k;_p[1]=c.cys-Z*k;_p[2]=d;return true;
+function proj(x,y,z){const c=CP,rx=x-c.fx,ry=y-c.fy,rz=z-c.fz,x1=rx*c.cy-ry*c.sy,y1=rx*c.sy+ry*c.cy,Y=y1*c.cp-rz*c.sp,Z=y1*c.sp+rz*c.cp,d=Y+c.dist;
+  if(d<c.dist*.04)return false;const k=c.F/d;_p[0]=c.cx+x1*k;_p[1]=c.cy0-Z*k;_p[2]=d;return true}
+const RINGU=Array.from({length:73},(_,i)=>[Math.cos(i/72*6.2832),Math.sin(i/72*6.2832)]);
+function ringPath(cx,cy,cz,r){ctx.beginPath();let pen=false;for(const [u,v] of RINGU){if(proj(cx+u*r,cy+v*r,cz)){pen?ctx.lineTo(_p[0],_p[1]):ctx.moveTo(_p[0],_p[1]);pen=true}else pen=false}}
+
+/* — Estrellas visibles (se recalculan solo al moverse lo suficiente) — */
+let vis=[],visB=null;
+function needVis(){if(!visB)return true;const R=cam.R;if(R>visB.R||R<visB.R/3)return true;return Math.hypot(cam.fx-visB.x,cam.fy-visB.y,cam.fz-visB.z)>visB.R*.25}
+function buildVis(){
+  const R=cam.R*1.3;visB={x:cam.fx,y:cam.fy,z:cam.fz,R};
+  if(cam.R>240){vis=[];return}
+  const cull=Math.min(R*1.35,180),lim=cam.R<14?0:.0004*Math.pow(cam.R/14,2.3),out=[];
+  starsNear(cam.fx,cam.fy,cam.fz,cull,(s,d)=>{if(s.P.lum>=lim||d<R*.18||s.anchor)out.push(s)});vis=out;
 }
-function frame(now){
-  const dt=Math.min(.05,(now-(lastT||now))/1000);lastT=now;
-  if(camAnim){const k=clamp((now-camAnim.t0)/camAnim.dur,0,1),e=ease(k);cam.yaw=lerp(camAnim.f.yaw,camAnim.to.yaw,e);cam.pitch=lerp(camAnim.f.pitch,camAnim.to.pitch,e);cam.zoom=lerp(camAnim.f.zoom,camAnim.to.zoom,e);if(k>=1)camAnim=null}
-  else if(flight)cam.yaw+=dt*.5;
-  else if(opt.spin&&!drag&&!anim&&mode==='map'&&now-lastInput>3500)cam.yaw+=dt*.09;
-  if(flight&&!anim&&mode==='map'){const s=flight.steps.shift();
-    if(s)go(s.loc,{animate:!s.warp,warp:s.warp,fromFlight:true});else{flight=null;ping=now;setCam(.7,.5,2.2);setMsg('Nave localizada.')}}
-  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle='#04060c';ctx.fillRect(0,0,W,H);
-  if(mode==='system')drawSystem(now);else drawMap(now);
-  drawWarp(now);
-  if(tab==='ship'&&prevCv)drawPreview(now);
-  requestAnimationFrame(frame);
+/* — Halo galáctico a escalas grandes — */
+let haze=[],hzB=null;
+function needHaze(){return !hzB||cam.R>hzB.R*1.4||cam.R<hzB.R/1.4||Math.hypot(cam.fx-hzB.x,cam.fy-hzB.y,cam.fz-hzB.z)>hzB.R*.5}
+function buildHaze(){
+  const R=cam.R,st=R/3,N=7;hzB={x:cam.fx,y:cam.fy,z:cam.fz,R,st};haze=[];
+  const bx=Math.round(cam.fx/st),by=Math.round(cam.fy/st),bz=Math.round(cam.fz/st);
+  for(let k=-N;k<=N;k++)for(let j=-N;j<=N;j++)for(let i=-N;i<=N;i++){if(i*i+j*j+k*k>N*N)continue;const x=(bx+i)*st,y=(by+j)*st,z=(bz+k)*st,d=density(x,y,z);if(d<.05)continue;
+    const r=rng(hash(bx+i,by+j,bz+k,61)),n=Math.round(d*16);for(let q=0;q<n;q++)haze.push(x+(r()-.5)*st,y+(r()-.5)*st,z+(r()-.5)*st,d*(.4+r()*.6))}
 }
-const streaks=Array.from({length:150},(_,i)=>{const r=rng(i*131+9);return[r()*6.2832,.12+r()*.88,.5+r()*.5]});
-function drawWarp(now){
-  if(!warp)return;const t=(now-warp.t0)/warp.dur;if(t>=1){warp=null;return}
-  const e=1-t,cx=W/2,cy=H/2,R=Math.hypot(W,H)/2;ctx.save();ctx.globalCompositeOperation='lighter';ctx.lineCap='round';
-  for(const s of streaks){const rho=R*s[1]*(.25+.75*t),L=R*.55*e*e*s[2]+2,ca=Math.cos(s[0]),sa=Math.sin(s[0]);
-    ctx.strokeStyle=`rgba(${150+s[2]*90|0},${190+s[2]*50|0},255,${.85*e*s[2]})`;ctx.lineWidth=.8+s[2]*1.4*e;
-    ctx.beginPath();ctx.moveTo(cx+ca*(rho-L),cy+sa*(rho-L));ctx.lineTo(cx+ca*rho,cy+sa*rho);ctx.stroke()}
-  const g=ctx.createRadialGradient(cx,cy,0,cx,cy,R*.55);g.addColorStop(0,`rgba(210,230,255,${e*e*e*.6})`);g.addColorStop(1,'rgba(210,230,255,0)');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+function drawHaze(a){
+  ctx.save();ctx.globalCompositeOperation='lighter';ctx.fillStyle='#e8eef8';
+  for(let i=0;i<haze.length;i+=4){if(!proj(haze[i],haze[i+1],haze[i+2]))continue;const s=haze[i+3];ctx.globalAlpha=Math.min(1,a*s*.9);ctx.fillRect(_p[0],_p[1],s>.7?1.6:1.1,s>.7?1.6:1.1)}
   ctx.restore();
 }
-/* posición de la nave relativa al sector de la celda c */
-let _shipC={sp:'',cell:null,ctr:null};
-function shipRel(c){
-  if(_shipC.sp!==D.sp){const p=parseSeed(D.sp).loc;_shipC={sp:D.sp,cell:cellOf(p),ctr:null};_shipC.ctr=cellCenter(_shipC.cell)}
-  const s=_shipC.cell,m=_shipC.ctr;return[(s.sx-c.sx)*SEC+m[0],(s.sy-c.sy)*SEC+m[1],(s.sz-c.sz)*SEC+m[2]]
+/* — Plano de referencia: anillos de distancia y radios (estilo carta de navegación) — */
+function drawPlane(){
+  const R=cam.R,step=niceStep(R/3),fx=cam.fx,fy=cam.fy,fz=cam.fz;
+  ctx.lineWidth=1;ctx.font='10px ui-monospace,Menlo,monospace';ctx.textAlign='left';ctx.textBaseline='bottom';
+  for(let k=1;k*step<=R*1.2&&k<9;k++){const r=k*step;ctx.strokeStyle=`rgba(88,160,230,${k%5===0?.28:.16})`;ringPath(fx,fy,fz,r);ctx.stroke();
+    if(proj(fx+r*CP.cy,fy-r*CP.sy,fz)){ctx.fillStyle='rgba(120,170,230,.55)';ctx.fillText(fmtLen(r),_p[0]+3,_p[1]-2)}}
+  ctx.strokeStyle='rgba(88,160,230,.08)';ctx.beginPath();
+  for(let a=0;a<12;a++){const u=Math.cos(a/12*6.2832),v=Math.sin(a/12*6.2832);if(!proj(fx,fy,fz))continue;const x0=_p[0],y0=_p[1];if(!proj(fx+u*R*1.2,fy+v*R*1.2,fz))continue;ctx.moveTo(x0,y0);ctx.lineTo(_p[0],_p[1])}
+  ctx.stroke();
 }
-function moveShipTo(l){D.sp=seedStr(l);saveD();ping=performance.now();if(tab==='ship')renderShip();syncInfo()}
-function centerOnShip(){
-  const tl=parseSeed(D.sp).loc;if(!tl)return;lastInput=performance.now();
-  if(mode==='system'){const st=SYS&&SYS.star;if(st&&seedStr(starLoc(st))===D.sp){ping=performance.now();return}exitSystem(true);syncUI()}
-  const depth=4,tg={...tl,path:tl.path.slice(0,depth)},steps=[];
-  if(tg.head!==loc.head){steps.push({loc:mkLoc(tg.head,''),warp:2});for(let i=1;i<=depth;i++)steps.push({loc:mkLoc(tg.head,tg.path.slice(0,i))})}
-  else{let k=0;while(k<loc.path.length&&k<tg.path.length&&loc.path[k]===tg.path[k])k++;
-    for(let i=loc.path.length-1;i>=k;i--)steps.push({loc:mkLoc(loc.head,loc.path.slice(0,i))});
-    for(let i=k+1;i<=tg.path.length;i++)steps.push({loc:mkLoc(tg.head,tg.path.slice(0,i))})}
-  selStar=null;if(!steps.length){ping=performance.now();setCam(.7,.5,2.2);return}
-  flight={steps};setMsg('Desplazándose hacia tu nave…');
+const STREAKS=Array.from({length:150},(_,i)=>{const r=rng(i*131+9);return[r()*6.2832,.12+r()*.88,.5+r()*.5]});
+function drawStreaks(e,t){
+  if(e<=0)return;const cx=W/2,cy=H/2,R=Math.hypot(W,H)/2;ctx.save();ctx.globalCompositeOperation='lighter';ctx.lineCap='round';
+  for(const s of STREAKS){const rho=R*((s[1]+t*s[2])%1),L=R*.45*e*s[2]+2,ca=Math.cos(s[0]),sa=Math.sin(s[0]);
+    ctx.strokeStyle=`rgba(${150+s[2]*90|0},${190+s[2]*50|0},255,${.8*e*s[2]})`;ctx.lineWidth=.8+s[2]*1.4*e;ctx.beginPath();ctx.moveTo(cx+ca*Math.max(0,rho-L),cy+sa*Math.max(0,rho-L));ctx.lineTo(cx+ca*rho,cy+sa*rho);ctx.stroke()}
+  const g=ctx.createRadialGradient(cx,cy,0,cx,cy,R*.5);g.addColorStop(0,`rgba(210,230,255,${e*e*.35})`);g.addColorStop(1,'rgba(210,230,255,0)');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);ctx.restore();
 }
-const HUDK=[];
-function hud(i,txt){const el=$('#h'+i);if(!el||el.textContent===txt)return;el.textContent=txt;el.classList.remove('tick');void el.offsetWidth;el.classList.add('tick')}
-function updateHud(){
-  if(mode==='system'){hud(1,'SISTEMA');hud(2,fmtLen(0.0003));hud(3,String(SYS.planets.length)+' planetas');hud(4,'en órbita');return}
-  const g=cellCenterG(cell),sr=shipRel(cell),m=cellCenter(cell);
-  hud(1,fmtLen(Math.hypot(...g)));hud(2,fmtLen(cell.size));hud(3,fmtNum(curList.filter(s=>!s.out).length));
-  hud(4,fmtLen(Math.hypot(sr[0]-m[0],sr[1]-m[1],sr[2]-m[2])));
-}
+function drawWarp(now){if(!warp)return;const t=(now-warp.t0)/warp.dur;if(t>=1){warp=null;return}drawStreaks((1-t)*(1-t),t*.8)}
+function shipPos(){return travel&&travel.pos?travel.pos:(s=>[s.gx,s.gy,s.gz])(shipStar())}
 function drawGizmo(){
-  const gx=W-52,gy=H-84,c=CP,L=26;ctx.save();ctx.font='10px ui-monospace,Menlo,monospace';ctx.textAlign='center';ctx.textBaseline='middle';
+  const gx=W-52,gy=H-150,c=CP,L=24;ctx.save();ctx.font='10px ui-monospace,Menlo,monospace';ctx.textAlign='center';ctx.textBaseline='middle';
   for(const [v,col,lab] of[[[1,0,0],'#ff7a7a','X'],[[0,1,0],'#7ee787','Y'],[[0,0,1],'#7aa7ff','Z']]){
     const x1=v[0]*c.cy-v[1]*c.sy,y1=v[0]*c.sy+v[1]*c.cy,Z=y1*c.sp+v[2]*c.cp,dx=x1*L,dy=-Z*L;
     ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(gx,gy);ctx.lineTo(gx+dx,gy+dy);ctx.stroke();ctx.fillStyle=col;ctx.fillText(lab,gx+dx*1.3,gy+dy*1.3)}
   ctx.restore();
 }
 
-function drawBoxEdges(x,y,z,s){
-  const v=[[0,0,0],[1,0,0],[1,1,0],[0,1,0],[0,0,1],[1,0,1],[1,1,1],[0,1,1]].map(a=>[x+a[0]*s,y+a[1]*s,z+a[2]*s]);
-  const e=[[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
-  ctx.beginPath();for(const [a,b] of e){if(!proj(...v[a]))continue;const ax=_p[0],ay=_p[1];if(!proj(...v[b]))continue;ctx.moveTo(ax,ay);ctx.lineTo(_p[0],_p[1])}ctx.stroke();
+
+/* ═════════ Estilo de carta de navegación (tipo «Hail Mary – Stellar Navigation Chart») ═════════ */
+const spaced=s=>String(s);
+opt.nav=true;opt.pet=true;if(!Array.isArray(D.op))opt.color=false;if(Array.isArray(D.op)){opt.nav=D.op[2]!==0;opt.pet=D.op[3]!==0}
+/* — Fondo de todo el cielo con la banda de la Vía Láctea (sólo rota con la cámara) — */
+const SKYP=(()=>{
+  const n=NGP,a=Math.abs(n[0])<.9?[1,0,0]:[0,1,0],e1=[n[1]*a[2]-n[2]*a[1],n[2]*a[0]-n[0]*a[2],n[0]*a[1]-n[1]*a[0]],l1=Math.hypot(...e1);e1.forEach((v,i)=>e1[i]=v/l1);
+  const e2=[n[1]*e1[2]-n[2]*e1[1],n[2]*e1[0]-n[0]*e1[2],n[0]*e1[1]-n[1]*e1[0]],GC=eq2ecl(266.405,-28.936,1),gc=Math.atan2(GC[0]*e2[0]+GC[1]*e2[1]+GC[2]*e2[2],GC[0]*e1[0]+GC[1]*e1[1]+GC[2]*e1[2]);
+  const r=rng(424242),out=[];
+  for(let i=0;i<3200;i++){const z=r()*2-1,t=r()*6.2832,q=Math.sqrt(1-z*z);out.push([q*Math.cos(t),q*Math.sin(t),z,.5+r()*r()*1.6,.25+r()*.6])}
+  for(let i=0;i<6500;i++){const th=gc+(r()<.55?(r()+r()+r()-1.5)*1.6:(r()*2-1)*Math.PI),b=(r()+r()+r()+r()-2)*.09,cb=Math.cos(b),sb=Math.sin(b);
+    out.push([cb*(Math.cos(th)*e1[0]+Math.sin(th)*e2[0])+sb*n[0],cb*(Math.cos(th)*e1[1]+Math.sin(th)*e2[1])+sb*n[1],cb*(Math.cos(th)*e1[2]+Math.sin(th)*e2[2])+sb*n[2],.4+r()*.8,.08+r()*.22])}
+  return out;
+})();
+function drawSky(){
+  if(!CP)camSetup();const c=CP,F=Math.min(W,H)*.75;ctx.save();ctx.globalCompositeOperation='lighter';ctx.fillStyle='#fff';
+  for(const s of SKYP){const x1=s[0]*c.cy-s[1]*c.sy,y1=s[0]*c.sy+s[1]*c.cy,Y=y1*c.cp-s[2]*c.sp;if(Y<.08)continue;const Z=y1*c.sp+s[2]*c.cp,x=c.cx+x1/Y*F,y=c.cy0-Z/Y*F;
+    if(x<0||y<0||x>W||y>H)continue;ctx.globalAlpha=s[4];ctx.fillRect(x,y,s[3],s[3])}
+  ctx.restore();
 }
+/* — Rejillas en perspectiva (plano de la eclíptica a la altura del foco, y una más tenue debajo) — */
+function drawGrid(z,alpha){
+  const R=cam.R,st=niceStep(R/4),ext=Math.ceil(R*1.3/st)*st,x0=Math.round(cam.fx/st)*st,y0=Math.round(cam.fy/st)*st;
+  ctx.lineWidth=1;
+  for(let a=0;a<2;a++)for(let k=-ext;k<=ext+1e-9;k+=st){
+    const pts=[];for(let u=-ext;u<=ext+1e-9;u+=st/2){const X=a?x0+k:x0+u,Y=a?y0+u:y0+k,d=Math.hypot(X-cam.fx,Y-cam.fy),al=alpha*(1-smooth(d,R*.5,R*1.3));if(al<=.003){pts.push(null);continue}
+      pts.push(proj(X,Y,z)?[_p[0],_p[1],al]:null)}
+    for(let i=0;i<pts.length-1;i++){const p=pts[i],q=pts[i+1];if(!p||!q)continue;if(((i+Math.round(k/st))&3)===3)continue;ctx.strokeStyle=`rgba(225,232,245,${(p[2]+q[2])/2})`;ctx.beginPath();ctx.moveTo(p[0],p[1]);ctx.lineTo(q[0],q[1]);ctx.stroke()}
+  }
+}
+function arcPts(a,b,n){const d=gd(a,b),out=[];for(let i=0;i<=n;i++){const t=i/n,l=Math.sin(Math.PI*t)*d*.18;out.push(proj(lerp(a.gx,b.gx,t),lerp(a.gy,b.gy,t),lerp(a.gz,b.gz,t)+l)?[_p[0],_p[1]]:null)}return out}
+function labelAt(x,y,txt,col,size){ctx.strokeStyle=col;ctx.globalAlpha=.7;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x+4,y);ctx.lineTo(x+13,y);ctx.stroke();ctx.globalAlpha=1;
+  ctx.fillStyle=col;ctx.font=`${size||10}px ui-monospace,Menlo,monospace`;ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(spaced(txt.toUpperCase()),x+17,y)}
+const PET='#ff3b5c',AMB='rgba(224,170,70,.55)';
+let shipHit=null;
 function drawMap(now){
-  let c=cell,V=viewOf(c),list=curList;
-  if(anim){const t=clamp((now-anim.t0)/anim.dur,0,1),e=ease(t);c=anim.content;list=anim.list;
-    V={x:lerp(anim.from.x,anim.to.x,e),y:lerp(anim.from.y,anim.to.y,e),z:lerp(anim.from.z,anim.to.z,e),size:Math.exp(lerp(Math.log(anim.from.size),Math.log(anim.to.size),e))};
-    if(t>=1){cell=anim.final;c=cell;curList=cellList(cell);list=curList;V=viewOf(c);anim=null;syncInfo()}}
-  camSetup(V);
-  // polvo de fondo (profundidad visual)
-  ctx.fillStyle='rgba(190,205,240,.35)';for(const d of dust)ctx.fillRect(d[0]*W,d[1]*H,d[2],d[2]);
-  // estrellas
-  const cc=CP,cy=cc.cy,sy=cc.sy,cp=cc.cp,sp=cc.sp,vx=V.x,vy=V.y,vz=V.z,dist=cc.dist,F=cc.F,near=dist*.05,cxs=cc.cxs,cys=cc.cys;
-  ctx.globalCompositeOperation='lighter';
-  const sizeBoost=clamp(Math.log10(240/Math.max(c.size,.001))*.35,0,1.6);
-  const dens=list.length>4000,af=clamp(4000/Math.max(1,list.length),.3,1);
-  for(const pass of[0,1]){
-    ctx.globalAlpha=(pass?.35:1)*af;
-    for(const st of list){
-      if(!!st.out!==!!pass)continue;
-      const rx=st.lx-vx,ry=st.ly-vy,rz=st.lz-vz,x1=rx*cy-ry*sy,y1=rx*sy+ry*cy,Y=y1*cp-rz*sp,Z=y1*sp+rz*cp,d=Y+dist;if(d<near)continue;
-      const k=F/d,x=cxs+x1*k,y=cys-Z*k;if(x<-20||y<-20||x>W+20||y>H+20)continue;
-      const P=st.P,r=clamp(.7+Math.log10(P.lum+1.2)*1.3+sizeBoost,.8,dens?2.4:7);
-      ctx.fillStyle=opt.color?P.col:MONO;
-      if(r<2.2)ctx.fillRect(x-r/2,y-r/2,r,r);else{ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill()}
-      if(r>=3&&!dens){ctx.globalAlpha=(pass?.35:1)*.18;ctx.beginPath();ctx.arc(x,y,r*3,0,7);ctx.fill();ctx.globalAlpha=pass?.35:1}
+  camSetup();frameNo++;const R=cam.R,c=CP;ctx.letterSpacing='1.6px';
+  drawSky();
+  const hz=smooth(R,40,220);if(hz>0){if(needHaze())buildHaze();drawHaze(hz)}
+  drawGrid(cam.fz,.22);drawGrid(cam.fz-R*.6,.09);
+  const sa=1-smooth(R,140,240),fx=cam.fx,fy=cam.fy,fz=cam.fz,labels=[],P0=shipPos(),ship=shipStar();
+  if(sa>0&&vis.length){
+    const drop=R<90;let nDrop=0;
+    ctx.globalCompositeOperation='lighter';
+    for(const s of vis){
+      const dx=s.gx-fx,dy=s.gy-fy,dz=s.gz-fz,df=Math.sqrt(dx*dx+dy*dy+dz*dz),fade=1-smooth(df,R*.95,R*1.35);if(fade<=0)continue;
+      const x1=dx*c.cy-dy*c.sy,y1=dx*c.sy+dy*c.cy,Y=y1*c.cp-dz*c.sp,Z=y1*c.sp+dz*c.cp,d=Y+c.dist;if(d<c.dist*.04)continue;
+      const k=c.F/d,x=c.cx+x1*k,y=c.cy0-Z*k;if(x<-20||y<-20||x>W+20||y>H+20)continue;s._x=x;s._y=y;s._f=frameNo;
+      const lum=s.P.lum,r=clamp((.6+Math.log10(lum+1.15)*1.1)*clamp(c.dist/d,.6,1.5),.7,3.6),a=sa*fade*clamp(.45+Math.log10(lum+1)*.6,.45,1),inf=opt.pet&&infected(s);
+      if(drop&&df<R*.85&&nDrop<220){nDrop++;const d2=y1*c.cp+c.dist;if(d2>c.dist*.04){const k2=c.F/d2,px=c.cx+x1*k2,py=c.cy0-(y1*c.sp)*k2;
+        ctx.strokeStyle=`rgba(225,232,245,${.16*a})`;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(px,py);ctx.stroke();ctx.fillStyle=`rgba(225,232,245,${.3*a})`;ctx.fillRect(px-1.5,py-.5,3,1)}}
+      ctx.globalAlpha=a;ctx.fillStyle=inf?PET:opt.color?s.P.col:'#f2f5fb';
+      if(r<2.2)ctx.fillRect(x-r/2,y-r/2,r,r);else{ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();ctx.globalAlpha=a*.1;ctx.beginPath();ctx.arc(x,y,r*2.4,0,7);ctx.fill()}
+      if(R<45&&!s.anchor&&df<R*.8){const sc=Math.log10(lum+.001)-df/R*2;if(labels.length<9||sc>labels[labels.length-1][0]){labels.push([sc,s,x,y,inf]);labels.sort((p,q)=>q[0]-p[0]);if(labels.length>9)labels.pop()}}
     }
+    ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
+    for(const [,s,x,y,inf] of labels)labelAt(x,y,starName(s),inf?'rgba(255,59,92,.85)':'rgba(220,228,240,.62)',9);
   }
-  ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
-  // rejilla 3×3×3 y borde de la celda
-  const s=c.size,u=s/3;ctx.lineWidth=1;ctx.strokeStyle='rgba(110,150,210,.22)';ctx.beginPath();
-  for(let a=0;a<=3;a++)for(let b=0;b<=3;b++){
-    for(let ax=0;ax<3;ax++){const p0=[c.x0,c.y0,c.z0],p1=[c.x0,c.y0,c.z0],o=[(ax+1)%3,(ax+2)%3];
-      p0[o[0]]+=a*u;p0[o[1]]+=b*u;p1[o[0]]+=a*u;p1[o[1]]+=b*u;p1[ax]+=s;
-      if(!proj(...p0))continue;const x0=_p[0],y0=_p[1];if(!proj(...p1))continue;ctx.moveTo(x0,y0);ctx.lineTo(_p[0],_p[1])}}
-  ctx.stroke();ctx.strokeStyle='rgba(88,208,255,.8)';ctx.lineWidth=1.4;drawBoxEdges(c.x0,c.y0,c.z0,s);
-  // ruta Sol → Tau Ceti
-  if(opt.route&&c.sx===0&&c.sy===0&&c.sz===0){const a=A_BY('sol'),b=A_BY('tceti');
-    if(proj(a.lx,a.ly,a.lz)){const x0=_p[0],y0=_p[1];if(proj(b.lx,b.ly,b.lz)){ctx.setLineDash([6,5]);ctx.strokeStyle='rgba(255,180,84,.8)';ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(_p[0],_p[1]);ctx.stroke();ctx.setLineDash([])}}}
-  // centros de subceldas (etiquetas y selección)
-  cellPts=[];const lab=[];
-  for(let i=0;i<27;i++){const ix=i%3,iy=Math.floor(i/3)%3,iz=Math.floor(i/9),
-    x=c.x0+(ix+.5)*u,y=c.y0+(iy+.5)*u,z=c.z0+(iz+.5)*u;if(!proj(x,y,z))continue;
-    cellPts.push({i,x:_p[0],y:_p[1],d:_p[2],px:CP.F*u/_p[2]});lab.push(cellPts[cellPts.length-1])}
-  lab.sort((a,b)=>b.d-a.d);
-  if(!anim&&hoverIdx>=0){const i=hoverIdx,ix=i%3,iy=Math.floor(i/3)%3,iz=Math.floor(i/9);
-    ctx.strokeStyle=`rgba(255,180,84,${.65+.35*Math.sin(now/170)})`;ctx.lineWidth=2;drawBoxEdges(c.x0+ix*u,c.y0+iy*u,c.z0+iz*u,u)}
-  ctx.textAlign='center';ctx.textBaseline='middle';
-  for(const p of lab){const fs=clamp(p.px*.32,10,34),near=1-clamp((p.d-CP.dist*.6)/(CP.dist*1.0),0,1);
-    ctx.font=`${fs}px ui-monospace,Menlo,monospace`;ctx.fillStyle=p.i===hoverIdx?'#ffb454':`rgba(190,210,245,${.16+.34*near})`;ctx.fillText(DETAIL[p.i],p.x,p.y)}
+  // líneas de navegación (visuales desde la nave)
+  const sp=SPEC[D.ship.d],ml=legMax(D.ship.d),rng0=D.cr?ml:D.st.fuel/sp.burn;
+  if(opt.nav&&proj(P0[0],P0[1],P0[2])){const sx=_p[0],sy=_p[1];ctx.strokeStyle=AMB;ctx.lineWidth=.8;
+    for(const s of ANCHSTARS){if(sameStar(s,ship)||(R>150&&s.anchor.id!=='sol'))continue;if(!proj(s.gx,s.gy,s.gz))continue;ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(_p[0],_p[1]);ctx.stroke()}}
   // anclas
-  ctx.font='12px ui-monospace,Menlo,monospace';
-  for(const st of list){if(!st.anchor)continue;if(!proj(st.lx,st.ly,st.lz))continue;const x=_p[0],y=_p[1];
-    ctx.fillStyle='#ffb454';ctx.beginPath();ctx.moveTo(x,y-5);ctx.lineTo(x+5,y);ctx.lineTo(x,y+5);ctx.lineTo(x-5,y);ctx.closePath();ctx.fill();
-    ctx.textAlign='left';ctx.fillText(st.anchor.name,x+9,y)}
-  const mark=st=>{if(!st||!proj(st.lx,st.ly,st.lz))return;const x=_p[0],y=_p[1],pl=1+.12*Math.sin(now/220);
-    ctx.save();ctx.strokeStyle='#58d0ff';ctx.lineWidth=1.5;ctx.setLineDash([5,4]);ctx.lineDashOffset=-now/40;ctx.beginPath();ctx.arc(x,y,13*pl,0,7);ctx.stroke();ctx.setLineDash([]);
-    ctx.beginPath();ctx.moveTo(x+13,y-13);ctx.lineTo(x+34,y-30);ctx.lineTo(x+46,y-30);ctx.stroke();ctx.fillStyle='#58d0ff';ctx.textAlign='left';ctx.font='12px ui-monospace,Menlo,monospace';ctx.fillText(starName(st),x+50,y-30);ctx.restore()};
-  if(selStar)mark(selStar);if(hoverStar&&!same(hoverStar,selStar)){if(proj(hoverStar.lx,hoverStar.ly,hoverStar.lz)){ctx.strokeStyle='rgba(255,255,255,.6)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(_p[0],_p[1],9,0,7);ctx.stroke()}}
-  // tu nave en su posición real (o indicador en el borde si está fuera de vista)
-  shipHit=null;const sr=shipRel(c),shipLab=D.ship.n||SHIPS[D.ship.d].n;
-  const onScreen=proj(sr[0],sr[1],sr[2])&&_p[0]>20&&_p[0]<W-20&&_p[1]>30&&_p[1]<H-30;
-  if(onScreen){
-    const x=_p[0],y=_p[1],age=(now-ping)/1000;
-    if(age<2.4){for(let k=0;k<2;k++){const a=(age-k*.35);if(a<0||a>1.8)continue;ctx.strokeStyle=`rgba(88,208,255,${(1-a/1.8)*.8})`;ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,10+a*70,0,7);ctx.stroke()}}
-    ctx.strokeStyle='rgba(88,208,255,.5)';ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(x,y+20,26,8,0,0,7);ctx.stroke();
-    drawShip3D(ctx,x,y+Math.sin(now/600)*2,58,now/2600,.5,D.ship,now/1000);
-    ctx.fillStyle='rgba(205,230,255,.85)';ctx.textAlign='center';ctx.font='11px ui-monospace,Menlo,monospace';ctx.fillText(shipLab,x,y+38);
-    shipHit={x,y,r:30};
-  }else{
-    const cm=cellCenter(c),dx=sr[0]-cm[0],dy=sr[1]-cm[1],dz=sr[2]-cm[2],cc=CP,x1=dx*cc.cy-dy*cc.sy,y1=dx*cc.sy+dy*cc.cy,Z=y1*cc.sp+dz*cc.cp;
-    let vx=x1,vy=-Z;const vl=Math.hypot(vx,vy)||1;vx/=vl;vy/=vl;
-    const mx=W/2-46,my=H/2-60,k=Math.min(mx/Math.max(1e-6,Math.abs(vx)),my/Math.max(1e-6,Math.abs(vy))),ex=W/2+vx*k,ey=H/2+vy*k,ang=Math.atan2(vy,vx),pu=1+.1*Math.sin(now/260);
-    ctx.save();ctx.translate(ex,ey);ctx.rotate(ang);ctx.fillStyle='rgba(88,208,255,.9)';ctx.beginPath();ctx.moveTo(15*pu,0);ctx.lineTo(-8,9);ctx.lineTo(-3,0);ctx.lineTo(-8,-9);ctx.closePath();ctx.fill();ctx.restore();
-    ctx.fillStyle='#58d0ff';ctx.font='11px ui-monospace,Menlo,monospace';ctx.textAlign=vx>.3?'right':vx<-.3?'left':'center';
-    ctx.fillText(`${shipLab} · ${fmtLen(Math.hypot(dx,dy,dz))}`,ex-vx*22,ey-vy*22-(Math.abs(vy)>.7?0:0));shipHit={x:ex,y:ey,r:28};
+  for(const s of ANCHSTARS){if(R>150&&s.anchor.id!=='sol')continue;if(!proj(s.gx,s.gy,s.gz))continue;const x=_p[0],y=_p[1],inf=opt.pet&&infected(s);s._x=x;s._y=y;s._f=frameNo;
+    ctx.fillStyle=inf?PET:'#fff';ctx.beginPath();ctx.arc(x,y,2.6,0,7);ctx.fill();ctx.globalAlpha=.25;ctx.beginPath();ctx.arc(x,y,7,0,7);ctx.fill();ctx.globalAlpha=1;
+    labelAt(x,y,s.anchor.name,inf?'rgba(255,59,92,.95)':'rgba(235,240,248,.9)',10)}
+  // esfera de transmisión del astrófago (8 al) alrededor del destino infectado
+  const pet=selStar&&opt.pet&&infected(selStar)?selStar:null;
+  if(pet&&proj(pet.gx,pet.gy,pet.gz)){const r=8*c.F/_p[2];if(r>12&&r<Math.max(W,H)*2){ctx.strokeStyle='rgba(255,59,92,.75)';ctx.lineWidth=1.4;ctx.setLineDash([r*.18,r*.05]);ctx.lineDashOffset=-now/80;ctx.beginPath();ctx.arc(_p[0],_p[1],r,0,7);ctx.stroke();ctx.setLineDash([])}}
+  // alcance de salto
+  if(!travel){
+    if(ml*c.F/c.dist>8){ctx.setLineDash([2,6]);ctx.strokeStyle='rgba(224,170,70,.22)';ctx.lineWidth=1;ringPath(P0[0],P0[1],P0[2],ml);ctx.stroke()}
+    if(rng0*c.F/c.dist>8){ctx.setLineDash([7,5]);ctx.lineDashOffset=-now/60;ctx.strokeStyle='rgba(224,170,70,.7)';ringPath(P0[0],P0[1],P0[2],rng0);ctx.stroke();
+      if(proj(P0[0]+rng0*c.cy,P0[1]-rng0*c.sy,P0[2])){ctx.fillStyle='rgba(224,170,70,.95)';ctx.font='9px ui-monospace,Menlo,monospace';ctx.textAlign='left';ctx.fillText(spaced('ALCANCE '+fmtLen(rng0).toUpperCase()),_p[0]+4,_p[1]-8)}}
+    ctx.setLineDash([]);
   }
-  drawGizmo();
-  if(fade>0){ctx.fillStyle=`rgba(4,6,12,${fade})`;ctx.fillRect(0,0,W,H);fade=Math.max(0,fade-.06)}
-}
-/* — Vista de sistema (cenital) — */
-let sysHits=[];
-function drawSystem(now){
-  const ent=RM?1:ease(clamp((now-sysT0)/1000,0,1)),S=SYS,P=S.P,cx=W/2,cy=H/2,Rmax=(Math.min(W,H)/2-26)*(.35+.65*ent),t=now/1000;ctx.globalAlpha=.15+.85*ent;const starPx=clamp(6+Math.log10(P.rad+1)*14,7,34);
-  const all=S.planets.map(p=>p.a).concat(S.belts.flat());const amax=Math.max(...all,S.hz[1],.5)*1.12,a0=Math.min(...all,S.hz[0])*.55;
-  const rp=a=>starPx+12+(Rmax-starPx-12)*Math.log(1+Math.max(a,0)/a0)/Math.log(1+amax/a0);
-  {const ro=rp(S.hz[1]),ri=rp(S.hz[0]);ctx.beginPath();ctx.arc(cx,cy,ro,0,7);ctx.moveTo(cx+ri,cy);ctx.arc(cx,cy,ri,0,7);ctx.fillStyle='rgba(126,231,135,.08)';ctx.fill('evenodd')}
-  for(const [a,b] of S.belts){const r=rng(hash(S.star.h,a*100|0));ctx.fillStyle='rgba(170,170,170,.55)';for(let k=0;k<160;k++){const ang=r()*6.283+t*.02,rr=lerp(rp(a),rp(b),r());ctx.fillRect(cx+Math.cos(ang)*rr,cy+Math.sin(ang)*rr,1.4,1.4)}}
-  const g=ctx.createRadialGradient(cx,cy,0,cx,cy,starPx*3);g.addColorStop(0,P.col);g.addColorStop(.35,P.col+'88');g.addColorStop(1,'rgba(0,0,0,0)');
-  ctx.fillStyle=g;ctx.beginPath();ctx.arc(cx,cy,starPx*3,0,7);ctx.fill();ctx.fillStyle=P.col;ctx.beginPath();ctx.arc(cx,cy,starPx,0,7);ctx.fill();
-  sysHits=[];let shipPos=[cx+starPx+22,cy-starPx-22];
-  S.planets.forEach(p=>{
-    const R=rp(p.a);ctx.strokeStyle=p===selPlanet?'rgba(88,208,255,.6)':'rgba(120,150,200,.2)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(cx,cy,R,0,7);ctx.stroke();
-    const w=Math.min(1.6,.35*Math.pow(Math.max(p.a,.03),-.75)),ang=p.phase+t*w,x=cx+Math.cos(ang)*R,y=cy+Math.sin(ang)*R,pr=clamp(2.5+Math.log2(p.r+.5)*2.6,2.5,13);
-    ctx.fillStyle=KIND[p.kind][1];ctx.beginPath();ctx.arc(x,y,pr,0,7);ctx.fill();
-    if(p.ring){ctx.strokeStyle='rgba(230,210,170,.7)';ctx.lineWidth=1.3;ctx.beginPath();ctx.ellipse(x,y,pr*1.9,pr*.6,-.4,0,7);ctx.stroke()}
-    if(p.hz){ctx.strokeStyle='#7ee787';ctx.lineWidth=1.2;ctx.beginPath();ctx.arc(x,y,pr+3,0,7);ctx.stroke()}
-    if(p===selPlanet){ctx.strokeStyle='#58d0ff';ctx.lineWidth=1.6;ctx.beginPath();ctx.arc(x,y,pr+6,0,7);ctx.stroke();shipPos=[x+pr+16+Math.cos(t*2)*4,y-pr-16+Math.sin(t*2)*4]}
-    if(Rmax>150||p===selPlanet){ctx.font='11px ui-monospace,Menlo,monospace';ctx.fillStyle=p===selPlanet?'#58d0ff':'rgba(205,215,235,.65)';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(p.name.replace(S.name+' ',''),x+pr+5,y)}
-    sysHits.push({x,y,r:Math.max(12,pr+6),planet:p});
-  });
-  ctx.globalAlpha=1;drawShip3D(ctx,shipPos[0],shipPos[1],46,t*.9,.5,D.ship,t);
-  if((now-ping)<2200){const a=(now-ping)/1000;ctx.strokeStyle=`rgba(88,208,255,${Math.max(0,1-a/2.2)})`;ctx.lineWidth=2;ctx.beginPath();ctx.arc(shipPos[0],shipPos[1],10+a*40,0,7);ctx.stroke()}
-  ctx.font='12px ui-monospace,Menlo,monospace';ctx.fillStyle='rgba(126,231,135,.7)';ctx.textAlign='left';ctx.fillText('▮ zona habitable',12,H-16);
+  // trayectoria trazada: arcos con marcas, como en la carta original
+  if(route&&route.legs&&!travel){
+    for(const L of route.legs){const pts=arcPts(L.from,L.to,28),col=L.err||L.pend?'rgba(150,160,180,.6)':PET;ctx.strokeStyle=col;ctx.lineWidth=1.6;ctx.setLineDash(L.err||L.pend?[5,5]:[]);ctx.beginPath();let pen=false;
+      for(const p of pts){if(!p){pen=false;continue}pen?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]);pen=true}ctx.stroke();ctx.setLineDash([]);
+      ctx.fillStyle=col;pts.forEach((p,i)=>{if(p&&i%4===0&&i&&i<28){ctx.beginPath();ctx.arc(p[0],p[1],2,0,7);ctx.fill()}})}
+    const last=route.legs[route.legs.length-1];if(proj(last.to.gx,last.to.gy,last.to.gz)){ctx.fillStyle=PET;ctx.font='9px ui-monospace,Menlo,monospace';ctx.textAlign='left';ctx.fillText(spaced(`${route.legs.length} SALTO${route.legs.length>1?'S':''} · ${fmtLen(route.tot.d).toUpperCase()}`),_p[0]+17,_p[1]+13)}
+  }
+  if(travel&&travel.leg){const L=travel.leg,pts=arcPts(L.from,L.to,28);ctx.strokeStyle=PET;ctx.lineWidth=1.6;ctx.beginPath();let pen=false;for(const p of pts){if(!p){pen=false;continue}pen?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]);pen=true}ctx.stroke()}
+  // selección y cursor
+  if(selStar&&proj(selStar.gx,selStar.gy,selStar.gz)){const x=_p[0],y=_p[1],pl=1+.1*Math.sin(now/220);
+    ctx.save();ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.beginPath();for(const [a,b] of[[-1,-1],[1,-1],[1,1],[-1,1]]){const s=11*pl;ctx.moveTo(x+a*s,y+b*(s-5));ctx.lineTo(x+a*s,y+b*s);ctx.lineTo(x+a*(s-5),y+b*s)}ctx.stroke();ctx.restore();
+    if(!selStar.anchor&&!labels.some(l=>sameStar(l[1],selStar)))labelAt(x,y,starName(selStar),'#fff',10)}
+  if(hoverStar&&!sameStar(hoverStar,selStar)&&proj(hoverStar.gx,hoverStar.gy,hoverStar.gz)){ctx.strokeStyle='rgba(255,255,255,.7)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(_p[0],_p[1],8,0,7);ctx.stroke()}
+  // nave (símbolo de navegación; a escala real sería 10⁻¹³ píxeles)
+  shipHit=null;const lab=D.ship.n||SHIPS[D.ship.d].n;
+  if(proj(P0[0],P0[1],P0[2])&&_p[0]>16&&_p[0]<W-16&&_p[1]>16&&_p[1]<H-16){
+    const x=_p[0],y=_p[1],age=(now-ping)/1000;
+    if(age<2.4)for(let k=0;k<2;k++){const a=age-k*.35;if(a<0||a>1.8)continue;ctx.strokeStyle=`rgba(120,220,255,${(1-a/1.8)*.8})`;ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(x,y,8+a*60,0,7);ctx.stroke()}
+    let ang=-Math.PI/2;if(travel&&travel.leg){const L=travel.leg;if(proj(L.to.gx,L.to.gy,L.to.gz))ang=Math.atan2(_p[1]-y,_p[0]-x)}else if(selStar&&!sameStar(selStar,ship)&&proj(selStar.gx,selStar.gy,selStar.gz))ang=Math.atan2(_p[1]-y,_p[0]-x);
+    ctx.save();ctx.translate(x,y);ctx.strokeStyle='rgba(120,220,255,.6)';ctx.setLineDash([2,3]);ctx.rotate(now/1500);ctx.beginPath();ctx.arc(0,0,11,0,7);ctx.stroke();ctx.restore();
+    ctx.save();ctx.translate(x,y);ctx.rotate(ang+Math.PI/2);ctx.fillStyle='#78dcff';ctx.beginPath();ctx.moveTo(0,-8);ctx.lineTo(5.5,6);ctx.lineTo(0,3);ctx.lineTo(-5.5,6);ctx.closePath();ctx.fill();ctx.restore();
+    ctx.fillStyle='rgba(120,220,255,.95)';ctx.font='9px ui-monospace,Menlo,monospace';ctx.textAlign='center';ctx.fillText(spaced(lab.toUpperCase()),x,y+22);shipHit={x,y,r:18};
+  }else{
+    const dx=P0[0]-fx,dy=P0[1]-fy,dz=P0[2]-fz,x1=dx*c.cy-dy*c.sy,y1=dx*c.sy+dy*c.cy,Z=y1*c.sp+dz*c.cp;let vx=x1,vy=-Z;const vl=Math.hypot(vx,vy)||1;vx/=vl;vy/=vl;
+    const mx=W/2-50,my=H/2-90,k=Math.min(mx/Math.max(1e-6,Math.abs(vx)),my/Math.max(1e-6,Math.abs(vy))),ex=W/2+vx*k,ey=H/2+vy*k,pu=1+.1*Math.sin(now/260);
+    ctx.save();ctx.translate(ex,ey);ctx.rotate(Math.atan2(vy,vx));ctx.fillStyle='rgba(120,220,255,.9)';ctx.beginPath();ctx.moveTo(14*pu,0);ctx.lineTo(-7,8);ctx.lineTo(-3,0);ctx.lineTo(-7,-8);ctx.closePath();ctx.fill();ctx.restore();
+    ctx.fillStyle='rgba(120,220,255,.95)';ctx.font='9px ui-monospace,Menlo,monospace';ctx.textAlign=vx>.3?'right':vx<-.3?'left':'center';ctx.fillText(spaced(`${lab} · ${fmtLen(Math.hypot(dx,dy,dz))}`.toUpperCase()),ex-vx*22,ey-vy*22);shipHit={x:ex,y:ey,r:26};
+  }
+  if(travel)drawStreaks(travel.int*.8,now/1600);
+  ctx.letterSpacing='0px';
 }
 
-/* ═════════ Interacción del canvas ═════════ */
-const tip=$('#tip');
-function showTip(html,mx,my){tip.innerHTML=html;tip.style.display='block';const r=$('#stage').getBoundingClientRect();tip.style.left=Math.max(4,Math.min(r.width-tip.offsetWidth-6,mx+14))+'px';tip.style.top=Math.max(4,my-30)+'px'}
-const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top]};
-function pickCell(mx,my){let best=null;for(const p of cellPts){const R=Math.max(14,p.px*.5);if(Math.hypot(p.x-mx,p.y-my)<R&&(!best||p.d<best.d))best=p}return best?best.i:-1}
-function pickStar(mx,my){
-  if(!CP)return null;let best=null,bd=100;
-  for(const st of curList){if(st.out)continue;if(!proj(st.lx,st.ly,st.lz))continue;const d=Math.hypot(_p[0]-mx,_p[1]-my)-Math.log10(st.P.lum+1.2)*1.5;if(d<bd&&d<11){bd=d;best=st}}
-  return best;
+/* ═════════ Rol: tripulación ═════════ */
+const SPECIES=['Zorro','Lobo','Felino','Dragón','Conejo','Mapache','Nutria','Ciervo','Oso','Hiena','Cuervo','Lagarto','Tigre','Murciélago'];
+const SPEMO={Zorro:'🦊',Lobo:'🐺',Felino:'🐱',Dragón:'🐉',Conejo:'🐰',Mapache:'🦝',Nutria:'🦦',Ciervo:'🦌',Oso:'🐻',Hiena:'🐾',Cuervo:'🐦',Lagarto:'🦎',Tigre:'🐯',Murciélago:'🦇',Erideano:'🪨',IA:'🤖'};
+const STATS=[['pil','Pilotaje'],['ing','Ingeniería'],['cie','Ciencia'],['med','Medicina'],['seg','Seguridad'],['soc','Diplomacia']];
+const STATN=Object.fromEntries(STATS);
+const ROLES={pil:'Piloto',ing:'Ingeniería',cie:'Ciencia',med:'Medicina',seg:'Seguridad',soc:'Comunicaciones'};
+const TRAITS={
+ Valiente:{d:'+1 Seguridad. No pierde moral ante el peligro.',m:{seg:1}},
+ Curioso:{d:'+1 Ciencia. Gana moral extra al descubrir algo.',m:{cie:1}},
+ Cauteloso:{d:'Recibe la mitad de daño en expediciones.',m:{}},
+ Optimista:{d:'Su moral baja la mitad durante los viajes.',m:{}},
+ 'Gruñón':{d:'+1 Ingeniería, pero empeora las discusiones.',m:{ing:1}},
+ 'Carismático':{d:'+1 Diplomacia.',m:{soc:1}},
+ 'Manos firmes':{d:'+1 Pilotaje y +1 Medicina.',m:{pil:1,med:1}},
+ Insomne:{d:'Mayor riesgo durante la hibernación.',m:{}},
+ Veterano:{d:'+1 a Pilotaje, Seguridad e Ingeniería.',m:{pil:1,seg:1,ing:1}}};
+const FIRST=['Kael','Nira','Tavo','Mira','Rook','Sela','Bram','Ivy','Oren','Lys','Dax','Tamsin','Ezra','Vela','Juno','Pax','Rin','Nox','Ada','Kiri','Mako','Zev','Lumi','Ori','Tess','Bao','Inés','Mateo','Lucía','Kenji','Amara','Odín','Saya','Tobías'];
+const ORIG=['Criado en los anillos de Marte','Hijo de mineros de Ceres','Ex piloto de carreras orbitales','Investigador de la Universidad Lunar','Veterano de la Guardia de Europa','Nacido en una estación de Titán','Antiguo contrabandista redimido','Médico de campaña en Venus Alta'];
+const MOTV=['busca un hogar para su familia','quiere ver otro sol antes de morir','persigue una vieja leyenda','firmó con Ad Astra para saldar una deuda','cree que Tau Ceti guarda la respuesta','huye de algo que no cuenta','sueña con nombrar un planeta'];
+let crewId=1;
+function genMember(r,role,sp){
+  role=role||Object.keys(ROLES)[r()*6|0];const s={};for(const [k] of STATS)s[k]=2+(r()*4|0);s[role]=Math.min(9,s[role]+3+(r()*2|0));
+  const tr=Object.keys(TRAITS)[r()*9|0];
+  return{id:Date.now().toString(36)+(crewId++),nm:FIRST[r()*FIRST.length|0]+' '+genName((r()*1e9)>>>0),sp:sp||SPECIES[r()*SPECIES.length|0],role,s,tr,hp:100,mor:75+(r()*20|0),xp:0,lv:tr==='Veterano'?2:1,st:'ok',bio:`${ORIG[r()*ORIG.length|0]}; ${MOTV[r()*MOTV.length|0]}.`};
 }
-const ptrs=new Map();let drag=null,pinch0=0;
-cv.addEventListener('pointerdown',e=>{lastInput=performance.now();camAnim=null;cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,[e.clientX,e.clientY]);drag={x:e.clientX,y:e.clientY,moved:0,yaw:cam.yaw,pitch:cam.pitch};if(ptrs.size===2){const a=[...ptrs.values()];pinch0=Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]);drag.pz=cam.zoom}});
+function newCrew(d){const sp=SPEC[d],r=rng((Math.random()*4e9)>>>0),n=Math.min(6,sp.c0),order=['pil','ing','cie','med','seg','soc'];
+  const c=[];for(let i=0;i<n;i++)c.push(genMember(r,order[i]));return{c,extra:Math.max(0,sp.c0-n)}}
+if(!D.st)D.st=freshState(D.ship.d);
+if(!Array.isArray(D.crew)){const n=newCrew(D.ship.d);D.crew=n.c;D.st.extra=n.extra}
+const alive=()=>D.crew.filter(m=>m.st!=='perdido');
+const crewCount=()=>alive().length+(D.st.extra|0);
+const eff=(m,k)=>m.s[k]+((TRAITS[m.tr]||{m:{}}).m[k]||0)+Math.floor((m.lv-1)/2)+(m.hp<50?-2:0)+(m.mor<30?-1:0);
+const portrait=m=>m?`<span class="pt" title="${esc(m.sp)}">${SPEMO[m.sp]||'🐾'}</span>`:'<span class="pt">🤖</span>';
+const AI={nm:'IA de a bordo',sp:'IA',s:{pil:5,ing:5,cie:5,med:3,seg:3,soc:3},tr:'',lv:1,hp:100,mor:100};
+function best(k,team){const c=(team&&team.length?team:alive().filter(m=>m.hp>0));if(!c.length)return{m:AI,v:AI.s[k]};let b=c[0],v=eff(b,k);for(const m of c){const e=eff(m,k);if(e>v){v=e;b=m}}return{m:b,v}}
+const chance=(k,dc,team)=>{const b=best(k,team).v+((team&&team.length>1)?team.length-1:0);return clamp((11-(dc-b))/10,0,1)};
+function roll(k,dc,team){
+  const b=best(k,team),bonus=(team&&team.length>1)?team.length-1:0,d=1+(Math.random()*10|0),tot=b.v+d+bonus,ok=tot>=dc;
+  return{ok,crit:d===10,fumble:d===1,m:b.m,line:`🎲 ${d} + ${b.v} (${esc(b.m.nm)}, ${STATN[k]})${bonus?` + ${bonus} equipo`:''} = ${tot} vs ${dc} ${ok?'✓':'✗'}`};
+}
+function gainXp(m,n){if(!m||m===AI||m.st==='perdido')return'';m.xp+=n;let out='';while(m.xp>=30*m.lv){m.xp-=30*m.lv;m.lv++;m.s[m.role]=Math.min(12,m.s[m.role]+1);out+=` ${m.nm} sube a nivel ${m.lv}.`}return out}
+function hurt(m,n){if(!m||m===AI)return'';if(m.tr==='Cauteloso')n=Math.round(n/2);m.hp=Math.max(5,m.hp-n);return` ${m.nm} resulta herido (−${n} salud).`}
+function morAll(n){for(const m of alive()){let v=n;if(n<0&&m.tr==='Optimista')v=Math.round(n/2);if(n<0&&m.tr==='Valiente'&&n>-8)v=0;m.mor=clamp(m.mor+v,0,100)}}
+const pick=a=>a[Math.random()*a.length|0];
+function addMember(src){if(alive().length>=6){D.st.extra++;return'Se une a la tripulación general.'}const m=src||genMember(rng((Math.random()*4e9)>>>0));D.crew.push(m);return`${m.nm} (${m.sp}, ${ROLES[m.role]}) se une a la tripulación.`}
+function loseRandom(){const a=alive();if(D.st.extra>0&&Math.random()<D.st.extra/(D.st.extra+a.length)){D.st.extra--;return'Un miembro de la tripulación general'}if(!a.length)return'';const m=pick(a);m.st='perdido';m.hp=0;return m.nm}
+const LINES={
+ Valiente:['Si algo sale mal, yo voy primero.','Esto se pone interesante.'],Curioso:['¡Mira esa corona! Quiero muestras de todo.','¿Te das cuenta de que nadie ha visto esto antes?'],
+ Cauteloso:['Revisemos los sensores dos veces.','No me gusta ese silencio en la radio.'],Optimista:['¡Otro sol nuevo! Cada vez estamos más cerca.','Vamos bien, de verdad.'],
+ 'Gruñón':['El reactor hace un ruido raro. Otra vez.','Nadie limpia la cocina en esta nave.'],'Carismático':['Si hay alguien ahí fuera, déjenme hablar a mí.','Brindemos por la tripulación.'],
+ 'Manos firmes':['Trayectoria estable. Sin sobresaltos.','Todo en orden en la enfermería.'],Insomne:['No he dormido desde el último salto…','Las estrellas no se apagan nunca aquí.'],Veterano:['He visto cosas peores.','Mantengan la calma y la disciplina.']};
+function crewChatter(){const a=alive();if(!a.length||Math.random()>.4)return;const m=pick(a);const l=LINES[m.tr];if(l)toast(`${SPEMO[m.sp]||''} <b>${esc(m.nm)}</b>: «${esc(pick(l))}»`)}
+
+/* ═════════ Planetas: atmósfera, condiciones anómalas y puntos de interés ═════════ */
+const ATM={lava:['Azufre y CO₂',0],desert:['CO₂ tenue',0],ocean:['N₂/O₂ húmeda',1],temperate:['N₂/O₂',1],ice:['N₂ muy fina',0],frozen:['Ninguna',0],barren:['Ninguna',0],gas:['H₂/He',0],icegiant:['H₂/He/CH₄',0]};
+const ANOM=[['Tormenta de iones','ing','Los sistemas electrónicos fallan a ratos.'],['Anomalía electromagnética','cie','Las brújulas giran sin control.'],['Niebla de esporas','med','Las esporas causan alucinaciones leves.'],
+  ['Ecos temporales','cie','Los relojes del equipo no coinciden.'],['Cristales cantores','soc','Un zumbido constante altera los nervios.'],['Sismos periódicos','pil','El suelo se mueve cada pocas horas.'],['Fauna territorial','seg','Algo vigila desde las sombras.']];
+const POI={
+ 'Depósito mineral':{k:'ing',dc:9,days:4,lo:{min:[20,45]},tx:'Vetas metálicas a cielo abierto.'},
+ 'Cueva profunda':{k:'seg',dc:11,days:5,lo:{min:[10,25],prov:[.03,.06]},tx:'Un sistema de túneles que baja hacia el calor.'},
+ 'Ruinas antiguas':{k:'cie',dc:13,days:6,lo:{xp:25,lore:1,min:[5,15]},tx:'Estructuras geométricas imposibles de datar.'},
+ 'Flora comestible':{k:'med',dc:10,days:4,lo:{prov:[.08,.15]},tx:'Plantas con azúcares compatibles con nuestra biología.'},
+ 'Restos de una nave':{k:'ing',dc:12,days:5,lo:{fuel:[.05,.12],min:[10,30]},tx:'Un casco desconocido semienterrado.'},
+ 'Fuente termal':{k:'cie',dc:10,days:3,lo:{xp:15,mor:10},tx:'Agua caliente y vapor: un buen lugar para descansar.'},
+ 'Señal enterrada':{k:'soc',dc:12,days:4,lo:{xp:20,lore:1},tx:'Una baliza todavía emite un patrón regular.'},
+ 'Nido de fauna':{k:'seg',dc:14,days:5,lo:{prov:[.1,.2],xp:20},tx:'Criaturas grandes y nerviosas.'},
+ 'Hielo puro':{k:'ing',dc:8,days:3,lo:{prov:[.04,.08]},tx:'Glaciares de agua casi pura.'},
+ 'Cristales de astrófago':{k:'cie',dc:13,days:5,lo:{fuel:[.1,.25]},tx:'Depósitos oscuros que absorben la luz: astrófago latente.'},
+ 'Asentamiento':{k:'soc',dc:9,days:3,lo:{crew:1,mor:12,prov:[.05,.1]},tx:'Una colonia pequeña que recibe visitas con recelo.'},
+ 'Géiser de lava':{k:'pil',dc:12,days:3,lo:{min:[25,50]},tx:'Hay que volar entre columnas de roca fundida.'}};
+const KPOI={lava:['Géiser de lava','Depósito mineral','Restos de una nave','Ruinas antiguas'],desert:['Ruinas antiguas','Depósito mineral','Restos de una nave','Señal enterrada','Cueva profunda'],
+ ocean:['Flora comestible','Nido de fauna','Fuente termal','Ruinas antiguas'],temperate:['Flora comestible','Nido de fauna','Ruinas antiguas','Cueva profunda','Fuente termal','Señal enterrada'],
+ ice:['Hielo puro','Cueva profunda','Restos de una nave','Señal enterrada'],frozen:['Hielo puro','Cristales de astrófago','Restos de una nave'],barren:['Depósito mineral','Cristales de astrófago','Restos de una nave','Cueva profunda']};
+const LORE=['Los grabados muestran una estrella que se oscurece y una flota que parte hacia otra.','La baliza repite coordenadas que apuntan a Tau Ceti, una y otra vez.',
+ 'Encuentran un mapa estelar tallado: el Sol aparece marcado con un círculo roto.','Los restos hablan de una especie que cosechaba la luz de su estrella.',
+ 'Un diario en un idioma desconocido termina con un dibujo de dos manos, de especies distintas, unidas.','La estructura canta cuando la atraviesa el viento: alguien la diseñó así.',
+ 'Bajo la arena aparece un jardín fosilizado, ordenado en anillos perfectos.','Una cápsula sellada contiene semillas que todavía están vivas.'];
+function isColony(S,i,p){return p.name==='Tierra'||!!p.fiction||(p.hz&&hash(S.star.h,i,99)%3===0)}
+function planetInfo(S,i){
+  const p=S.planets[i],r=rng(hash(S.star.h,i,555)),atm=ATM[p.kind]||['?',0],hz=[];
+  if(p.T>400)hz.push(['Calor extremo','med',3,'Los trajes apenas aguantan.']);
+  if(p.T<200)hz.push(['Frío extremo','ing',2,'Las baterías se agotan rápido.']);
+  if(p.g>1.5)hz.push(['Gravedad alta','pil',2,'Cada paso cuesta el doble.']);
+  if(!atm[1])hz.push(['Sin aire respirable','ing',1,'Soporte vital obligatorio.']);
+  if('OBA'.includes(S.P.k)||p.a<.15)hz.push(['Radiación','med',2,'Dosis alta en superficie.']);
+  if(r()<.25){const a=ANOM[r()*ANOM.length|0];hz.push([a[0],a[1],2,a[2],1])}
+  const gas=p.kind==='gas'||p.kind==='icegiant',pois=[];
+  if(!gas){const pool=(KPOI[p.kind]||KPOI.barren).slice(),n=2+(r()*3|0);for(let k=0;k<n&&pool.length;k++)pois.push(pool.splice(r()*pool.length|0,1)[0]);if(isColony(S,i,p))pois.push('Asentamiento')}
+  return{p,i,atm:atm[0],breath:!!atm[1],hz,pois,gas,colony:isColony(S,i,p),key:sSeed(S.star)+':'+i};
+}
+
+/* ═════════ Eventos aleatorios (con decisiones y tiradas) ═════════ */
+const EV=[
+ {id:'socorro',w:3,at:'leg',t:'Señal de socorro',tx:'Una baliza débil pide ayuda desde una cápsula a la deriva. Podría ser una trampa.',
+  op:[{l:'Acercarse a rescatar',k:'seg',dc:11,ok:()=>'Encuentran a una superviviente congelada. '+addMember(),ko:()=>'Era chatarra con una carga inestable.'+hurt(pick(alive()),20)+(()=>{D.st.hull=Math.max(1,D.st.hull-8);return' Casco −8%.'})()},
+      {l:'Ignorarla',run:()=>{morAll(-6);return'La tripulación guarda silencio durante días. Moral −6.'}}]},
+ {id:'meteoros',w:4,at:'leg',t:'Lluvia de micrometeoroides',tx:'El radar detecta una nube de polvo de alta velocidad justo en la trayectoria.',
+  op:[{l:'Maniobrar a mano',k:'pil',dc:12,ok:()=>'Un pilotaje impecable. Ni un rasguño.',ko:()=>{const d=10+(Math.random()*12|0);D.st.hull=Math.max(1,D.st.hull-d);return`Impactos en el casco: −${d}%.`}},
+      {l:'Reforzar blindaje (10 t minerales)',need:()=>D.st.min>=10,run:()=>{D.st.min-=10;return'Las placas extra absorben los impactos.'}}]},
+ {id:'reactor',w:3,at:'leg',t:'Fluctuación en el motor de astrófago',tx:'La temperatura de los tanques sube. Si el astrófago se calienta demasiado, se pierde.',
+  op:[{l:'Reparar en caliente',k:'ing',dc:13,ok:()=>'Reparado. El motor suena mejor que nunca.',ko:()=>{const f=Math.round(D.st.fuel*.12);D.st.fuel-=f;return`Se ventean ${f} t de astrófago.`+hurt(pick(alive()),15)}},
+      {l:'Dejar que la IA estabilice',run:()=>{const f=Math.round(D.st.fuel*.06);D.st.fuel-=f;return`La IA purga ${f} t para enfriar los tanques.`}}]},
+ {id:'enfermedad',w:2,at:'arr',cond:()=>alive().length>=2,t:'Brote a bordo',tx:'Varios tripulantes tienen fiebre. Puede venir de las muestras recogidas.',
+  op:[{l:'Tratarlo en la enfermería',k:'med',dc:12,ok:()=>{morAll(4);return'Diagnóstico rápido y tratamiento eficaz. Moral +4.'},ko:()=>{let s='';for(const m of alive())if(Math.random()<.5)s+=hurt(m,15);return'El tratamiento tarda.'+s}},
+      {l:'Cuarentena (15 días)',run:()=>{passDays(15);return'Quince días de aislamiento. Nadie más enferma.'}}]},
+ {id:'discusion',w:3,at:'any',cond:()=>alive().length>=2,t:'Discusión en la tripulación',tx:()=>{const a=alive();return`${a[0].nm} y ${a[a.length-1].nm} discuten a gritos por el reparto de raciones.`},
+  op:[{l:'Mediar',k:'soc',dc:11,ok:()=>{morAll(8);return'Se dan la mano. Moral +8.'},ko:()=>{morAll(alive().some(m=>m.tr==='Gruñón')?-12:-8);return'La tensión empeora.'}},
+      {l:'Imponer disciplina',k:'seg',dc:9,ok:()=>{morAll(-2);return'Vuelve el orden, a regañadientes.'},ko:()=>{morAll(-10);return'Nadie acepta la orden. Moral −10.'}}]},
+ {id:'anomalia',w:2,at:'arr',t:'Anomalía gravitacional',tx:'Los sensores registran una lente gravitacional donde no hay ninguna masa visible.',
+  op:[{l:'Estudiarla',k:'cie',dc:13,ok:(c,r)=>{D.st.min=Math.min(SPEC[D.ship.d].cargo,D.st.min+20);morAll(5);return'Datos únicos y fragmentos exóticos: +20 t de minerales.'+gainXp(r.m,20)},ko:()=>{D.st.hull=Math.max(1,D.st.hull-10);return'La marea gravitacional tuerce el casco: −10%.'}},
+      {l:'Rodearla',run:()=>'Prudencia ante todo.'}]},
+ {id:'contenedor',w:3,at:'leg',t:'Contenedor a la deriva',tx:'Un módulo de carga sin marcas gira lentamente frente a la nave.',
+  op:[{l:'Abrirlo',k:'ing',dc:9,ok:()=>{const sp=SPEC[D.ship.d];D.st.min=Math.min(sp.cargo,D.st.min+15);D.st.prov=Math.min(sp.prov,D.st.prov+sp.prov*.06);return'Suministros y repuestos útiles.'},ko:()=>{D.st.hull=Math.max(1,D.st.hull-6);return'Un mecanismo de seguridad explota: casco −6%.'}},
+      {l:'Dejarlo',run:()=>'Sigue girando a su suerte.'}]},
+ {id:'transmision',w:2,at:'arr',t:'Transmisión desconocida',tx:'Un patrón de pulsos repetido, demasiado regular para ser natural.',
+  op:[{l:'Descifrarla',k:'soc',dc:12,ok:(c,r)=>{morAll(6);return'«'+pick(LORE)+'»'+gainXp(r.m,20)},ko:()=>'Ruido. Sólo ruido. ¿O no?'},{l:'Grabarla y seguir',run:()=>'Queda archivada en la bitácora.'}]},
+ {id:'fulgor',w:2,at:'arr',cond:c=>c.star&&c.star.P.k==='M',t:'Fulguración estelar',tx:'La enana roja lanza una llamarada justo cuando llegan.',
+  op:[{l:'Desviar energía a los escudos',k:'ing',dc:11,ok:()=>'Los escudos aguantan.',ko:()=>{let s='';for(const m of alive())s+=hurt(m,10);return'La radiación atraviesa el casco.'+s}},{l:'Refugiarse en el núcleo',run:()=>{passDays(3);return'Tres días encerrados, pero a salvo.'}}]},
+ {id:'polizon',w:1,at:'any',t:'Polizón',tx:'Aparece alguien escondido en la bodega. Dice que sólo quería ver las estrellas.',
+  op:[{l:'Aceptarle en la tripulación',run:()=>addMember()},{l:'Ponerle en hibernación hasta volver',run:()=>'Duerme en una cápsula de repuesto.'}]},
+ {id:'mercader',w:2,at:'arr',t:'Mercader errante',tx:'Una nave comercial independiente propone un trueque.',
+  op:[{l:'20 t minerales → provisiones',need:()=>D.st.min>=20,run:()=>{const sp=SPEC[D.ship.d];D.st.min-=20;D.st.prov=Math.min(sp.prov,D.st.prov+sp.prov*.2);return'Trato hecho.'}},
+      {l:'20 t minerales → astrófago',need:()=>D.st.min>=20,run:()=>{const sp=SPEC[D.ship.d];D.st.min-=20;D.st.fuel=Math.min(sp.tank,D.st.fuel+sp.tank*.15);return'Trato hecho.'}},
+      {l:'Regatear',k:'soc',dc:12,ok:()=>{const sp=SPEC[D.ship.d];D.st.fuel=Math.min(sp.tank,D.st.fuel+sp.tank*.1);return'Te regala astrófago por la conversación.'},ko:()=>'Se ofende y se marcha.'}]},
+ {id:'fiesta',w:2,at:'leg',cond:()=>alive().length>=2&&!D.hib,t:'Aniversario de la misión',tx:'Alguien recuerda que hoy se cumple otro año desde el despegue.',
+  op:[{l:'Celebrar (gasta provisiones)',run:()=>{D.st.prov=Math.max(0,D.st.prov-crewCount()*5);morAll(15);return'Música, comida y anécdotas. Moral +15.'}},{l:'Seguir trabajando',run:()=>{morAll(-3);return'Un día más.'}}]},
+ {id:'criogenia',w:3,at:'leg',cond:()=>D.hib&&SPEC[D.ship.d].hib&&alive().length>0,t:'Fallo de criogenia',tx:'Una cápsula de coma marca una caída de constantes vitales.',
+  op:[{l:'Despertar a la médica de guardia',k:'med',dc:13,ok:()=>'Estabilizado a tiempo.',ko:()=>{const m=pick(alive());return hurt(m,40)}},{l:'Confiar en la IA',k:'med',dc:15,ok:()=>'La IA lo logra.',ko:()=>{const who=loseRandom();return who?`${who} no despertó del coma.`:''}}]},
+ {id:'mascota',w:1,at:'leg',t:'Algo se mueve en la bodega',tx:'Ruidos en los conductos. Las muestras de un planeta parecen haberse… escapado.',
+  op:[{l:'Atraparlo',k:'seg',dc:10,ok:()=>{morAll(10);return'Es pequeño, peludo y ronronea. Ahora es la mascota de la nave. Moral +10.'},ko:()=>hurt(pick(alive()),8)+' Muerde.'},{l:'Sellar la bodega',run:()=>'Silencio… por ahora.'}]},
+ {id:'lluvia',w:1,at:'arr',cond:c=>c.star&&PETROVA.has(c.star.P.k),t:'Nube de astrófago',tx:'La nave atraviesa una corriente de astrófago migrando hacia la estrella.',
+  op:[{l:'Abrir los colectores',k:'pil',dc:10,ok:()=>{const sp=SPEC[D.ship.d];D.st.fuel=Math.min(sp.tank,D.st.fuel+sp.tank*.2);return'Tanques +20%.'},ko:()=>'Demasiado rápida. Se escapa.'}]}];
+function pickEvent(at,c){const pool=EV.filter(e=>(e.at===at||e.at==='any')&&(!e.cond||e.cond(c)));let w=pool.reduce((a,e)=>a+e.w,0)*Math.random();for(const e of pool){w-=e.w;if(w<=0)return e}return null}
+
+/* ═════════ Misiones e historia ═════════ */
+const QUESTS=[
+ {t:'Primer salto',d:'Sal del Sistema Solar y llega a otra estrella.',chk:e=>e.type==='arrive'&&!(e.star.anchor&&e.star.anchor.id==='sol'),
+  rw:()=>{D.st.min+=20;return'+20 t de minerales'},story:'Por primera vez, el Sol es sólo una estrella más en la ventanilla. La tripulación se queda mirando un buen rato sin decir nada.'},
+ {t:'La línea Petrova',d:'Recolecta astrófago en la corona de una estrella.',chk:e=>e.type==='harvest'&&e.what==='fuel',
+  rw:()=>{morAll(8);return'Moral +8'},story:'Los colectores brillan con un resplandor infrarrojo. Si el astrófago puede cultivarse aquí, podemos seguir avanzando.'},
+ {t:'Destino: Tau Ceti',d:'Llega al sistema de Tau Ceti (11,9 al).',chk:e=>e.type==='arrive'&&e.star.anchor&&e.star.anchor.id==='tceti',
+  rw:()=>{const sp=SPEC[D.ship.d];D.st.prov=Math.min(sp.prov,D.st.prov+sp.prov*.2);return'+20% provisiones'},story:'Tau Ceti no se está apagando. Alrededor de la estrella, algo mantiene a raya al astrófago. La respuesta está en Adrian.'},
+ {t:'Superficie de Adrian',d:'Explora con éxito un punto de interés en Adrian.',chk:e=>e.type==='poi'&&e.planet==='Adrian',
+  rw:()=>{for(const m of alive())gainXp(m,15);return'+15 XP a toda la tripulación'},story:'Las muestras de la atmósfera de Adrian contienen algo vivo que se alimenta del astrófago. Un depredador natural. Esperanza.'},
+ {t:'El eco de 40 Eridani',d:'Viaja a 40 Eridani A y entra en su sistema.',chk:e=>e.type==='enter'&&e.star.anchor&&e.star.anchor.id==='40eri',
+  rw:()=>addMember({...genMember(rng(4040),'ing','Erideano'),nm:'Eko de Erid',tr:'Veterano'}),story:'Una nave de diseño imposible se acerca. Su tripulante se comunica con acordes musicales. Tras días de intercambiar números y notas, pide unirse a la misión.'},
+ {t:'Cartógrafo',d:'Registra 10 sistemas.',chk:()=>Object.keys(D.disc).length>=10,rw:()=>{D.st.min+=40;return'+40 t de minerales'},story:'La carta de Ad Astra crece. Cada punto nuevo es un lugar que nadie había nombrado.'},
+ {t:'Explorador de Ad Astra',d:'Registra 30 sistemas y recorre 100 al.',chk:()=>Object.keys(D.disc).length>=30&&D.st.ly>=100,rw:()=>{morAll(20);return'Moral +20'},story:'La Corporación Ad Astra te nombra Explorador de Primera Clase. Pero el universo sigue sin tener bordes.'}];
+function questEvent(e){
+  let q=QUESTS[D.q];if(!q||!q.chk(e))return;const rw=q.rw();D.q++;saveD();
+  queueDialog({t:'Misión cumplida: '+q.t,who:pick(alive())||null,tx:q.story,res:'Recompensa: '+rw,next:QUESTS[D.q]?'Nueva misión: '+QUESTS[D.q].t:''});
+  questEvent({type:'tick'});
+}
+
+/* ═════════ Avisos y diálogos ═════════ */
+let toastT;
+function toast(h,bl,fn){const t=$('#toast');t.innerHTML=h+(bl?` <button class="sm pri" id="tbtn">${esc(bl)}</button>`:'');t.classList.remove('show');void t.offsetWidth;t.classList.add('show');
+  if(bl)$('#tbtn').onclick=()=>{t.classList.remove('show');fn()};clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),bl?10000:5200)}
+function showModal(html){$('#modalBox').innerHTML=html;$('#modal').style.display='flex'}
+function closeModal(){$('#modal').style.display='none'}
+const dq=[];
+function queueDialog(d){dq.push(d);if(!modalOpen)nextDialog()}
+function nextDialog(){
+  const d=dq.shift();if(!d){modalOpen=false;closeModal();refresh();return}modalOpen=true;
+  if(!d.ev){showModal(`<div class="dh">${portrait(d.who)}<div><div class="kick">BITÁCORA</div><b>${esc(d.t)}</b>${d.who?`<div class="note">${esc(d.who.nm)} · ${ROLES[d.who.role]||''}</div>`:''}</div></div>
+    <p class="story">${esc(d.tx)}</p>${d.res?`<p class="ok">${esc(d.res)}</p>`:''}${d.next?`<p class="note">${esc(d.next)}</p>`:''}<div class="row"><button class="pri" id="dOk">Continuar</button></div>`);
+    $('#dOk').onclick=()=>{d.done&&d.done();nextDialog()};return}
+  const ev=d.ev,who=pick(alive())||null,tx=typeof ev.tx==='function'?ev.tx(d.ctx):ev.tx;
+  showModal(`<div class="dh">${portrait(who)}<div><div class="kick">EVENTO</div><b>${esc(ev.t)}</b><div class="note">${who?esc(who.nm)+' informa':'IA de a bordo informa'}</div></div></div>
+    <p class="story">${esc(tx)}</p><div class="opts">${ev.op.map((o,i)=>`<button data-o="${i}" ${o.need&&!o.need()?'disabled':''}>${esc(o.l)}${o.k?`<span class="dim"> · ${STATN[o.k]} ${o.dc} · ${Math.round(chance(o.k,o.dc)*100)}%</span>`:''}</button>`).join('')}</div>`);
+  $('#modalBox').querySelectorAll('[data-o]').forEach(b=>b.onclick=()=>{
+    const o=ev.op[+b.dataset.o];let res,line='';
+    if(o.k){const r=roll(o.k,o.dc);line=r.line;res=(r.ok?o.ok(d.ctx,r):o.ko(d.ctx,r))||'';if(r.ok)res+=gainXp(r.m,10)}else res=o.run(d.ctx)||'';
+    if(D.st.hull<=0)res+=' El casco no resiste.';saveD();
+    showModal(`<div class="dh">${portrait(who)}<div><div class="kick">RESULTADO</div><b>${esc(ev.t)}</b></div></div>${line?`<p class="roll">${line}</p>`:''}<p class="story">${esc(res)}</p><div class="row"><button class="pri" id="dOk">Continuar</button></div>`);
+    $('#dOk').onclick=()=>{if(D.st.hull<=0)rescue('El casco cedió.');d.done&&d.done();nextDialog()};
+  });
+}
+function passDays(n){
+  const s=D.st,c=crewCount();if(!D.cr)s.prov=Math.max(0,s.prov-c*n);s.days+=n;s.yrs+=n/365.25;const med=best('med').v;
+  for(const m of alive()){m.hp=Math.min(100,m.hp+n*(.3+med*.08));if(s.prov<=0&&c){m.hp=Math.max(5,m.hp-n*.8);m.mor=Math.max(0,m.mor-n*.6)}}
+}
+
+/* ═════════ Astrófago: estrellas infectadas (modo Petrova) ═════════ */
+const INF=new Set(['sol','tceti','eeri','40eri','acen']);
+const infected=s=>s.anchor?INF.has(s.anchor.id):PETROVA.has(s.P.k)&&hash(s.h,13)%4===0;
+
+/* ═════════ Cálculo de viaje (relativista, aceleración constante con volteo a mitad de camino) ═════════ */
+function legCalc(a,b){
+  const sp=SPEC[D.ship.d],d=gd(a,b),acc=sp.acc*1.0323,x=d/2,tE=2*Math.sqrt(x*x+2*x/acc),ph=Math.acosh(1+acc*x),tau=2*ph/acc,days=tau*365.25;
+  const prov=sp.prov?crewCount()*days*(D.hib&&sp.hib?.15:1)*(1-(sp.farm||0)):0;
+  return{from:a,to:b,d,tE,tau,v:Math.tanh(ph),g:Math.cosh(ph),days,fuel:d*sp.burn,prov};
+}
+function legErr(L,s){
+  const sp=SPEC[D.ship.d],ml=legMax(D.ship.d);
+  if(L.d>ml+1e-9)return`el salto de ${fmtLen(L.d)} supera el alcance máximo (${fmtLen(ml)})`;
+  if(crewCount()<sp.crew[0])return'tripulación insuficiente para operar la nave';
+  if(s.hull<=0)return'casco destruido';if(D.cr)return'';
+  if(s.fuel+1e-9<L.fuel)return`falta astrófago (${L.fuel.toFixed(1)} t necesarias, hay ${s.fuel.toFixed(1)} t)`;
+  if(sp.prov&&s.prov+1e-9<L.prov)return`faltan provisiones (${fmtI(L.prov)} días-persona, hay ${fmtI(s.prov)})`+(sp.hib&&!D.hib?'; activa la hibernación':'');
+  return'';
+}
+function buildLegs(stars){
+  const legs=[],tot={d:0,tau:0,tE:0,fuel:0,prov:0},s={...D.st},sp=SPEC[D.ship.d];let bad=false;
+  for(let i=0;i<stars.length-1;i++){const L=legCalc(stars[i],stars[i+1]);for(const k in tot)tot[k]+=L[k];
+    if(bad)L.pend=1;else{L.err=legErr(L,s);if(L.err)bad=true;else{if(!D.cr){s.fuel-=L.fuel;s.prov-=L.prov}if(sp.solar)s.fuel=sp.tank}}legs.push(L)}
+  return{stars,legs,tot,ok:!bad};
+}
+/* Ruta con A* sobre las estrellas de un corredor alrededor de la línea recta */
+function planRoute(from,to){
+  const ml=legMax(D.ship.d)*.999,D0=gd(from,to);if(D0<=ml)return[from,to];if(D0>400)return null;
+  const rc=clamp(ml*1.6,12,45),u=[(to.gx-from.gx)/D0,(to.gy-from.gy)/D0,(to.gz-from.gz)/D0],cand=new Map(),key=s=>s.h+':'+Math.round(s.gx*1e3);
+  const segD=(x,y,z)=>{const t=clamp((x-from.gx)*u[0]+(y-from.gy)*u[1]+(z-from.gz)*u[2],0,D0);return Math.hypot(x-from.gx-u[0]*t,y-from.gy-u[1]*t,z-from.gz-u[2]*t)};
+  const lo=[Math.min(from.gx,to.gx)-rc,Math.min(from.gy,to.gy)-rc,Math.min(from.gz,to.gz)-rc],hi=[Math.max(from.gx,to.gx)+rc,Math.max(from.gy,to.gy)+rc,Math.max(from.gz,to.gz)+rc];
+  for(let k=gi(lo[2]);k<=gi(hi[2]);k++)for(let j=gi(lo[1]);j<=gi(hi[1]);j++)for(let i=gi(lo[0]);i<=gi(hi[0]);i++){
+    if(segD(-HALF+(i+.5)*SC,-HALF+(j+.5)*SC,-HALF+(k+.5)*SC)>rc+7)continue;for(const s of gridStars(i,j,k))if(segD(s.gx,s.gy,s.gz)<=rc)cand.set(key(s),s)}
+  cand.set(key(from),from);cand.set(key(to),to);
+  const B=new Map(),bk=(x,y,z)=>Math.floor(x/ml)+','+Math.floor(y/ml)+','+Math.floor(z/ml);
+  for(const s of cand.values()){const k=bk(s.gx,s.gy,s.gz);(B.get(k)||B.set(k,[]).get(k)).push(s)}
+  const g=new Map([[key(from),0]]),came=new Map(),open=[[D0,from]],done=new Set();let it=0;
+  const push=(f,s)=>{open.push([f,s]);let i=open.length-1;while(i>0){const p=(i-1)>>1;if(open[p][0]<=open[i][0])break;[open[p],open[i]]=[open[i],open[p]];i=p}};
+  const pop=()=>{const top=open[0],last=open.pop();if(open.length){open[0]=last;let i=0;for(;;){const l=2*i+1,r=l+1;let m=i;if(l<open.length&&open[l][0]<open[m][0])m=l;if(r<open.length&&open[r][0]<open[m][0])m=r;if(m===i)break;[open[m],open[i]]=[open[i],open[m]];i=m}}return top};
+  while(open.length&&it++<8000){
+    const [,n]=pop(),nk=key(n);if(done.has(nk))continue;done.add(nk);
+    if(nk===key(to)){const path=[n];let c=nk;while(came.has(c)){const p=came.get(c);path.unshift(p);c=key(p)}return path}
+    const cx=Math.floor(n.gx/ml),cy=Math.floor(n.gy/ml),cz=Math.floor(n.gz/ml),gn=g.get(nk);
+    for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++)for(let c=-1;c<=1;c++){const arr=B.get((cx+a)+','+(cy+b)+','+(cz+c));if(!arr)continue;
+      for(const m of arr){const mk=key(m);if(done.has(mk))continue;const d=gd(n,m);if(d>ml||d<1e-6)continue;const ng=gn+d+ml*.35;if(ng<(g.get(mk)??Infinity)){g.set(mk,ng);came.set(mk,n);push(ng+gd(m,to),m)}}}
+  }
+  return null;
+}
+function selectStar(s,fly){
+  selStar=s;route=null;selPlanet=null;
+  if(s&&!sameStar(s,shipStar())){const p=planRoute(shipStar(),s);route=p?buildLegs(p):{none:true}}
+  if(fly&&s)flyTo(s.gx,s.gy,s.gz,Math.min(tg.R,16));
+  if(s&&tab!=='carta')setTab('carta');renderPanel();
+}
+
+/* ═════════ Viaje animado ═════════ */
+function startTravel(){
+  if(!route||!route.legs||travel)return;const e=legErr(route.legs[0],D.st);if(e){toast('No se puede saltar: '+e);return}
+  if(mode!=='map')exitToMap();travel={legs:route.legs.map(l=>({from:l.from,to:l.to})),i:0,t0:0,pos:null,int:0};route=null;$('#travel').classList.add('show');renderPanel();
+}
+function stepTravel(now){
+  if(travel.wait)return;
+  if(!travel.t0){const seg=travel.legs[travel.i],L=legCalc(seg.from,seg.to),e=legErr(L,D.st);if(e){endTravel('Viaje detenido: '+e);return}
+    travel.leg=L;travel.t0=now;travel.dur=RM?600:clamp(1700+L.d*120,1900,4200);tg.R=clamp(L.d*.9,6,60);travel.evAt=Math.random()<.45?.5:2}
+  const L=travel.leg,p=clamp((now-travel.t0)/travel.dur,0,1),e=ease(p),lift=Math.sin(Math.PI*e)*L.d*.18;
+  travel.pos=[lerp(L.from.gx,L.to.gx,e),lerp(L.from.gy,L.to.gy,e),lerp(L.from.gz,L.to.gz,e)+lift];travel.int=Math.sin(Math.PI*p);
+  cam.fx=tg.fx=travel.pos[0];cam.fy=tg.fy=travel.pos[1];cam.fz=tg.fz=travel.pos[2];
+  $('#trTxt').innerHTML=`SALTO ${travel.i+1}/${travel.legs.length} → ${esc(starName(L.to).toUpperCase())} · ${fmtLen(L.d*(1-e))} · v ${(L.v*Math.sin(Math.PI*e)).toFixed(3)} c · τ ${fmtT(L.tau*e)} · Tierra ${fmtT(L.tE*e)}`;$('#trBar').style.width=(p*100)+'%';
+  if(p>=travel.evAt){travel.evAt=2;const ev=pickEvent('leg',{leg:L});if(ev){travel.wait=true;const at=performance.now();queueDialog({ev,ctx:{leg:L},done:()=>{travel.wait=false;travel.t0+=performance.now()-at}})}}
+  if(p>=1)arrive(L);
+}
+function arrive(L){
+  const s=D.st,sp=SPEC[D.ship.d],hib=D.hib&&sp.hib;
+  if(!D.cr){s.fuel=Math.max(0,s.fuel-L.fuel);if(sp.prov)s.prov=Math.max(0,s.prov-L.prov)}
+  s.days+=L.days;s.yrs+=L.tE;s.jumps++;s.ly+=L.d;if(sp.solar)s.fuel=sp.tank;
+  if(!hib)morAll(-Math.min(18,L.days/80));
+  else{const risk=.025+(alive().some(m=>m.tr==='Insomne')?.03:0)-best('med').v*.002;if(Math.random()<risk){const w=loseRandom();if(w)queueDialog({t:'Despertar',who:pick(alive())||null,tx:`Al abrir las cápsulas, ${w} no despierta del coma inducido. La tripulación despide a su compañero en silencio.`,res:''})}}
+  D.sp=sSeed(L.to);ping=performance.now();travel.pos=null;record('j',D.sp,true);travel.i++;travel.t0=0;
+  questEvent({type:'arrive',star:L.to});
+  if(travel.i>=travel.legs.length){
+    const st=L.to;endTravel();selStar=st;
+    toast(`Llegada a <b>${esc(starName(st))}</b> · ${fmtT(L.tau)} a bordo`,'Entrar al sistema',()=>enterSystem(st));
+    if(Math.random()<.3){const ev=pickEvent('arr',{star:st});if(ev)queueDialog({ev,ctx:{star:st}})}else crewChatter();
+  }
+  saveD();refresh();
+}
+function endTravel(msg){travel=null;$('#travel').classList.remove('show');if(msg)toast(esc(msg));saveD();refresh()}
+function rescue(why){
+  const s=D.st,sp=SPEC[D.ship.d];D.sp=sSeed(SOL);s.fuel=sp.tank*.5;s.prov=Math.max(s.prov,sp.prov*.5);s.hull=Math.max(s.hull,60);s.min=0;s.days+=365;s.yrs+=10;
+  if(travel){travel=null;$('#travel').classList.remove('show')}mode='map';SYS=null;surf=null;selStar=null;route=null;
+  const p=shipStar();flyTo(p.gx,p.gy,p.gz,20);saveD();
+  queueDialog({t:'Rescate',who:null,tx:(why?why+' ':'')+'Una nave de la Corporación Ad Astra remolca la tuya hasta la Tierra. Diez años perdidos y la bodega vacía, pero seguís con vida.',res:'Combustible al 50%, casco reparado al 60%.'});refresh();
+}
+
+/* ═════════ Sistemas: vista orbital ═════════ */
+let sysHits=[];
+function enterSystem(st){
+  if(travel)return;SYS=genSystem(st);mode='system';surf=null;selPlanet=null;sysT0=performance.now();if(!RM)warp={t0:sysT0,dur:520};
+  const here=sameStar(st,shipStar()),seed=sSeed(st);
+  if(here&&!D.disc[seed]){D.disc[seed]=1;record('s',seed,true);morAll(2);for(const m of alive())if(m.tr==='Curioso')m.mor=Math.min(100,m.mor+4);toast(`Sistema registrado: <b>${esc(SYS.name)}</b> (${Object.keys(D.disc).length} en total)`);questEvent({type:'disc'})}
+  if(here)questEvent({type:'enter',star:st});
+  saveD();refresh();
+}
+function exitToMap(){mode='map';SYS=null;surf=null;selPlanet=null;refresh()}
+function drawSystem(now){
+  const ent=RM?1:ease(clamp((now-sysT0)/1000,0,1)),S=SYS,P=S.P,cx=W/2,cy=H/2,Rmax=(Math.min(W,H)/2-40)*(.35+.65*ent),t=now/1000,here=sameStar(S.star,shipStar());
+  ctx.letterSpacing='1.6px';ctx.globalAlpha=.15+.85*ent;const starPx=clamp(6+Math.log10(P.rad+1)*14,7,34);
+  drawSky(now);
+  const all=S.planets.map(p=>p.a).concat(S.belts.flat());const amax=Math.max(...all,S.hz[1],.5)*1.12,a0=Math.min(...all,S.hz[0])*.55;
+  const rp=a=>starPx+12+(Rmax-starPx-12)*Math.log(1+Math.max(a,0)/a0)/Math.log(1+amax/a0),tilt=.42;
+  const E=(r,a)=>[cx+Math.cos(a)*r,cy+Math.sin(a)*r*tilt];
+  ctx.strokeStyle='rgba(126,231,135,.09)';ctx.lineWidth=Math.max(1,(rp(S.hz[1])-rp(S.hz[0])));ctx.beginPath();ctx.ellipse(cx,cy,(rp(S.hz[0])+rp(S.hz[1]))/2,(rp(S.hz[0])+rp(S.hz[1]))/2*tilt,0,0,7);ctx.stroke();
+  for(const [a,b] of S.belts){const r=rng(hash(S.star.h,a*100|0));ctx.fillStyle='rgba(200,200,200,.5)';for(let k=0;k<180;k++){const ang=r()*6.283+t*.02,[x,y]=E(lerp(rp(a),rp(b),r()),ang);ctx.fillRect(x,y,1.3,1.3)}}
+  const g=ctx.createRadialGradient(cx,cy,0,cx,cy,starPx*3.2);g.addColorStop(0,P.col);g.addColorStop(.35,P.col+'88');g.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=g;ctx.beginPath();ctx.arc(cx,cy,starPx*3.2,0,7);ctx.fill();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(cx,cy,starPx*.7,0,7);ctx.fill();
+  if(infected(S.star)){ctx.lineWidth=1.2;ctx.strokeStyle='rgba(255,59,92,.6)';ctx.setLineDash([4,4]);ctx.beginPath();ctx.ellipse(cx,cy,starPx*2.2,starPx*2.2*tilt+starPx,0,0,7);ctx.stroke();ctx.setLineDash([])}
+  sysHits=[];let shipP=E(starPx+26,-1.2+t*.2);
+  const items=S.planets.map((p,i)=>{const R=rp(p.a),w=Math.min(1.2,.3*Math.pow(Math.max(p.a,.03),-.75)),ang=p.phase+t*w,[x,y]=E(R,ang);return{p,i,R,x,y}}).sort((a,b)=>a.y-b.y);
+  for(const it of S.planets.map((p,i)=>i)){const p=S.planets[it],R=rp(p.a);ctx.strokeStyle=p===selPlanet?'rgba(88,208,255,.7)':'rgba(190,205,235,.18)';ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(cx,cy,R,R*tilt,0,0,7);ctx.stroke()}
+  for(const {p,x,y} of items){
+    const pr=clamp(2.5+Math.log2(p.r+.5)*2.6,2.5,13),col=KIND[p.kind][1],sh=ctx.createRadialGradient(x-pr*.4,y-pr*.4,pr*.1,x,y,pr);sh.addColorStop(0,col);sh.addColorStop(1,'#05070c');
+    ctx.fillStyle=sh;ctx.beginPath();ctx.arc(x,y,pr,0,7);ctx.fill();
+    if(p.ring){ctx.strokeStyle='rgba(230,210,170,.7)';ctx.lineWidth=1.3;ctx.beginPath();ctx.ellipse(x,y,pr*1.9,pr*.55,-.3,0,7);ctx.stroke()}
+    if(p.hz){ctx.strokeStyle='#7ee787';ctx.lineWidth=1;ctx.beginPath();ctx.arc(x,y,pr+3,0,7);ctx.stroke()}
+    if(p===selPlanet){ctx.strokeStyle='#58d0ff';ctx.lineWidth=1.5;ctx.setLineDash([3,3]);ctx.lineDashOffset=-now/50;ctx.beginPath();ctx.arc(x,y,pr+7,0,7);ctx.stroke();ctx.setLineDash([]);shipP=[x+pr+14+Math.cos(t*2)*3,y-pr-10+Math.sin(t*2)*3]}
+    ctx.font='10px ui-monospace,Menlo,monospace';ctx.fillStyle=p===selPlanet?'#58d0ff':'rgba(205,215,235,.7)';ctx.textAlign='left';ctx.textBaseline='middle';
+    ctx.fillText(spaced(p.name.replace(S.name+' ','').toUpperCase()),x+pr+6,y);sysHits.push({x,y,r:Math.max(12,pr+6),planet:p});
+  }
+  ctx.globalAlpha=1;
+  if(here){drawShip3D(ctx,shipP[0],shipP[1],30,t*.9,.5,D.ship,t);ctx.font='9px ui-monospace,Menlo,monospace';ctx.fillStyle='rgba(205,230,255,.75)';ctx.textAlign='center';ctx.fillText(spaced((D.ship.n||SHIPS[D.ship.d].n).toUpperCase())+' · SÍMBOLO',shipP[0],shipP[1]+22)}
+  ctx.font='10px ui-monospace,Menlo,monospace';ctx.textAlign='left';ctx.fillStyle='rgba(126,231,135,.7)';ctx.fillText(spaced('▮ ZONA HABITABLE'),70,H-60);
+  if(!here){ctx.fillStyle='rgba(255,180,84,.8)';ctx.fillText(spaced('VISTA REMOTA · DATOS DE SONDEO'),70,H-44)}
+  ctx.letterSpacing='0px';
+}
+
+/* ═════════ Superficie (aterrizaje) ═════════ */
+const SKY={lava:['#3a0d05','#a0300a'],desert:['#3b2a14','#c9965a'],ocean:['#071a33','#3f8fe0'],temperate:['#0b2238','#6fb0d8'],ice:['#0d1f2c','#9fd0e6'],frozen:['#0a0f18','#7d8ea3'],barren:['#050608','#3a3a40']};
+const GROUND={lava:'#1a0804',desert:'#5a3d1d',ocean:'#0b2b4a',temperate:'#183a22',ice:'#a8c8d8',frozen:'#5d6a7a',barren:'#2a2826'};
+function land(i){
+  const info=planetInfo(SYS,i),sp=SPEC[D.ship.d];if(info.gas){toast('No hay superficie sólida.');return}
+  if(!D.scan[info.key]){D.scan[info.key]=1}passDays(sp.land?1:2);mode='surface';surf={i,info,t0:performance.now()};if(!RM)warp={t0:performance.now(),dur:600};saveD();refresh();
+}
+function drawSurface(now){
+  ctx.letterSpacing='1.6px';const {info}=surf,p=info.p,k=p.kind,sky=SKY[k]||SKY.barren,t=now/1000,ent=RM?1:ease(clamp((now-surf.t0)/1200,0,1));
+  const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,sky[0]);g.addColorStop(.75,sky[1]);ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  if(!info.breath){ctx.fillStyle='rgba(255,255,255,.7)';const r=rng(5);for(let i=0;i<140;i++)ctx.fillRect(r()*W,r()*H*.6,1,1)}
+  const P=SYS.P,sx=W*.72,sy=H*.22;const sg=ctx.createRadialGradient(sx,sy,0,sx,sy,60);sg.addColorStop(0,P.col);sg.addColorStop(.2,P.col+'aa');sg.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=sg;ctx.beginPath();ctx.arc(sx,sy,60,0,7);ctx.fill();
+  const r=rng(hash(SYS.star.h,surf.i,321));
+  for(let L=0;L<3;L++){const base=H*(.5+L*.1),amp=H*(.16-L*.04)*(p.g>1.5?.6:1),seed=r()*1000;ctx.fillStyle=L===2?GROUND[k]:`rgba(0,0,0,${.25+L*.15})`;
+    ctx.beginPath();ctx.moveTo(0,H);for(let x=0;x<=W;x+=8){const n=vn3(x/(140-L*30)+seed,L,0,7)*.7+vn3(x/40+seed,L,1,9)*.3;ctx.lineTo(x,base-amp*n)}ctx.lineTo(W,H);ctx.closePath();ctx.fill()}
+  // condiciones anómalas visibles
+  for(const h of info.hz){if(!h[4])continue;const r2=rng(hash(t*10|0,7));
+    if(h[0]==='Tormenta de iones'&&r2()<.08){ctx.fillStyle='rgba(180,220,255,.15)';ctx.fillRect(0,0,W,H)}
+    if(h[0]==='Niebla de esporas'){ctx.fillStyle='rgba(140,220,120,.08)';for(let i=0;i<40;i++){const x=(i*97+t*20)%W,y=H*.5+Math.sin(i+t)*H*.2;ctx.beginPath();ctx.arc(x,y,30,0,7);ctx.fill()}}
+    if(h[0]==='Cristales cantores'){for(let i=0;i<30;i++){ctx.fillStyle=`rgba(200,170,255,${.5+.5*Math.sin(t*3+i)})`;ctx.fillRect((i*131)%W,H*.7+(i*37)%(H*.2),2,2)}}
+    if(h[0]==='Ecos temporales'){ctx.globalAlpha=.15;ctx.drawImage(cv,6*Math.sin(t),0,W*dpr,H*dpr,0,0,W,H);ctx.globalAlpha=1}
+    if(h[0]==='Sismos periódicos'&&Math.sin(t*.8)>.97){ctx.translate((Math.random()-.5)*4,0)}}
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  // nave posada, a escala respecto a una figura humana de referencia
+  const gy=H*.82,shx=W*.3,shPx=clamp(SPEC[D.ship.d].len*.9,24,180),y0=gy-shPx*.25-(1-ent)*H*.6;
+  drawShip3D(ctx,shx,y0,shPx,.9,.15,D.ship,t,ent<1);
+  ctx.fillStyle='#cdd7ea';const hp=clamp(1.8*.9,1.5,4);ctx.fillRect(shx+shPx*.7,gy-hp*4,1.5,hp*4);
+  ctx.font='9px ui-monospace,Menlo,monospace';ctx.textAlign='center';ctx.fillStyle='rgba(230,235,245,.85)';ctx.fillText(spaced(`${SPEC[D.ship.d].len} M`),shx,gy+16);
+  // puntos de interés
+  info.pois.forEach((n,j)=>{const x=W*(.48+j*.5/Math.max(1,info.pois.length)),y=gy-20-(j%2)*26,done=D.ex[info.key+':'+n];
+    ctx.strokeStyle=done?'rgba(126,231,135,.8)':'rgba(255,180,84,.9)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x,y-34);ctx.stroke();
+    ctx.fillStyle=ctx.strokeStyle;ctx.beginPath();ctx.moveTo(x,y-40);ctx.lineTo(x+5,y-35);ctx.lineTo(x,y-30);ctx.lineTo(x-5,y-35);ctx.closePath();ctx.fill();
+    ctx.textAlign='center';ctx.fillText(spaced(n.toUpperCase()),x,y-48)});
+  ctx.textAlign='left';ctx.fillStyle='rgba(230,235,245,.8)';ctx.fillText(spaced(`${p.name.toUpperCase()} · ${Math.round(p.T-273)} °C · ${p.g.toFixed(2)} G · ${info.atm.toUpperCase()}`),70,H-44);
+  ctx.letterSpacing='0px';
+}
+/* — Expediciones — */
+function openExpedition(info,poiName){
+  const P=POI[poiName],key=info.key+':'+poiName;if(D.ex[key]){toast('Este lugar ya fue explorado.');return}
+  const team0=alive().filter(m=>m.hp>20).sort((a,b)=>eff(b,P.k)-eff(a,P.k)).slice(0,2),sel=new Set(team0.map(m=>m.id));
+  const dcOf=team=>P.dc+info.hz.reduce((a,h)=>a+Math.max(0,h[2]-(team.some(m=>eff(m,h[1])>=6)?1:0)),0);
+  const draw=()=>{const team=alive().filter(m=>sel.has(m.id)),dc=dcOf(team),ch=chance(P.k,dc,team);
+    showModal(`<div class="kick">EXPEDICIÓN · ${esc(info.p.name.toUpperCase())}</div><h2>${esc(poiName)}</h2><p class="story">${esc(P.tx)}</p>
+    <div class="calc"><span>Habilidad</span><span>${STATN[P.k]}</span><span>Dificultad</span><span>${dc} (base ${P.dc})</span><span>Duración</span><span>${P.days+(SPEC[D.ship.d].land?0:2)} días</span><span>Éxito estimado</span><span class="${ch>.5?'ok':'bad'}">${Math.round(ch*100)}%</span></div>
+    ${info.hz.length?`<div class="note">Condiciones: ${info.hz.map(h=>esc(h[0])+' (+'+h[2]+', mitiga '+STATN[h[1]]+' ≥6)').join(' · ')}</div>`:''}
+    <h3>Equipo (máx. 3)</h3><div class="lst">${alive().map(m=>`<label class="item"><input type="checkbox" data-m="${m.id}" ${sel.has(m.id)?'checked':''} ${m.hp<=20?'disabled':''}>${portrait(m)}<div class="m"><b>${esc(m.nm)}</b><i>${ROLES[m.role]} · ${STATN[P.k]} ${eff(m,P.k)} · salud ${Math.round(m.hp)}%</i></div></label>`).join('')||'<p class="note">Sin tripulación: irá un dron con la IA de a bordo.</p>'}</div>
+    <div class="row"><button class="pri" id="go">Enviar expedición</button><button id="no">Cancelar</button></div>`);
+    $('#modalBox').querySelectorAll('[data-m]').forEach(c=>c.onchange=()=>{if(c.checked){if(sel.size>=3){c.checked=false;return}sel.add(c.dataset.m)}else sel.delete(c.dataset.m);draw()});
+    $('#no').onclick=()=>{modalOpen=false;closeModal()};
+    $('#go').onclick=()=>{const team=alive().filter(m=>sel.has(m.id));if(alive().length&&!team.length){toast('Elige al menos un tripulante.');return}runExpedition(info,poiName,team,dcOf(team))}};
+  modalOpen=true;draw();
+}
+function applyLoot(lo,mult){
+  const sp=SPEC[D.ship.d],s=D.st,out=[],rr=a=>lerp(a[0],a[1],Math.random())*mult;
+  if(lo.min){const v=Math.round(rr(lo.min));s.min=Math.min(sp.cargo,s.min+v);out.push(`+${v} t minerales`)}
+  if(lo.prov&&sp.prov){const v=Math.round(sp.prov*rr(lo.prov));s.prov=Math.min(sp.prov,s.prov+v);out.push(`+${fmtI(v)} días-persona de provisiones`)}
+  if(lo.fuel){const v=+(sp.tank*rr(lo.fuel)).toFixed(1);s.fuel=Math.min(sp.tank,s.fuel+v);out.push(`+${v} t de astrófago`)}
+  if(lo.mor){morAll(lo.mor);out.push(`moral +${lo.mor}`)}
+  if(lo.crew&&crewCount()<sp.crew[1])out.push(addMember());
+  if(lo.lore)out.push('«'+pick(LORE)+'»');
+  return out.join(' · ');
+}
+function runExpedition(info,poiName,team,dc){
+  const P=POI[poiName],key=info.key+':'+poiName,days=P.days+(SPEC[D.ship.d].land?0:2);passDays(days);
+  const r=roll(P.k,dc,team);let txt='';
+  for(const h of info.hz)if(team.length&&Math.random()<.3)txt+=` ${h[0]}:`+hurt(pick(team),5+(Math.random()*8|0));
+  if(r.ok){const loot=applyLoot(P.lo,r.crit?1.5:1);D.ex[key]=1;let xp='';for(const m of team)xp+=gainXp(m,(P.lo.xp||10)+(r.crit?8:0));
+    for(const m of team)if(m.tr==='Curioso')m.mor=Math.min(100,m.mor+5);morAll(3);
+    txt=`${r.crit?'¡Éxito crítico! ':'Éxito. '}${loot}.${xp}`+txt;questEvent({type:'poi',planet:info.p.name})}
+  else{if(team.length){txt=`La expedición regresa sin lograrlo.`+hurt(pick(team),15+(Math.random()*20|0))+(r.fumble?hurt(pick(team),15):'')+txt;morAll(-4)}else{D.st.hull=Math.max(1,D.st.hull-5);txt='El dron vuelve dañado (casco −5%).'}}
+  saveD();
+  showModal(`<div class="kick">INFORME DE EXPEDICIÓN</div><h2>${esc(poiName)}</h2><p class="roll">${r.line}</p><p class="story">${esc(txt)}</p><p class="note">${days} días · ${team.map(m=>esc(m.nm)).join(', ')||'Dron'}</p><div class="row"><button class="pri" id="dOk">Continuar</button></div>`);
+  $('#dOk').onclick=()=>{modalOpen=false;closeModal();if(Math.random()<.2){const ev=pickEvent('arr',{star:SYS&&SYS.star});if(ev)queueDialog({ev,ctx:{star:SYS&&SYS.star}})}refresh()};
+}
+/* — Acciones en órbita — */
+function orbitAct(key,days,fn,limit=3){
+  if(limit&&(D.ex[key]||0)>=limit){toast('Ya no queda nada aprovechable aquí.');return}
+  passDays(days);if(limit)D.ex[key]=(D.ex[key]||0)+1;const msg=fn();saveD();toast(esc(msg)+` <span class="dim">(${days} días)</span>`);refresh();
+}
+
+/* ═════════ Bucle principal ═════════ */
+let drag=null,prevCv=null;const prevSt={yaw:.8,pitch:.45,drag:null,last:0};
+function frame(now){
+  const dt=Math.min(.05,(now-(lastT||now))/1000);lastT=now;
+  if(travel)stepTravel(now);
+  else{
+    if(keys.size&&mode==='map'&&CP){const s=cam.R*dt*.9;let mx=0,my=0,mz=0;
+      if(keys.has('w')||keys.has('arrowup'))my++;if(keys.has('s')||keys.has('arrowdown'))my--;if(keys.has('a')||keys.has('arrowleft'))mx--;if(keys.has('d')||keys.has('arrowright'))mx++;if(keys.has('e'))mz++;if(keys.has('q'))mz--;
+      if(mx||my||mz){tg.fx+=(CP.cy*mx+CP.sy*my)*s;tg.fy+=(-CP.sy*mx+CP.cy*my)*s;tg.fz+=mz*s;lastInput=now;idleDone=false}}
+    if(opt.spin&&mode==='map'&&!drag&&now-lastInput>4000)tg.yaw+=dt*.04;
+  }
+  const k=1-Math.exp(-dt*(drag?30:6));
+  cam.yaw+=(tg.yaw-cam.yaw)*k;cam.pitch+=(tg.pitch-cam.pitch)*k;cam.R=Math.exp(lerp(Math.log(cam.R),Math.log(tg.R),k));
+  if(!travel){cam.fx+=(tg.fx-cam.fx)*k;cam.fy+=(tg.fy-cam.fy)*k;cam.fz+=(tg.fz-cam.fz)*k}
+  if(mode==='map'&&needVis())buildVis();
+  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle='#060708';ctx.fillRect(0,0,W,H);
+  if(mode==='system')drawSystem(now);else if(mode==='surface')drawSurface(now);else drawMap(now);
+  drawWarp(now);
+  if(prevCv&&tab==='ship')drawPreview(now);
+  if(now-lastUi>250){lastUi=now;updateHud()}
+  if(!idleDone&&now-lastInput>2200){idleDone=true;saveView()}
+  requestAnimationFrame(frame);
+}
+function saveView(){D.cm=[cam.fx,cam.fy,cam.fz,cam.R,cam.yaw,cam.pitch].map(v=>+v.toFixed(4));D.op=[opt.color?1:0,opt.spin?1:0,opt.nav?1:0,opt.pet?1:0];D.c=seedStr(focusLoc(14));saveD();
+  if(mode==='map'&&!travel)record('m',focusLoc())}
+
+/* ═════════ Entrada: ratón, táctil y teclado ═════════ */
+const tip=$('#tip'),ptrs=new Map();
+const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top]};
+function showTip(html,mx,my){tip.innerHTML=html;tip.style.display='block';const r=$('#stage').getBoundingClientRect();tip.style.left=Math.max(4,Math.min(r.width-tip.offsetWidth-6,mx+14))+'px';tip.style.top=Math.max(4,my-34)+'px'}
+function pickStar(mx,my){let b=null,bd=12;for(const s of vis){if(s._f!==frameNo)continue;const d=Math.hypot(s._x-mx,s._y-my);if(d<bd){bd=d;b=s}}for(const s of ANCHSTARS){if(s._f!==frameNo)continue;const d=Math.hypot(s._x-mx,s._y-my)-3;if(d<bd){bd=d;b=s}}return b}
+function pickPlanet(mx,my){for(const k of sysHits)if(Math.hypot(k.x-mx,k.y-my)<k.r)return k.planet;return null}
+cv.addEventListener('contextmenu',e=>e.preventDefault());
+cv.addEventListener('pointerdown',e=>{
+  cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,[e.clientX,e.clientY]);lastInput=performance.now();idleDone=false;
+  drag={x:e.clientX,y:e.clientY,moved:0,yaw:tg.yaw,pitch:tg.pitch,pan:e.shiftKey||e.button===2,f:[tg.fx,tg.fy,tg.fz]};
+  if(ptrs.size===2){const a=[...ptrs.values()];drag.pinch={d0:Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]),R0:tg.R,m:[(a[0][0]+a[1][0])/2,(a[0][1]+a[1][1])/2],f:[tg.fx,tg.fy,tg.fz]};drag.moved=99}
+});
+function panFrom(f,dx,dy){if(!CP)return;const s=CP.dist/CP.F;tg.fx=f[0]-CP.cy*dx*s+CP.sp*CP.sy*dy*s;tg.fy=f[1]+CP.sy*dx*s+CP.sp*CP.cy*dy*s;tg.fz=f[2]+CP.cp*dy*s}
 cv.addEventListener('pointermove',e=>{
   const [mx,my]=pos(e);
-  if(ptrs.has(e.pointerId)){ptrs.set(e.pointerId,[e.clientX,e.clientY]);
-    if(ptrs.size===2&&drag.pz){const a=[...ptrs.values()],d=Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]);cam.zoom=clamp(drag.pz*pinch0/Math.max(20,d),.7,9);drag.moved=99;return}
-    if(drag&&mode==='map'){lastInput=performance.now();const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.moved=Math.max(drag.moved,Math.hypot(dx,dy));
-      if(drag.moved>4){cam.yaw=drag.yaw-dx*.008;cam.pitch=clamp(drag.pitch+dy*.008,-1.5,1.5);tip.style.display='none';return}}}
-  if(anim||ptrs.size)return;
-  if(mode==='system'){let h=null;for(const k of sysHits){if(Math.hypot(k.x-mx,k.y-my)<k.r)h=k}
-    cv.style.cursor=h?'pointer':'default';if(h)showTip(`● ${esc(h.planet.name)} · ${KIND[h.planet.kind][0]}`,mx,my);else tip.style.display='none';return}
+  if(drag&&ptrs.has(e.pointerId)){ptrs.set(e.pointerId,[e.clientX,e.clientY]);lastInput=performance.now();
+    if(drag.pinch&&ptrs.size===2){const a=[...ptrs.values()],d=Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]),m=[(a[0][0]+a[1][0])/2,(a[0][1]+a[1][1])/2];tg.R=clamp(drag.pinch.R0*drag.pinch.d0/Math.max(20,d),1,3000);if(mode==='map')panFrom(drag.pinch.f,m[0]-drag.pinch.m[0],m[1]-drag.pinch.m[1]);return}
+    const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.moved=Math.max(drag.moved,Math.hypot(dx,dy));
+    if(drag.moved>4&&mode==='map'){tip.style.display='none';if(drag.pan)panFrom(drag.f,dx,dy);else{tg.yaw=drag.yaw-dx*.006;tg.pitch=clamp(drag.pitch+dy*.006,-1.45,1.45)}}
+    return}
+  if(mode==='system'){const p=pickPlanet(mx,my);cv.style.cursor=p?'pointer':'default';if(p)showTip(`${esc(p.name)} · ${KIND[p.kind][0]}`,mx,my);else tip.style.display='none';return}
+  if(mode!=='map'){tip.style.display='none';return}
   hoverStar=pickStar(mx,my);
-  if(hoverStar){hoverIdx=-1;cv.style.cursor='pointer';showTip(`★ ${esc(starName(hoverStar))} · ${esc(hoverStar.P.lab)}`,mx,my);return}
-  hoverIdx=pickCell(mx,my);cv.style.cursor=hoverIdx>=0?'pointer':'grab';
-  if(hoverIdx>=0&&loc.path.length<MAXD){const nl={...loc,path:loc.path+DETAIL[hoverIdx]};showTip(`<b style="color:#ffb454">${DETAIL[hoverIdx]}</b> → ${esc(regionName(nl))} · ${fmtLen(cell.size/3)}`,mx,my)}else tip.style.display='none';
-  syncMini();
+  if(hoverStar){cv.style.cursor='pointer';const d=gd(shipStar(),hoverStar),sp=SPEC[D.ship.d],ok=d<=D.st.fuel/sp.burn||D.cr;
+    showTip(`<b>${esc(starName(hoverStar))}</b> · ${hoverStar.P.k}<br><span class="dim">${fmtLen(d)} de tu nave · ${ok?'<span class="ok">al alcance</span>':d<=legMax(D.ship.d)?'falta astrófago':'requiere ruta'}${opt.pet&&infected(hoverStar)?' · <span style="color:#ff3b5c">astrófago</span>':''}</span>`,mx,my)}
+  else if(shipHit&&Math.hypot(shipHit.x-mx,shipHit.y-my)<shipHit.r){cv.style.cursor='pointer';showTip('Tu nave · clic para centrar',mx,my)}
+  else{cv.style.cursor=drag?'grabbing':'grab';tip.style.display='none'}
 });
 cv.addEventListener('pointerup',e=>{
-  const wasClick=drag&&drag.moved<5&&ptrs.size===1;ptrs.delete(e.pointerId);if(ptrs.size===0){const d=drag;drag=null;if(!wasClick||!d)return;
-    const [mx,my]=pos(e);if(anim)return;
-    if(mode==='system'){for(const k of sysHits)if(Math.hypot(k.x-mx,k.y-my)<k.r){selPlanet=k.planet;syncInfo();setTab('info');return}return}
-    if(shipHit&&Math.hypot(shipHit.x-mx,shipHit.y-my)<shipHit.r){centerOnShip();return}
-    const st=pickStar(mx,my);if(st){selStar=st;syncInfo();setTab('info');return}
-    const i=pickCell(mx,my);if(i>=0)dive(DETAIL[i])}});
-cv.addEventListener('pointerleave',()=>{hoverIdx=-1;hoverStar=null;tip.style.display='none';syncMini()});
-cv.addEventListener('wheel',e=>{e.preventDefault();lastInput=performance.now();camAnim=null;cam.zoom=clamp(cam.zoom*(e.deltaY>0?1.1:.91),.7,9)},{passive:false});
-cv.addEventListener('dblclick',()=>{cam.yaw=.7;cam.pitch=.45;cam.zoom=2.3});
+  ptrs.delete(e.pointerId);if(ptrs.size)return;const d=drag;drag=null;if(!d||d.moved>=5)return;const [mx,my]=pos(e);
+  if(mode==='system'){const p=pickPlanet(mx,my);if(p){selPlanet=p;setTab('carta');renderPanel()}return}
+  if(mode!=='map')return;
+  if(shipHit&&Math.hypot(shipHit.x-mx,shipHit.y-my)<shipHit.r){centerOnShip();return}
+  const s=pickStar(mx,my);if(s)selectStar(s);
+});
+cv.addEventListener('pointercancel',e=>{ptrs.delete(e.pointerId);drag=null});
+cv.addEventListener('dblclick',e=>{if(mode!=='map')return;const s=pickStar(...pos(e));if(s)selectStar(s,true)});
+cv.addEventListener('wheel',e=>{e.preventDefault();lastInput=performance.now();idleDone=false;tg.R=clamp(tg.R*Math.exp(clamp(e.deltaY,-200,200)*.0013),1,3000)},{passive:false});
+const KEYS=new Set(['w','a','s','d','q','e','arrowup','arrowdown','arrowleft','arrowright']);
 document.addEventListener('keydown',e=>{
-  if(e.target.matches('input,textarea,select'))return;
-  if(e.key==='Escape'){closeModal();if(mode==='system')exitSystem();return}
-  if(e.ctrlKey||e.metaKey||e.altKey)return;const k=e.key;lastInput=performance.now();
-  if(k==='Home'||k==='.'){centerOnShip();return}
-  if(k==='ArrowLeft')neighbor(-1,0,0);else if(k==='ArrowRight')neighbor(1,0,0);else if(k==='ArrowUp')neighbor(0,1,0);else if(k==='ArrowDown')neighbor(0,-1,0);
-  else if(k==='PageUp')neighbor(0,0,1);else if(k==='PageDown')neighbor(0,0,-1);
-  else if(k==='Backspace')up();else if(k==='/'){e.preventDefault();$('#seedIn').focus()}
-  else if(/^[0-9a-qA-Q]$/.test(k))dive(k.toUpperCase());else return;
-  if(k.startsWith('Arrow')||k.startsWith('Page'))e.preventDefault();
+  if(e.target.matches('input,textarea,select'))return;if(e.ctrlKey||e.metaKey||e.altKey)return;const k=e.key.toLowerCase();
+  if(modalOpen){if(k==='escape'&&!dq.length&&$('#no'))$('#no').click();return}
+  if(KEYS.has(k)){keys.add(k);e.preventDefault();return}
+  if(k==='escape'){if(mode==='surface'){mode='system';surf=null;refresh()}else if(mode==='system')exitToMap();else{selStar=null;route=null;renderPanel()}}
+  else if(k==='home'||k==='.')centerOnShip();
+  else if(k==='+'||k==='=')tg.R=clamp(tg.R/1.4,1,3000);else if(k==='-')tg.R=clamp(tg.R*1.4,1,3000);
+  else if(k==='enter'&&route&&!travel)startTravel();
+  else if(k==='m')toggleDrawer();
+  else if(k==='/'){e.preventDefault();$('#seedIn').focus()}
 });
-$('#dpad').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.id==='upBtn')up();else neighbor(...b.dataset.d.split(',').map(Number))});
+document.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));addEventListener('blur',()=>keys.clear());
 
-/* — Vistas rápidas (como en el visor de Hail Mary) — */
-function setCam(y,p,z){if(RM){cam.yaw=y;cam.pitch=p;cam.zoom=z;return}const dy=((y-cam.yaw+Math.PI)%(2*Math.PI)+2*Math.PI)%(2*Math.PI)-Math.PI;camAnim={t0:performance.now(),dur:900,f:{yaw:cam.yaw,pitch:cam.pitch,zoom:cam.zoom},to:{yaw:cam.yaw+dy,pitch:p,zoom:z}}}
-let vsT;function saveView(){clearTimeout(vsT);vsT=setTimeout(()=>{D.cm=[+cam.yaw.toFixed(3),+cam.pitch.toFixed(3),+cam.zoom.toFixed(3)];D.op=[opt.route?1:0,opt.color?1:0,opt.spin?1:0];saveD()},600)}
-cv.addEventListener('pointerup',saveView);cv.addEventListener('wheel',saveView,{passive:true});
+function centerOnShip(){if(travel)return;if(mode!=='map')exitToMap();const p=shipPos();flyTo(p[0],p[1],p[2],Math.max(legMax(D.ship.d)*1.3,8));ping=performance.now()}
+$('#ctr').onclick=centerOnShip;
+$('#zoom').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.id==='spinBtn'){opt.spin=!opt.spin;syncToggles();saveView();return}tg.R=clamp(tg.R*(+b.dataset.z>0?1.5:1/1.5),1,3000);lastInput=performance.now()});
+$('#toggles').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;opt[b.dataset.o]=!opt[b.dataset.o];syncToggles();saveView()});
+function syncToggles(){document.querySelectorAll('#toggles button').forEach(b=>b.classList.toggle('on',!!opt[b.dataset.o]));$('#spinBtn').classList.toggle('on',opt.spin)}
 $('#views').addEventListener('click',e=>{
-  const b=e.target.closest('button');if(!b)return;const v=b.dataset.v;
-  if(v==='route'){opt.route=!opt.route;b.classList.toggle('on',opt.route);saveView();return}
-  if(v==='color'){opt.color=!opt.color;b.classList.toggle('on',!opt.color);saveView();return}
-  if(v==='spin'){opt.spin=!opt.spin;b.classList.toggle('on',opt.spin);saveView();return}
-  if(v==='sol'){setCam(.7,.45,2.3);teleport(starLoc(A_BY('sol'),9))}
-  else if(v==='tau'){setCam(.7,.45,2.3);teleport(starLoc(A_BY('tceti'),9))}
-  else if(v==='traj'){setCam(.5,.6,2.2);teleport(mkLoc('A','DD'))}
-  else if(v==='sector'){setCam(.7,.45,2.3);teleport(mkLoc('A',''))}
+  const b=e.target.closest('button');if(!b||travel)return;if(mode!=='map')exitToMap();const T=A_BY('tceti'),S0=shipStar();
+  if(b.dataset.v==='sol'){selStar=null;route=null;flyTo(SOL.gx,SOL.gy,SOL.gz,18,.5);renderPanel()}
+  else if(b.dataset.v==='tau')selectStar(T,true);
+  else if(b.dataset.v==='traj'){selectStar(T);flyTo((S0.gx+T.gx)/2,(S0.gy+T.gy)/2,(S0.gz+T.gz)/2,Math.max(gd(S0,T)*.85,8),.75)}
+  else if(b.dataset.v==='gal'){flyTo(cam.fx,cam.fy,cam.fz,2500,.3)}
 });
+$('#backBtn').onclick=()=>{if(mode==='surface'){mode='system';surf=null;refresh()}else exitToMap()};
+function toggleDrawer(force){const d=$('#drawer'),o=force!=null?force:!d.classList.contains('open');d.classList.toggle('open',o);$('#drawerBtn').classList.toggle('on',o)}
+$('#drawerBtn').onclick=()=>toggleDrawer();
 
-/* ═════════ UI ═════════ */
-let msgTimer;
-function setMsg(s,bad){const m=$('#msg');if(m){m.textContent=s||'';m.className='note '+(bad?'bad':'ok');clearTimeout(msgTimer);if(s)msgTimer=setTimeout(()=>{if(m)m.textContent=''},5000)}else if(bad)alert(s)}
-function setTab(t){tab=t;document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
-  document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('on',p.id==='p-'+t));
-  if(t==='hist')renderHist();if(t==='share')renderShare();if(t==='trav')renderTrav();if(t==='ship')renderShip()}
+/* ═════════ Indicadores ═════════ */
+const meter=(v,max,col)=>`<span class="mt"><i style="width:${clamp(v/max*100,0,100)}%;background:${col}"></i></span>`;
+function updateHud(){
+  const sp=SPEC[D.ship.d],s=D.st,c=crewCount(),aliveC=alive(),mor=aliveC.length?aliveC.reduce((a,m)=>a+m.mor,0)/aliveC.length:100,auton=sp.prov&&c?s.prov/(c*(D.hib&&sp.hib?.15:1)*(1-(sp.farm||0))):Infinity;
+  let near=0;for(const v of vis)if(v._f===frameNo&&Math.hypot(v.gx-cam.fx,v.gy-cam.fy,v.gz-cam.fz)<=cam.R)near++;
+  $('#info').innerHTML=`<div><span>RANGO</span><b>${fmtLen(cam.R)}</b></div><div><span>CAMPO CERCANO</span><b>${mode==='map'?fmtI(near):'—'}</b></div><div><span>SECTOR</span><b>${esc(focusLoc(0).head)}</b></div><div><span>DESTINO</span><b>${selStar?esc(starName(selStar)):'—'}</b></div>`;
+  $('#hud').innerHTML=`<div><span>ASTRÓFAGO</span><b>${s.fuel.toFixed(1)} / ${sp.tank} t</b>${meter(s.fuel,sp.tank,'#e0aa46')}<em>alcance ${fmtLen(s.fuel/sp.burn)}</em></div>
+   <div><span>PROVISIONES</span><b>${sp.prov?fmtI(s.prov)+' d-p':'—'}</b>${sp.prov?meter(s.prov,sp.prov,'#7ee787'):''}<em>${sp.prov?(isFinite(auton)?fmtI(auton)+' días':'∞'):'nave no tripulada'}${D.hib&&sp.hib?' · hibernación':''}</em></div>
+   <div><span>TRIPULACIÓN</span><b>${c} / ${sp.crew[1]}</b>${meter(mor,100,mor<35?'#ff6b6b':'#78dcff')}<em>moral ${Math.round(mor)}%</em></div>
+   <div><span>CASCO</span><b>${Math.round(s.hull)}%</b>${meter(s.hull,100,s.hull<35?'#ff6b6b':'#cfd6e2')}<em>minerales ${Math.round(s.min)} t</em></div>
+   <div><span>MISIÓN</span><b>τ ${fmtT(s.days/365.25)}</b><em>Tierra ${(2026+s.yrs).toFixed(1)}</em></div>`;
+  if(document.activeElement!==$('#seedIn'))$('#seedIn').value=seedStr(focusLoc());
+  $('#banner').style.display=D.anon?'block':'none';$('#crTag').style.display=D.cr?'block':'none';
+}
+function refresh(){renderPanel();updateHud();syncToggles();$('#backBtn').style.display=mode==='map'?'none':'block';$('#views').style.visibility=mode==='map'?'visible':'hidden'}
+
+/* ═════════ Panel de mando ═════════ */
+function setTab(t){tab=t;document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('on',p.id==='p-'+t));if(t!=='ship')prevCv=null;renderPanel()}
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>setTab(b.dataset.t));
-function syncUI(){
-  $('#seedIn').value=seedStr(loc);hoverIdx=-1;hoverStar=null;tip.style.display='none';
-  $('#dpad').style.visibility=mode==='system'?'hidden':'visible';$('#views').style.visibility=mode==='system'?'hidden':'visible';$('#hint').style.display=mode==='system'?'none':'';
-  const cr=$('#crumb');cr.innerHTML='';
-  const mk=(txt,n,cur)=>{const b=document.createElement('button');b.textContent=txt;if(cur)b.className='cur';b.onclick=()=>{if(mode==='system')exitSystem(true);if(n!==loc.path.length||mode==='system')go({...loc,path:loc.path.slice(0,n)})};cr.appendChild(b)};
-  mk(loc.head,0,!loc.path.length);[...loc.path].forEach((ch,i)=>mk(ch,i+1,i===loc.path.length-1));
-  updateHud();$('#banner').style.display=D.anon?'block':'none';$('#upBtn').disabled=!loc.path.length&&mode!=='system';
-  syncInfo();
-}
-function planetCard(p){const k=KIND[p.kind];return `<h3>Planeta</h3><h2 style="color:${k[1]}">${esc(p.name)}</h2>
-  <div class="row">${p.hz?'<span class="tag hz">zona habitable</span>':''}${p.fiction?'<span class="tag fx">ficción</span>':''}<span class="tag">${k[0]}</span></div>
-  <div class="kv"><span>Distancia</span><span>${p.a.toFixed(p.a<10?3:1)} UA</span><span>Radio</span><span>${p.r.toFixed(2)} R⊕</span><span>Gravedad</span><span>${p.g.toFixed(2)} g</span>
-  <span>Temp. aprox.</span><span>${p.T} K (${Math.round(p.T-273)} °C)</span><span>Año</span><span>${p.period<700?p.period.toFixed(0)+' días':(p.period/365.25).toFixed(1)+' años'}</span><span>Lunas</span><span>${p.moons}${p.ring?' · anillos':''}</span></div>
-  ${p.note?`<p class="note">${esc(p.note)}</p>`:''}`}
-function starCard(st){
-  const P=st.P,sl=starLoc(st),g=starG(st),d=Math.hypot(...g);
-  return `<h3>Estrella</h3><h2 style="color:${P.col}">${esc(starName(st))}</h2>
-  ${st.anchor?`<span class="tag fx">mapa de la película</span> <span class="note">${esc(st.anchor.blurb)}</span>`:''}
-  <div class="kv"><span>Clase</span><span>${P.k} · ${P.lab}</span><span>Temp.</span><span>${P.T} K</span><span>Luminosidad</span><span>${P.lum<.01?P.lum.toExponential(1):P.lum.toFixed(2)} L☉</span>
-  <span>Masa / radio</span><span>${P.mass.toFixed(2)} M☉ · ${P.rad.toFixed(2)} R☉</span><span>Distancia al Sol</span><span>${d<.01?'—':fmtLen(d)}</span><span>Semilla</span><span class="seed" style="font-size:12px">${esc(seedStr(sl))}</span></div>
-  <div class="row"><button class="pri" id="enterSys">Entrar al sistema</button><button id="goStar">Teletransportar aquí</button></div>`;
-}
-function syncMini(){document.querySelectorAll('.mini button').forEach(b=>b.classList.toggle('h',+b.dataset.i===hoverIdx))}
-function miniHTML(){
-  if(loc.path.length>=MAXD)return '';
-  const layer=z=>`<div><div class="note" style="margin:0 0 2px">Z ${['−','0','+'][z]}</div><div class="mini">${[2,1,0].map(y=>[0,1,2].map(x=>{const i=x+3*y+9*z;return `<button data-i="${i}">${DETAIL[i]}</button>`}).join('')).join('')}</div></div>`;
-  return `<h3>Subdividir (3×3×3)</h3><div class="minis">${layer(0)}${layer(1)}${layer(2)}</div><p class="note">Filas: Y de norte (arriba) a sur · columnas: X de oeste a este.</p>`;
-}
-function syncInfo(){
-  const el=$('#p-info');if(!flight){el.classList.remove('fadein');void el.offsetWidth;el.classList.add('fadein')}
-  if(mode==='system'){
-    const S=SYS;
-    el.innerHTML=`<h2>${esc(S.name)}</h2><div class="note">${esc(S.P.lab)} · ${S.planets.length} planeta${S.planets.length===1?'':'s'}${S.belts.length?` · ${S.belts.length} cinturón${S.belts.length>1?'es':''}`:''}</div>
-    <div class="row"><button id="exitSys" class="pri">⤒ Salir al mapa</button></div>
-    ${selPlanet?planetCard(selPlanet):'<p class="note">Haz clic en un planeta para ver su ficha; tu nave lo acompañará.</p>'}
-    <h3>Planetas</h3><div class="lst">${S.planets.map((p,i)=>`<div class="item" data-p="${i}" style="cursor:pointer"><span style="color:${KIND[p.kind][1]}">●</span><div class="m"><b>${esc(p.name)}</b><i>${KIND[p.kind][0]} · ${p.a.toFixed(2)} UA${p.hz?' · habitable':''}</i></div></div>`).join('')||'<p class="note">Sin planetas conocidos.</p>'}</div>
-    ${S.star.anchor&&S.star.anchor.proc?'<p class="note">Los planetas de este sistema se generan proceduralmente (excepto los marcados).</p>':''}
-    <h3>Estrella</h3><div class="kv"><span>Semilla</span><span class="seed" style="font-size:12px">${esc(seedStr(loc))}</span></div>`;
-    $('#exitSys').onclick=()=>exitSystem();el.querySelectorAll('[data-p]').forEach(n=>n.onclick=()=>{selPlanet=S.planets[+n.dataset.p];syncInfo()});return;
+function renderPanel(){({carta:renderCarta,ship:renderShip,crew:renderCrew,hist:renderHist,nav:renderNav,share:renderShare})[tab]()}
+let ACTS=[];const A=(label,fn,dis,cls)=>{ACTS.push(fn);return`<button class="sm ${cls||''}" data-a="${ACTS.length-1}" ${dis?'disabled':''}>${label}</button>`};
+const bindActs=el=>el.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>ACTS[+b.dataset.a]());
+function starKV(st){const P=st.P,ship=shipStar();return`<div class="kv"><span>Clase</span><span>${P.k} · ${esc(P.lab)}</span><span>Temperatura</span><span>${fmtI(P.T)} K</span><span>Luminosidad</span><span>${P.lum<.01?P.lum.toExponential(1):P.lum.toFixed(2)} L☉</span>
+  <span>Masa · radio</span><span>${P.mass.toFixed(2)} M☉ · ${P.rad.toFixed(2)} R☉</span><span>Desde tu nave</span><span>${fmtLen(gd(ship,st))}</span><span>Desde el Sol</span><span>${fmtLen(Math.hypot(st.gx,st.gy,st.gz))}</span><span>Semilla</span><span class="seed">${esc(sSeed(st))}</span></div>`}
+function renderCarta(){
+  const el=$('#p-carta');ACTS=[];
+  if(mode==='system')return systemPanel(el);if(mode==='surface')return surfacePanel(el);
+  const ship=shipStar(),sp=SPEC[D.ship.d],ml=legMax(D.ship.d);let h='';
+  if(travel){h+=`<div class="kick">EN TRÁNSITO</div><h2>Rumbo a ${esc(starName(travel.legs[travel.legs.length-1].to))}</h2><p class="note">Salto ${travel.i+1} de ${travel.legs.length}.${D.hib&&sp.hib?' La tripulación duerme en las cápsulas.':''}</p>${travel.legs.length>travel.i+1?A('Detenerse tras este salto',()=>{travel.legs.length=travel.i+1;renderPanel()}):''}`;el.innerHTML=h;bindActs(el);return}
+  if(selStar){
+    const s=selStar,here=sameStar(s,ship),inf=infected(s);
+    h+=`<div class="kick">SISTEMA ESTELAR</div><h2 style="color:${opt.pet&&inf?'#ff3b5c':'#fff'}">${esc(starName(s))}</h2><div class="row">${s.anchor?'<span class="tag fx">mapa de la película</span>':''}${inf?'<span class="tag pet">astrófago</span>':''}${D.disc[sSeed(s)]?'<span class="tag hz">registrado</span>':''}</div>
+    ${s.anchor?`<p class="note">${esc(s.anchor.blurb)}</p>`:''}${starKV(s)}`;
+    if(here)h+=`<p class="ok">Tu nave está en este sistema.</p><div class="row">${A('Entrar al sistema',()=>enterSystem(s),0,'pri')}</div>`;
+    else if(!route||route.none)h+=`<p class="bad">No hay ruta con saltos de hasta ${fmtLen(ml)} dentro de un corredor razonable${gd(ship,s)>400?' (máx. 400 al por plan)':''}. Prueba con un destino intermedio.</p><div class="row">${A('Ver sistema (sondeo remoto)',()=>enterSystem(s))}</div>`;
+    else{
+      const t=route.tot,L0=route.legs[0],err=route.legs.find(l=>l.err),vmax=Math.max(...route.legs.map(l=>l.v));
+      h+=`<h3>Cálculo de navegación</h3><div class="calc"><span>Distancia</span><span>${fmtLen(t.d)} · ${route.legs.length} salto${route.legs.length>1?'s':''}</span>
+      <span>Perfil</span><span>${sp.acc} g, volteo a mitad de camino</span><span>Velocidad máx.</span><span>${vmax.toFixed(vmax>.99?4:3)} c (γ ${Math.max(...route.legs.map(l=>l.g)).toFixed(1)})</span>
+      <span>Tiempo a bordo</span><span>${fmtT(t.tau)}</span><span>Tiempo en la Tierra</span><span>${fmtT(t.tE)} · llegada ${(2026+D.st.yrs+t.tE).toFixed(1)}</span>
+      <span>Astrófago</span><span class="${D.cr||t.fuel<=D.st.fuel?'ok':'bad'}">${t.fuel.toFixed(1)} t de ${D.st.fuel.toFixed(1)} t</span>
+      <span>Provisiones</span><span class="${!sp.prov||D.cr||t.prov<=D.st.prov?'ok':'bad'}">${sp.prov?fmtI(t.prov)+' de '+fmtI(D.st.prov)+' días-persona':'no aplica'}</span></div>
+      ${sp.hib?`<label class="chk"><input type="checkbox" id="hibT" ${D.hib?'checked':''}> Hibernación en cápsulas de coma (provisiones ×0,15, riesgo al despertar)</label>`:''}
+      ${err?`<p class="bad">✗ ${esc(cap(err.err))}${route.legs.indexOf(err)>0?` (salto ${route.legs.indexOf(err)+1})`:''}</p>`:'<p class="ok">✓ Todo listo para el salto.</p>'}
+      <div class="row">${A('▶ Iniciar viaje',startTravel,!!L0.err,'pri')}${A('Ver sistema',()=>enterSystem(s))}${A('Centrar',()=>flyTo(s.gx,s.gy,s.gz,Math.min(tg.R,16)))}</div>
+      ${route.legs.length>1?`<h3>Escalas</h3><div class="lst">${route.legs.map((l,i)=>`<div class="item ${l.err?'err':l.pend?'pend':''}"><span class="dim">${i+1}</span><div class="m"><b>${esc(starName(l.to))}</b><i>${fmtLen(l.d)} · τ ${fmtT(l.tau)} · ${l.fuel.toFixed(1)} t${l.err?' · '+esc(l.err):''}</i></div></div>`).join('')}</div>`:''}`;
+    }
+    h+=`<div class="row">${A('Quitar selección',()=>{selStar=null;route=null;renderPanel()})}</div>`;
+  }else{
+    const fl=focusLoc(),list=[];starsNear(ship.gx,ship.gy,ship.gz,ml,(s,d)=>{if(!sameStar(s,ship))list.push([d,s])});list.sort((a,b)=>a[0]-b[0]);
+    h+=`<div class="kick">REGIÓN</div><h2>${esc(regionName(fl))}</h2><div class="seed">${esc(seedStr(fl))}</div>
+    <div class="kv"><span>Sector</span><span>${esc(fl.head)} · (${fl.sx}, ${fl.sy}, ${fl.sz})</span><span>Foco (x, y, z)</span><span>${[cam.fx,cam.fy,cam.fz].map(v=>v.toFixed(2)).join(', ')} al</span><span>Desde el Sol</span><span>${fmtLen(Math.hypot(cam.fx,cam.fy,cam.fz))}</span><span>Densidad</span><span>${Math.round(density(cam.fx,cam.fy,cam.fz)*100)}%</span></div>
+    <div class="row">${A('Copiar semilla',()=>copy(seedStr(fl),'Semilla copiada'))}${A('Copiar enlace',()=>copy(baseUrl()+'#s='+encodeURIComponent(seedStr(fl)),'Enlace copiado'))}</div>
+    <h3>Sistemas a un salto de ${esc(starName(ship))} (máx. ${fmtLen(ml)})</h3><div class="lst">${list.slice(0,14).map(([d,s],i)=>{ACTS.push(()=>selectStar(s,true));const ok=D.cr||d*sp.burn<=D.st.fuel;
+      return`<div class="item" data-a="${ACTS.length-1}"><span style="color:${opt.pet&&infected(s)?'#ff3b5c':s.P.col}">●</span><div class="m"><b>${esc(starName(s))}</b><i>${s.P.k} · ${fmtLen(d)}${D.disc[sSeed(s)]?' · registrado':''}</i></div><span class="${ok?'ok':'bad'}">${ok?'✓':'✗'}</span></div>`}).join('')||'<p class="note">Ninguna estrella al alcance. Recolecta astrófago o cambia de nave.</p>'}</div>
+    <p class="note">Clic en una estrella para calcular el salto. Doble clic para centrarla.</p>`;
   }
-  const c=cell,g=cellCenterG(c),d=density(...cellCenter(c).map((v,i)=>[c.sx,c.sy,c.sz][i]*SEC+v)),dist=Math.hypot(...g);
-  const dens=d<.12?'Vacío profundo':d<.3?'Disperso':d<.5?'Moderado':d<.7?'Denso':'Muy denso';
-  const stars=c.size<=240?curList.filter(s=>!s.out):[];
-  const expect=c.size>240?null:Math.round(lambda(d)*(c.size/SC)**3);
-  const inCell=c.depth>=9?starInCell(c):null;
-  let near='';window._near=null;
-  if(!stars.length&&c.size<60){const n=nearestStar(c);if(n){window._near=n.st;near=`<h3>Estrella más cercana</h3><div class="item"><div class="m"><b>${esc(starName(n.st))}</b><i>${fmtLen(n.d)} · clase ${n.st.P.k}</i></div><button class="sm" id="goNear">Ir</button></div>`}}
-  const shown=selStar||inCell;
-  el.innerHTML=`<h2>${esc(regionName(loc))}</h2><div class="note">${DEPTH_NAMES[c.depth]||'Nivel '+c.depth} · nivel ${c.depth}/${MAXD} · cubo de ${fmtLen(c.size)}</div>
-  <div class="seed">${esc(seedStr(loc))}</div>
-  <div class="row"><button id="cpSeed">Copiar semilla</button><button id="cpLink">Copiar enlace</button></div><div id="msg" class="note"></div>
-  <div class="kv"><span>Sector</span><span>${esc(loc.head)} · (${loc.sx}, ${loc.sy}, ${loc.sz})</span><span>Centro (x,y,z)</span><span>${g.map(v=>Math.abs(v)<10?v.toFixed(3):v.toFixed(1)).join(', ')} al</span>
-  <span>Distancia al Sol</span><span>${fmtLen(dist)}</span><span>Densidad</span><span>${dens} (${Math.round(d*100)}%)</span>
-  ${c.size>240?'':expect!=null?`<span>Estrellas aquí</span><span>${stars.length}</span>`:''}</div>
-  <div class="row"><button id="mvShip">Mover mi nave aquí</button><button id="ctrBtn">◎ Centrar en mi nave</button></div>
-  ${shown?starCard(shown):''}${near}
-  ${stars.length>1&&!shown&&stars.length<=60?`<h3>Estrellas en esta celda</h3><div class="lst">${stars.slice().sort((a,b)=>b.P.lum-a.P.lum).slice(0,12).map((s,i)=>`<div class="item" data-s="${i}" style="cursor:pointer"><span style="color:${s.P.col}">★</span><div class="m"><b>${esc(starName(s))}</b><i>${s.P.k} · ${esc(s.P.lab)}</i></div></div>`).join('')}</div>`:''}
-  ${miniHTML()}
-  <p class="note">${c.depth<9?'Con 9 caracteres de detalle una celda ya es menor a 1 000 UA; a partir de ahí suele aislar una sola estrella.':''}</p>`;
-  window._list=stars.slice().sort((a,b)=>b.P.lum-a.P.lum);
-  const q=id=>el.querySelector(id);
-  q('#mvShip').onclick=()=>{moveShipTo(shown?starLoc(shown,14):posToLoc(c.sx,c.sy,c.sz,...cellCenter(c),14));setMsg('Tu nave se movió a '+(shown?starName(shown):'el centro de esta celda')+'.')};q('#ctrBtn').onclick=centerOnShip;
-  q('#cpSeed').onclick=()=>copy(seedStr(loc),'Semilla copiada');q('#cpLink').onclick=()=>copy(baseUrl()+'#s='+encodeURIComponent(seedStr(loc)),'Enlace copiado');
-  if(q('#enterSys'))q('#enterSys').onclick=()=>enterSystem(shown);if(q('#goStar'))q('#goStar').onclick=()=>teleport(starLoc(shown,16));
-  if(q('#goNear'))q('#goNear').onclick=()=>teleport(starLoc(window._near,12));
-  el.querySelectorAll('[data-s]').forEach(n=>n.onclick=()=>{selStar=window._list[+n.dataset.s];syncInfo()});
-  el.querySelectorAll('.mini button').forEach(b=>{b.onclick=()=>dive(DETAIL[+b.dataset.i]);b.onmouseenter=()=>{hoverIdx=+b.dataset.i;syncMini()};b.onmouseleave=()=>{hoverIdx=-1;syncMini()}});
+  el.innerHTML=h;bindActs(el);
+  const hb=$('#hibT');if(hb)hb.onchange=()=>{D.hib=hb.checked?1:0;saveD();if(route&&route.stars)route=buildLegs(route.stars);renderPanel();updateHud()};
 }
-function copy(txt,ok){(navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>setMsg(ok)).catch(()=>{prompt('Copia manualmente:',txt)})}
-
-/* — Bitácora — */
-function entryLabel(e){const p=parseSeed(e.s);if(!p.loc)return e.s;const c=cellOf(p.loc);
-  if(e.k==='s'){const st=starInCell(c);return st?'★ '+starName(st):'★ Sistema'}return regionName(p.loc)+' · '+(DEPTH_NAMES[c.depth]||'')}
-function renderHist(){
-  const el=$('#p-hist'),favOnly=el.dataset.fav==='1',list=D.h.map((e,i)=>({e,i})).filter(x=>!favOnly||x.e.f).reverse();
-  el.innerHTML=`<div class="row"><label><input type="checkbox" id="anon" ${D.anon?'checked':''}> No registrar mi exploración</label></div>
-  <div class="note">${D.anon?'Modo sin registro: puedes explorar libremente, no se guarda nada nuevo.':'Se guarda solo en este navegador (localStorage). Para moverlo a otro dispositivo usa «Compartir».'}</div>
-  <div class="row"><button class="sm" id="favF">${favOnly?'Ver todo':'Solo ★'}</button><button class="sm" id="clr">Borrar todo</button><span class="dim">${D.h.length} registros</span></div>
-  <div class="lst">${list.slice(0,300).map(({e,i})=>`<div class="item"><button class="fav ${e.f?'on':''}" data-f="${i}">${e.f?'★':'☆'}</button>
-   <div class="m"><b>${esc(entryLabel(e))}</b><i>${esc(e.s)} · ${new Date(e.t).toLocaleString('es',{dateStyle:'short',timeStyle:'short'})}</i>${e.n?`<i style="color:var(--tx)">“${esc(e.n)}”</i>`:''}</div>
-   <button class="sm" data-n="${i}" title="Nota">✎</button><button class="sm" data-g="${i}">Ir</button><button class="sm" data-x="${i}" title="Quitar">✕</button></div>`).join('')||'<p class="note">Aún no hay registros. Explora y aparecerán aquí.</p>'}</div>`;
-  $('#anon').onchange=e=>{D.anon=e.target.checked;saveD();syncUI();renderHist()};
-  $('#favF').onclick=()=>{el.dataset.fav=favOnly?'0':'1';renderHist()};
-  $('#clr').onclick=()=>{if(confirm('¿Borrar toda la bitácora de este navegador? No se puede deshacer.')){D.h=[];saveD();renderHist()}};
-  el.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{const e=D.h[+b.dataset.f];e.f=e.f?0:1;saveD();renderHist()});
-  el.querySelectorAll('[data-n]').forEach(b=>b.onclick=()=>{const e=D.h[+b.dataset.n],v=prompt('Nota para este lugar:',e.n||'');if(v!==null){e.n=v.slice(0,120);saveD();renderHist()}});
-  el.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>{D.h.splice(+b.dataset.x,1);saveD();renderHist()});
-  el.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{const e=D.h[+b.dataset.g],p=parseSeed(e.s);if(!p.loc)return;go(p.loc,{animate:false});if(e.k==='s'){const st=starInCell(cell);if(st)enterSystem(st)}});
+function systemPanel(el){
+  const S=SYS,here=sameStar(S.star,shipStar()),sp=SPEC[D.ship.d],sk=sSeed(S.star),s=D.st;
+  let h=`<div class="kick">SISTEMA · ${here?'EN ÓRBITA':'VISTA REMOTA'}</div><h2>${esc(S.name)}</h2><div class="note">${esc(S.P.lab)} · ${S.planets.length} planeta${S.planets.length===1?'':'s'}${S.belts.length?' · '+S.belts.length+' cinturón':''}</div>
+  <div class="row">${A('⤒ Volver a la carta',exitToMap)}${!here?A('Trazar ruta hasta aquí',()=>{const st=S.star;exitToMap();selectStar(st,true)},0,'pri'):''}</div>`;
+  if(here){
+    const used=D.ex[sk+':-1']||0;h+=`<h3>Acciones en órbita</h3><div class="row">`;
+    if(infected(S.star))h+=A(`Recolectar astrófago · 30 d (${3-used}/3)`,()=>orbitAct(sk+':-1',30,()=>{const v=+(sp.tank*.35).toFixed(1);s.fuel=Math.min(sp.tank,s.fuel+v);questEvent({type:'harvest',what:'fuel'});return`Los colectores capturan ${v} t de astrófago en la línea Petrova.`}),s.fuel>=sp.tank||used>=3,'pri');
+    else h+=`<span class="note">Esta estrella no tiene astrófago.</span>`;
+    h+=A('Descansar · 10 d',()=>orbitAct(sk+':rest',10,()=>{morAll(12);return'La tripulación descansa. Moral +12.'},0));
+    h+=A(`Reparar casco · 5 d (10 t)`,()=>orbitAct(sk+':rep',5,()=>{s.min-=10;s.hull=Math.min(100,s.hull+12);return'Casco reparado +12%.'},0),s.min<10||s.hull>=100);
+    if(S.star.anchor&&S.star.anchor.id==='sol')h+=A('Reabastecer en la Tierra · 60 d',()=>orbitAct(sk+':earth',60,()=>{s.fuel=sp.tank;s.prov=sp.prov;s.hull=100;morAll(20);for(const m of alive())m.hp=100;return'Tanques llenos, despensa completa, casco nuevo.'},0),0,'pri');
+    h+=`</div>`;
+  }else h+=`<p class="note">Datos de sondeo remoto. Viaja hasta aquí para escanear, aterrizar y recolectar.</p>`;
+  h+=`<h3>Planetas</h3><div class="lst">`;
+  S.planets.forEach((p,i)=>{
+    const info=planetInfo(S,i),sc=D.scan[info.key]||!here&&false,open=p===selPlanet;ACTS.push(()=>{selPlanet=open?null:p;renderPanel()});
+    h+=`<div class="item col ${open?'sel':''}"><div class="rowi" data-a="${ACTS.length-1}"><span style="color:${KIND[p.kind][1]}">●</span><div class="m"><b>${esc(p.name)}</b><i>${KIND[p.kind][0]} · ${p.a.toFixed(2)} UA${p.hz?' · habitable':''}${info.colony&&sc?' · colonia':''}</i></div></div>`;
+    if(open){
+      h+=`<div class="kv"><span>Temperatura</span><span>${p.T} K (${Math.round(p.T-273)} °C)</span><span>Gravedad</span><span>${p.g.toFixed(2)} g</span><span>Radio</span><span>${p.r.toFixed(2)} R⊕</span><span>Atmósfera</span><span>${esc(info.atm)}${info.breath?' · respirable':''}</span><span>Año</span><span>${p.period<700?p.period.toFixed(0)+' días':(p.period/365.25).toFixed(1)+' años'}</span><span>Lunas</span><span>${p.moons}${p.ring?' · anillos':''}</span></div>`;
+      if(p.note)h+=`<p class="note">${esc(p.note)}</p>`;
+      if(sc){h+=info.hz.length?`<div class="hzl">${info.hz.map(z=>`<span class="tag ${z[4]?'pet':''}" title="${esc(z[3])}">${esc(z[0])}</span>`).join('')}</div>`:'<p class="ok">Sin condiciones adversas.</p>';
+        if(!info.gas)h+=`<p class="note">Puntos de interés: ${info.pois.map(n=>esc(n)+(D.ex[info.key+':'+n]?' ✓':'')).join(' · ')}</p>`}
+      if(here){h+=`<div class="row">`;
+        if(!sc)h+=A('Escanear · 2 d',()=>orbitAct(info.key+':scan',2,()=>{D.scan[info.key]=1;selPlanet=p;return`Escaneo de ${p.name} completado.`},0));
+        if(info.gas)h+=A('Sonda atmosférica · 4 d',()=>orbitAct(info.key+':gas',4,()=>{const r=roll('cie',10);if(r.ok){s.fuel=Math.min(sp.tank,s.fuel+sp.tank*.1);return'La sonda recoge volátiles: +10% de combustible.'+gainXp(r.m,10)}return'La sonda se pierde en las tormentas.'},1));
+        else h+=A(sp.land?'⬇ Aterrizar':'⬇ Enviar lanzadera',()=>land(i),0,'pri');
+        h+=`</div>`}
+    }
+    h+=`</div>`;
+  });
+  h+=`</div>`;el.innerHTML=h;bindActs(el);
 }
-
-/* — Viajar — */
-function renderTrav(){
-  const el=$('#p-trav');
-  el.innerHTML=`<h3>Destinos del mapa</h3><div class="lst">${ANCHSTARS.map((s,i)=>`<div class="item"><span style="color:${s.P.col}">★</span><div class="m"><b>${esc(s.anchor.name)}</b><i>${fmtLen(Math.hypot(s.lx,s.ly,s.lz))} del Sol</i></div><button class="sm" data-a="${i}">Ir</button></div>`).join('')}</div>
-  <h3>Por coordenadas (sin límites)</h3>
-  <div class="field"><label>x (al)</label><input id="cx" type="number" step="any" value="0"></div><div class="field"><label>y (al)</label><input id="cy" type="number" step="any" value="0"></div><div class="field"><label>z (al)</label><input id="cz" type="number" step="any" value="0"></div>
-  <div class="field"><label>Precisión</label><input id="cd" type="range" min="0" max="${MAXD}" value="9"><span></span></div><div class="note" id="cdl"></div>
-  <div class="row"><button class="pri" id="cgo">Convertir y teletransportar</button><button id="rnd2">🎲 Aleatorio</button></div>
-  <p class="note">Ejes: eclíptica J2000 centrada en el Sol (x al equinoccio, z al polo norte eclíptico).</p>
-  <h3>Cómo leer una semilla</h3>
-  <p class="note"><b>CABECERA-DETALLE</b>. La cabecera (A, B… Z, AA, AB, AC…, AAA…) numera sectores cúbicos de ${SEC} al en capas alrededor del Sol, así que el mapa no tiene borde y la cabecera se alarga al alejarte. Cada carácter de detalle (0-9, A-Q) elige una de las 27 subceldas: 1 → ${fmtLen(SEC/3)}, 3 → ${fmtLen(SEC/27)}, 6 → ${fmtLen(SEC/729)}, 9 → ${fmtLen(SEC/19683)}.</p>`;
-  const cd=$('#cd'),upd=()=>{$('#cdl').textContent=`Profundidad ${cd.value} → cubo de ${fmtLen(SEC/Math.pow(3,+cd.value))}`};cd.oninput=upd;upd();
-  el.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>{setCam(.7,.45,2.3);teleport(starLoc(ANCHSTARS[+b.dataset.a],9))});
-  $('#cgo').onclick=()=>{const v=['#cx','#cy','#cz'].map(s=>parseFloat($(s).value));if(v.some(n=>!isFinite(n)||Math.abs(n)>1e6)){alert('Coordenadas fuera de rango (máx. ±1 000 000 al).');return}teleport(globalToLoc(...v,+cd.value))};
-  $('#rnd2').onclick=randomSeed;
+function surfacePanel(el){
+  const {info}=surf,p=info.p,sp=SPEC[D.ship.d];
+  let h=`<div class="kick">SUPERFICIE · ${sp.land?'NAVE POSADA':'LANZADERA'}</div><h2>${esc(p.name)}</h2>
+  <div class="kv"><span>Tipo</span><span>${KIND[p.kind][0]}</span><span>Temperatura</span><span>${Math.round(p.T-273)} °C</span><span>Gravedad</span><span>${p.g.toFixed(2)} g</span><span>Atmósfera</span><span>${esc(info.atm)}${info.breath?' · respirable':''}</span></div>
+  <h3>Condiciones</h3>${info.hz.length?`<div class="lst">${info.hz.map(z=>`<div class="item"><span class="${z[4]?'bad':'dim'}">${z[4]?'✦':'▲'}</span><div class="m"><b>${esc(z[0])}</b><i>${esc(z[3])} Dificultad +${z[2]} · mitiga ${STATN[z[1]]}</i></div></div>`).join('')}</div>`:'<p class="ok">Condiciones benignas.</p>'}
+  <h3>Puntos de interés</h3><div class="lst">`;
+  for(const n of info.pois){const P=POI[n],done=D.ex[info.key+':'+n];h+=`<div class="item"><span class="${done?'ok':''}">${done?'✓':'◆'}</span><div class="m"><b>${esc(n)}</b><i>${esc(P.tx)} ${STATN[P.k]} ${P.dc} · ${P.days} d</i></div>${done?'':A('Expedición',()=>openExpedition(info,n),0,'pri')}</div>`}
+  h+=`</div><div class="row">${A('⤒ Despegar',()=>{mode='system';surf=null;refresh()})}</div>`;
+  el.innerHTML=h;bindActs(el);
 }
-function randomSeed(){
-  const r=Math.random,far=r()<.5,L=l=>Array.from({length:l},()=>DETAIL[r()*27|0]).join('');
-  const l=far?mkLocXYZ(Math.round((r()-.5)*20),Math.round((r()-.5)*20),Math.round((r()-.5)*6),''):mkLoc('A','');teleport({...l,path:L(5+(r()*5|0))});
-}
-
-/* — Nave — */
 function renderShip(){
-  const el=$('#p-ship'),s=D.ship,S=SHIPS[s.d];
-  const bar=(v)=>`<span style="display:inline-block;width:90px;height:8px;background:#122040;border-radius:4px;vertical-align:middle"><span style="display:block;width:${v*10}%;height:100%;background:var(--cy);border-radius:4px"></span></span>`;
-  el.innerHTML=`<canvas id="shipPrev" style="width:100%;height:190px;border:1px solid var(--line);border-radius:10px;background:radial-gradient(ellipse at 50% 85%,#10203f,#060b17 70%);cursor:grab;touch-action:none"></canvas>
-  <div class="note" style="text-align:center;margin:2px 0 6px">Arrastra para girarla</div>
-  <h2 style="margin:0">${esc(s.n||S.n)}</h2><div class="note" style="margin:0 0 4px">${esc(S.n)} · ${esc(S.d)}</div>
-  <div class="kv"><span>Velocidad</span><span>${bar(S.vel)}</span><span>Autonomía</span><span>${bar(S.alc)}</span><span>Carga</span><span>${bar(S.car)}</span><span>Tripulación</span><span>${S.tri?S.tri:'no tripulada'}</span></div>
-  <div class="row"><button class="pri" id="sctr">◎ Centrar en mi nave</button></div><div class="note">Ubicación: <span class="seed" style="font-size:12px">${esc(D.sp)}</span></div>
-  <h3>Diseños prehechos</h3>
-  <div class="ships">${Object.entries(SHIPS).map(([k,v])=>`<button data-k="${k}" class="${k===s.d?'on':''}">${shipImg(k,s.c1,s.c2,56)}<span>${v.n}</span></button>`).join('')}</div>
-  <h3>Personalizar</h3>
-  <div class="field"><label>Nombre</label><input id="sn" maxlength="24" placeholder="${esc(S.n)}" value="${esc(s.n)}"></div>
-  <div class="field"><label>Color 1</label><input id="sc1" type="color" value="${esc(s.c1)}" style="height:32px;padding:2px"></div>
-  <div class="field"><label>Color 2</label><input id="sc2" type="color" value="${esc(s.c2)}" style="height:32px;padding:2px"></div>
-  <div class="row"><button id="sreset">Restablecer colores</button></div>
-  <p class="note">Tu nave tiene su propia posición: se queda donde la dejas («Mover mi nave aquí») y viaja contigo al entrar a un sistema. Si te alejas, una flecha en el borde del mapa te indica dónde está; «Centrar» te lleva hasta ella. Todo se guarda con tu perfil, en el enlace/QR y en la partida.</p>`;
-  prevCv=$('#shipPrev');
-  const pc=prevCv,r=pc.getBoundingClientRect(),d=Math.min(2,window.devicePixelRatio||1);pc.width=Math.max(10,r.width*d);pc.height=190*d;
-  pc.onpointerdown=e=>{pc.setPointerCapture(e.pointerId);prevSt.drag={x:e.clientX,y:e.clientY,yaw:prevSt.yaw,pitch:prevSt.pitch};pc.style.cursor='grabbing'};
+  const el=$('#p-ship'),s=D.ship,S=SHIPS[s.d],sp=SPEC[s.d],st=D.st,atSol=sameStar(shipStar(),SOL);ACTS=[];
+  const refs=REFS.filter(r=>r[1]<sp.len).slice(-2).concat(REFS.filter(r=>r[1]>=sp.len).slice(0,1)),mx=Math.max(sp.len,...refs.map(r=>r[1]));
+  el.innerHTML=`<canvas id="shipPrev"></canvas><div class="note" style="text-align:center">Arrastra para girarla</div>
+  <div class="kick">${esc(S.n.toUpperCase())}</div><h2>${esc(s.n||S.n)}</h2><p class="note">${esc(S.d)}</p>
+  <h3>Escala real</h3>${[[`${s.n||S.n}`,sp.len,1],...refs.map(r=>[r[0],r[1],0])].sort((a,b)=>a[1]-b[1]).map(([n,v,me])=>`<div class="scale-row ${me?'me':''}"><span>${esc(n)}</span><i style="width:${Math.max(1,v/mx*100)}%"></i><span>${fmtI(v)} m</span></div>`).join('')}
+  ${sp.extra?`<p class="note">Más ${esc(sp.extra)}.</p>`:''}<p class="note">En la carta la nave es un símbolo: a escala real mediría una diez billonésima de píxel.</p>
+  <h3>Especificaciones</h3><div class="kv"><span>Eslora</span><span>${fmtI(sp.len)} m</span><span>Masa seca</span><span>${fmtI(sp.mass)} t</span><span>Motor</span><span>Astrófago · ${sp.acc} g</span><span>Tanque</span><span>${fmtI(sp.tank)} t (${sp.burn} t/al)</span><span>Salto máximo</span><span>${fmtLen(legMax(s.d))}</span><span>Bodega</span><span>${fmtI(sp.cargo)} t</span><span>Tripulación</span><span>${sp.crew[0]}–${sp.crew[1]}</span><span>Extras</span><span>${[sp.hib&&'cápsulas de coma',sp.land&&'aterriza',!sp.land&&'lanzadera',sp.solar&&'recarga solar',sp.farm&&'granjas'].filter(Boolean).join(', ')}</span></div>
+  <h3>Estado</h3>
+  <div class="res"><span>Astrófago</span><span>${st.fuel.toFixed(1)} / ${sp.tank} t</span></div>${meter(st.fuel,sp.tank,'#e0aa46')}
+  <div class="res"><span>Provisiones</span><span>${sp.prov?fmtI(st.prov)+' / '+fmtI(sp.prov):'—'}</span></div>${sp.prov?meter(st.prov,sp.prov,'#7ee787'):''}
+  <div class="res"><span>Casco</span><span>${Math.round(st.hull)}%</span></div>${meter(st.hull,100,'#cfd6e2')}
+  <div class="res"><span>Minerales</span><span>${Math.round(st.min)} / ${fmtI(sp.cargo)} t</span></div>${meter(st.min,sp.cargo,'#9b9186')}
+  ${sp.hib?`<label class="chk"><input type="checkbox" id="hib" ${D.hib?'checked':''}> Hibernar a la tripulación durante los saltos</label>`:''}
+  <label class="chk"><input type="checkbox" id="cre" ${D.cr?'checked':''}> Modo creativo (sin consumo de recursos)</label>
+  <div class="row">${A('Reparar casco (10 t → +12%)',()=>{if(st.min<10)return;st.min-=10;st.hull=Math.min(100,st.hull+12);passDays(5);saveD();refresh()},st.min<10||st.hull>=100)}${A('📡 Pedir rescate',()=>{if(confirm('Una nave de Ad Astra remolcará la tuya hasta la Tierra. Pierdes la carga y pasan 10 años. ¿Continuar?'))rescue('')},!!travel)}</div>
+  <h3>Astillero ${atSol||D.cr?'':'<span class="dim">(sólo en el Sistema Solar o en modo creativo)</span>'}</h3>
+  <div class="ships">${Object.entries(SHIPS).map(([k,v])=>`<button data-k="${k}" class="${k===s.d?'on':''}" ${atSol||D.cr||k===s.d?'':'disabled'}>${shipImg(k,s.c1,s.c2,52)}<span>${v.n}</span><span class="dim">${fmtI(SPEC[k].len)} m</span></button>`).join('')}</div>
+  <h3>Personalizar</h3><div class="field"><label>Nombre</label><input id="sn" maxlength="24" placeholder="${esc(S.n)}" value="${esc(s.n)}"></div>
+  <div class="field"><label>Color 1</label><input id="sc1" type="color" value="${esc(s.c1)}"></div><div class="field"><label>Color 2</label><input id="sc2" type="color" value="${esc(s.c2)}"></div>`;
+  bindActs(el);prevCv=$('#shipPrev');const pc=prevCv,r=pc.getBoundingClientRect(),d=Math.min(2,window.devicePixelRatio||1);pc.width=Math.max(10,r.width*d);pc.height=Math.max(10,r.height*d);
+  pc.onpointerdown=e=>{pc.setPointerCapture(e.pointerId);prevSt.drag={x:e.clientX,y:e.clientY,yaw:prevSt.yaw,pitch:prevSt.pitch}};
   pc.onpointermove=e=>{if(!prevSt.drag)return;prevSt.yaw=prevSt.drag.yaw-(e.clientX-prevSt.drag.x)*.012;prevSt.pitch=clamp(prevSt.drag.pitch+(e.clientY-prevSt.drag.y)*.01,-1.2,1.3);prevSt.last=performance.now()};
-  pc.onpointerup=()=>{prevSt.drag=null;pc.style.cursor='grab';prevSt.last=performance.now()};
-  el.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{D.ship.d=b.dataset.k;saveD();renderShip()});
+  pc.onpointerup=()=>{prevSt.drag=null;prevSt.last=performance.now()};
+  el.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{const k=b.dataset.k;if(k===s.d)return;if(!confirm(`¿Cambiar a ${SHIPS[k].n}? La nueva nave sale del astillero con tanques y despensa llenos.`))return;
+    const nsp=SPEC[k];D.ship.d=k;Object.assign(st,{fuel:nsp.tank,prov:nsp.prov,hull:100,min:Math.min(st.min,nsp.cargo)});
+    const a=alive();if(a.length>nsp.crew[1]){a.slice(nsp.crew[1]).forEach(m=>m.st='perdido')}st.extra=clamp(nsp.c0-Math.min(6,alive().length),0,Math.max(0,nsp.crew[1]-alive().length));
+    while(crewCount()<nsp.crew[0]&&alive().length<6)addMember();if(crewCount()<nsp.crew[0])st.extra+=nsp.crew[0]-crewCount();
+    saveD();refresh()});
+  if($('#hib'))$('#hib').onchange=e=>{D.hib=e.target.checked?1:0;saveD();updateHud()};
+  $('#cre').onchange=e=>{D.cr=e.target.checked?1:0;saveD();refresh()};
   $('#sn').oninput=e=>{D.ship.n=e.target.value.slice(0,24);saveD()};
-  $('#sc1').oninput=e=>{D.ship.c1=e.target.value;saveD()};$('#sc2').oninput=e=>{D.ship.c2=e.target.value;saveD()};
-  $('#sc1').onchange=$('#sc2').onchange=renderShip;
-  $('#sreset').onclick=()=>{D.ship.c1=DEF_SHIP.c1;D.ship.c2=DEF_SHIP.c2;saveD();renderShip()};
-  $('#sctr').onclick=centerOnShip;
+  $('#sc1').oninput=e=>{D.ship.c1=e.target.value;saveD()};$('#sc2').oninput=e=>{D.ship.c2=e.target.value;saveD()};$('#sc1').onchange=$('#sc2').onchange=renderShip;
 }
 function drawPreview(now){
-  const c=prevCv;if(!c||!c.isConnected){prevCv=null;return}const g=c.getContext('2d'),d=c.width/c.getBoundingClientRect().width||1;
-  g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,c.width,c.height);g.setTransform(d,0,0,d,0,0);
-  const w=c.width/d,h=c.height/d;if(!prevSt.drag&&now-prevSt.last>1500&&!RM)prevSt.yaw+=.012;
-  g.strokeStyle='rgba(88,208,255,.25)';g.lineWidth=1;g.beginPath();g.ellipse(w/2,h*.78,w*.28,h*.07,0,0,7);g.stroke();g.beginPath();g.ellipse(w/2,h*.78,w*.18,h*.045,0,0,7);g.stroke();
-  drawShip3D(g,w/2,h*.5+Math.sin(now/700)*3,Math.min(w,h)*.9,prevSt.yaw,prevSt.pitch,D.ship,now/1000);
+  const c=prevCv;if(!c||!c.isConnected){prevCv=null;return}const g=c.getContext('2d'),d=c.width/(c.getBoundingClientRect().width||1);
+  g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,c.width,c.height);g.setTransform(d,0,0,d,0,0);const w=c.width/d,h=c.height/d;
+  if(!prevSt.drag&&now-prevSt.last>1500&&!RM)prevSt.yaw+=.01;
+  g.strokeStyle='rgba(225,232,245,.18)';g.lineWidth=1;for(let i=-4;i<=4;i++){g.beginPath();g.moveTo(w/2+i*w*.08-w*.2,h*.86);g.lineTo(w/2+i*w*.11,h*.72);g.stroke()}
+  drawShip3D(g,w/2,h*.48+Math.sin(now/700)*3,Math.min(w,h)*.9,prevSt.yaw,prevSt.pitch,D.ship,now/1000);
 }
+function renderCrew(){
+  const el=$('#p-crew'),sp=SPEC[D.ship.d],a=alive(),lost=D.crew.filter(m=>m.st==='perdido');ACTS=[];
+  el.innerHTML=`<div class="kick">FICHAS DE TRIPULACIÓN</div><h2>${crewCount()} a bordo</h2><p class="note">Mínimo para operar: ${sp.crew[0]} · capacidad ${sp.crew[1]}${D.st.extra?` · ${fmtI(D.st.extra)} en la tripulación general`:''}.</p>
+  ${a.map(m=>`<div class="card"><div class="dh">${portrait(m)}<div><b>${esc(m.nm)}</b><div class="note">${esc(m.sp)} · ${ROLES[m.role]} · nivel ${m.lv}</div></div></div>
+    <div class="res"><span>Salud</span><span>${Math.round(m.hp)}%</span></div>${meter(m.hp,100,m.hp<50?'#ff6b6b':'#7ee787')}
+    <div class="res"><span>Moral</span><span>${Math.round(m.mor)}%</span></div>${meter(m.mor,100,m.mor<30?'#ff6b6b':'#78dcff')}
+    <div class="res"><span>Experiencia</span><span>${m.xp} / ${30*m.lv}</span></div>${meter(m.xp,30*m.lv,'#e0aa46')}
+    <div class="stats">${STATS.map(([k,n])=>`<span>${n}</span><span class="sb"><i style="width:${eff(m,k)*8.3}%"></i></span><b>${eff(m,k)}</b>`).join('')}</div>
+    <p class="note"><b>${esc(m.tr)}</b>: ${esc((TRAITS[m.tr]||{d:''}).d)}</p><p class="note">${esc(m.bio)}</p></div>`).join('')||'<p class="note">Nave no tripulada: la IA de a bordo se encarga de todo.</p>'}
+  ${lost.length?`<h3>En memoria</h3><p class="note">${lost.map(m=>esc(m.nm)).join(' · ')}</p>`:''}`;
+}
+function entryLabel(e){const st=starFromSeed(e.s);if(e.k==='j')return'🚀 '+(st?starName(st):e.s);if(e.k==='s')return'★ '+(st?starName(st):'Sistema');const p=parseSeed(e.s);return p.loc?regionName(p.loc):e.s}
+function renderHist(){
+  const el=$('#p-hist'),favOnly=el.dataset.fav==='1',list=D.h.map((e,i)=>({e,i})).filter(x=>!favOnly||x.e.f).reverse(),s=D.st;
+  el.innerHTML=`<div class="kick">MISIONES</div>${QUESTS.map((q,i)=>`<div class="item ${i<D.q?'done':i===D.q?'cur':'lock'}"><span>${i<D.q?'✓':i===D.q?'▶':'·'}</span><div class="m"><b>${esc(q.t)}</b><i>${i<=D.q?esc(q.d):'???'}</i></div></div>`).join('')}
+  <h3>Registro de la misión</h3><div class="kv"><span>Saltos</span><span>${s.jumps}</span><span>Distancia</span><span>${fmtLen(s.ly)}</span><span>Sistemas registrados</span><span>${Object.keys(D.disc).length}</span><span>Tiempo a bordo</span><span>${fmtT(s.days/365.25)}</span><span>Año en la Tierra</span><span>${(2026+s.yrs).toFixed(1)}</span></div>
+  <h3>Bitácora</h3><div class="row"><label class="chk"><input type="checkbox" id="anon" ${D.anon?'checked':''}> No registrar</label><button class="sm" id="favF">${favOnly?'Ver todo':'Solo ★'}</button><button class="sm" id="clr">Borrar</button><span class="dim">${D.h.length}</span></div>
+  <div class="lst">${list.slice(0,250).map(({e,i})=>`<div class="item"><button class="fav ${e.f?'on':''}" data-f="${i}">${e.f?'★':'☆'}</button><div class="m"><b>${esc(entryLabel(e))}</b><i>${esc(e.s)} · ${new Date(e.t).toLocaleString('es',{dateStyle:'short',timeStyle:'short'})}</i>${e.n?`<i style="color:var(--tx)">“${esc(e.n)}”</i>`:''}</div><button class="sm" data-n="${i}">✎</button><button class="sm" data-g="${i}">Ir</button><button class="sm" data-x="${i}">✕</button></div>`).join('')||'<p class="note">Aún no hay registros.</p>'}</div>`;
+  $('#anon').onchange=e=>{D.anon=e.target.checked;saveD();refresh()};$('#favF').onclick=()=>{el.dataset.fav=favOnly?'0':'1';renderHist()};
+  $('#clr').onclick=()=>{if(confirm('¿Borrar la bitácora de este navegador?')){D.h=[];saveD();renderHist()}};
+  el.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{const e=D.h[+b.dataset.f];e.f=e.f?0:1;saveD();renderHist()});
+  el.querySelectorAll('[data-n]').forEach(b=>b.onclick=()=>{const e=D.h[+b.dataset.n],v=prompt('Nota:',e.n||'');if(v!==null){e.n=v.slice(0,120);saveD();renderHist()}});
+  el.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>{D.h.splice(+b.dataset.x,1);saveD();renderHist()});
+  el.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{const e=D.h[+b.dataset.g];if(mode!=='map')exitToMap();const st=e.k!=='m'&&starFromSeed(e.s);if(st){selectStar(st,true);return}gotoSeed(e.s)});
+}
+function gotoSeed(s){
+  const p=parseSeed(s);if(p.err){toast(esc(p.err));return false}if(mode!=='map')exitToMap();
+  const c=cellOf(p.loc),g=cellCenterG(c);if(c.depth>=9){const st=starInCell(c);if(st){selectStar(st,true);record('m',p.loc,true);return true}}
+  flyTo(g[0],g[1],g[2],clamp(c.size*.6,1.5,2500));record('m',p.loc,true);return true;
+}
+function renderNav(){
+  const el=$('#p-nav');ACTS=[];
+  el.innerHTML=`<div class="kick">NAVEGAR LA CARTA</div><p class="note">La cámara de la carta es libre y no tiene límites; tu nave sólo se mueve con saltos y recursos.</p>
+  <h3>Destinos del mapa</h3><div class="lst">${ANCHSTARS.map(s=>`<div class="item">${'<span style="color:'+(infected(s)&&opt.pet?'#ff3b5c':'#fff')+'">●</span>'}<div class="m"><b>${esc(s.anchor.name)}</b><i>${fmtLen(Math.hypot(s.gx,s.gy,s.gz))} del Sol</i></div>${A('Ver',()=>selectStar(s,true))}</div>`).join('')}</div>
+  <h3>Por coordenadas</h3><div class="field"><label>x (al)</label><input id="cx" type="number" step="any" value="${cam.fx.toFixed(2)}"></div><div class="field"><label>y (al)</label><input id="cy" type="number" step="any" value="${cam.fy.toFixed(2)}"></div><div class="field"><label>z (al)</label><input id="cz" type="number" step="any" value="${cam.fz.toFixed(2)}"></div>
+  <div class="row"><button class="pri" id="cgo">Ir</button><button id="rnd2">🎲 Lugar aleatorio</button></div>
+  <h3>Cómo leer una semilla</h3><p class="note"><b>CABECERA-DETALLE</b>. La cabecera (A … Z, AA, AB, AC … AAA …) numera sectores de ${SEC} al en capas alrededor del Sol; crece al alejarte, así que no hay borde. Cada carácter de detalle (0-9, A-Q) afina la posición 3 veces por eje: 3 caracteres ≈ ${fmtLen(SEC/27)}, 6 ≈ ${fmtLen(SEC/729)}, 14 identifican una estrella.</p>
+  <p class="note">Controles: arrastrar = orbitar · Shift/botón derecho/dos dedos = desplazar · rueda o pellizco = zoom · WASD/flechas = volar · Q/E = bajar/subir · Inicio = tu nave · M = panel · Intro = iniciar viaje.</p>`;
+  bindActs(el);
+  $('#cgo').onclick=()=>{const v=['#cx','#cy','#cz'].map(s=>parseFloat($(s).value));if(v.some(n=>!isFinite(n)||Math.abs(n)>1e6)){toast('Coordenadas fuera de rango (±1 000 000 al).');return}if(mode!=='map')exitToMap();flyTo(v[0],v[1],v[2],10)};
+  $('#rnd2').onclick=randomPlace;
+}
+function randomPlace(){const r=Math.random,l=mkLocXYZ(Math.round((r()-.5)*16),Math.round((r()-.5)*16),Math.round((r()-.5)*4),Array.from({length:4},()=>DETAIL[r()*27|0]).join(''));gotoSeed(seedStr(l))}
+function copy(txt,ok){(navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>toast(esc(ok))).catch(()=>prompt('Copia manualmente:',txt))}
 
-/* ═════════ Compartir: enlace + QR ═════════ */
+/* ═════════ Compartir: enlace, QR y partida ═════════ */
 function baseUrl(){const b=(D.base||'').trim();if(b)return b.split('#')[0];return /^https?:/.test(location.protocol)?location.href.split('#')[0]:''}
 const b64u=u8=>{let s='';for(let i=0;i<u8.length;i+=8192)s+=String.fromCharCode.apply(null,u8.subarray(i,i+8192));return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')};
 const unb64u=s=>{s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';const bin=atob(s),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u};
 async function pipe(u8,Ctor){const s=new Ctor('deflate-raw'),w=s.writable.getWriter();w.write(u8).catch(()=>{});w.close().catch(()=>{});return new Uint8Array(await new Response(s.readable).arrayBuffer())}
+const KS=STATS.map(s=>s[0]);
 function snapshot(maxN){
-  const sh=D.ship;
-  return{v:2,n:D.n||'',c:seedStr(loc),sh:[sh.d,sh.n||'',sh.c1,sh.c2],sp:D.sp,cm:[+cam.yaw.toFixed(3),+cam.pitch.toFixed(3),+cam.zoom.toFixed(3)],op:[opt.route?1:0,opt.color?1:0,opt.spin?1:0,D.anon?1:0],b:D.base||'',
+  const sh=D.ship,s=D.st;
+  return{v:3,n:D.n||'',c:seedStr(focusLoc(14)),sh:[sh.d,sh.n||'',sh.c1,sh.c2],sp:D.sp,
+    st:[+s.fuel.toFixed(2),Math.round(s.prov),s.extra|0,Math.round(s.hull),Math.round(s.min),+s.days.toFixed(1),+s.yrs.toFixed(3),s.jumps,+s.ly.toFixed(2)],
+    cw:D.crew.map(m=>[m.nm,m.sp,m.role,KS.map(k=>m.s[k]),m.tr,Math.round(m.hp),Math.round(m.mor),m.xp,m.lv,m.st==='perdido'?1:0,m.bio]),
+    f:[D.hib?1:0,D.cr?1:0,D.q|0,D.anon?1:0],ex:D.ex,sc:Object.keys(D.scan),ds:Object.keys(D.disc),
+    cm:[cam.fx,cam.fy,cam.fz,cam.R,cam.yaw,cam.pitch].map(v=>+v.toFixed(3)),op:[opt.color?1:0,opt.spin?1:0,opt.nav?1:0,opt.pet?1:0],b:D.base||'',
     h:D.h.slice(-maxN).map(e=>[e.s,Math.round(e.t/1000).toString(36),e.k,e.f?1:0,e.n||''])};
 }
-async function encodeState(maxN){
-  const raw=new TextEncoder().encode(JSON.stringify(snapshot(maxN)));
-  if(typeof CompressionStream!=='undefined')return 'z'+b64u(await pipe(raw,CompressionStream));return 'p'+b64u(raw);
-}
 function normState(st){
-  if(!st||st.v!==2||!Array.isArray(st.h))throw new Error('formato');
-  st.h=st.h.map(a=>({s:String(a[0]||''),t:parseInt(a[1],36)*1000,k:a[2]==='s'?'s':'m',f:a[3]?1:0,n:String(a[4]||'').slice(0,120)}));
+  if(!st||(st.v!==2&&st.v!==3)||!Array.isArray(st.h))throw new Error('formato');
+  st.h=st.h.map(a=>({s:String(a[0]||''),t:parseInt(a[1],36)*1000,k:['m','s','j'].includes(a[2])?a[2]:'m',f:a[3]?1:0,n:String(a[4]||'').slice(0,120)})).filter(e=>parseSeed(e.s).loc);
   if(Array.isArray(st.sh))st.ship=cleanShip({d:st.sh[0],n:st.sh[1],c1:st.sh[2],c2:st.sh[3]});
-  if(st.sp&&!parseSeed(st.sp).loc)delete st.sp;
+  if(st.sp&&!starFromSeed(st.sp))delete st.sp;
+  if(st.v===3){const a=st.st,num=(v,d)=>isFinite(+v)?+v:d;
+    st.game={fuel:Math.max(0,num(a[0],0)),prov:Math.max(0,num(a[1],0)),extra:Math.max(0,num(a[2],0)|0),hull:clamp(num(a[3],100),0,100),min:Math.max(0,num(a[4],0)),days:num(a[5],0),yrs:num(a[6],0),jumps:num(a[7],0)|0,ly:num(a[8],0)};
+    st.crew=(st.cw||[]).slice(0,12).map(c=>({id:Math.random().toString(36).slice(2),nm:String(c[0]).slice(0,40),sp:SPEMO[c[1]]?c[1]:'Zorro',role:ROLES[c[2]]?c[2]:'pil',s:Object.fromEntries(KS.map((k,i)=>[k,clamp(+((c[3]||[])[i])||3,1,12)])),
+      tr:TRAITS[c[4]]?c[4]:'Curioso',hp:clamp(+c[5]||100,0,100),mor:clamp(+c[6]||70,0,100),xp:+c[7]||0,lv:clamp(+c[8]||1,1,20),st:c[9]?'perdido':'ok',bio:String(c[10]||'').slice(0,200)}));
+    const f=st.f||[];st.flags={hib:f[0]?1:0,cr:f[1]?1:0,q:clamp(f[2]|0,0,QUESTS.length),anon:!!f[3]};
+    st.ex=st.ex&&typeof st.ex==='object'?Object.fromEntries(Object.entries(st.ex).slice(0,5000).map(([k,v])=>[String(k).slice(0,80),+v|0])):{};
+    st.scan=Object.fromEntries((st.sc||[]).slice(0,5000).map(k=>[String(k).slice(0,80),1]));st.disc=Object.fromEntries((st.ds||[]).slice(0,5000).map(k=>[String(k).slice(0,40),1]));}
   return st;
 }
-async function decodeState(tok){
-  const kind=tok[0],u8=unb64u(tok.slice(1)),raw=kind==='z'?await pipe(u8,DecompressionStream):u8;
-  return normState(JSON.parse(new TextDecoder().decode(raw)));
-}
-/* Partida: archivo binario sin formato legible → "ADA" + versión + bandera + datos comprimidos (deflate) + CRC32 */
+async function encodeState(maxN){const raw=new TextEncoder().encode(JSON.stringify(snapshot(maxN)));if(typeof CompressionStream!=='undefined')return 'z'+b64u(await pipe(raw,CompressionStream));return 'p'+b64u(raw)}
+async function decodeState(tok){const kind=tok[0],u8=unb64u(tok.slice(1)),raw=kind==='z'?await pipe(u8,DecompressionStream):u8;return normState(JSON.parse(new TextDecoder().decode(raw)))}
+/* Partida: binario «ADA» + versión + bandera + deflate + CRC32 */
 const CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
 const crc32=u=>{let c=-1;for(let i=0;i<u.length;i++)c=CRC[(c^u[i])&255]^(c>>>8);return(c^-1)>>>0};
-async function packFile(){
-  const raw=new TextEncoder().encode(JSON.stringify(snapshot(D.h.length)));let flag=0,body=raw;
-  if(typeof CompressionStream!=='undefined'){body=await pipe(raw,CompressionStream);flag=1}
-  const out=new Uint8Array(5+body.length+4);out.set([0x41,0x44,0x41,2,flag]);out.set(body,5);new DataView(out.buffer).setUint32(5+body.length,crc32(raw));return out;
-}
-async function unpackFile(buf){
-  const u=new Uint8Array(buf);if(u.length<10||u[0]!==0x41||u[1]!==0x44||u[2]!==0x41)throw new Error('magic');
-  const body=u.subarray(5,u.length-4),raw=u[4]===1?await pipe(body,DecompressionStream):body;
-  if(new DataView(u.buffer,u.byteOffset).getUint32(u.length-4)!==crc32(raw))throw new Error('crc');
-  return normState(JSON.parse(new TextDecoder().decode(raw)));
-}
-async function downloadSave(){
-  const u=await packFile(),blob=new Blob([u],{type:'application/octet-stream'}),a=document.createElement('a'),d=new Date(),p=n=>String(n).padStart(2,'0');
-  a.href=URL.createObjectURL(blob);a.download=`ad-astra-${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}.partida`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),3000);
-  return u.length;
-}
-async function loadSaveFile(f){
-  try{offerImport(await unpackFile(await f.arrayBuffer()))}catch(e){alert(e.message==='magic'?'Ese archivo no es una partida de Ad Astra.':'La partida está dañada (falló la verificación).')}
-}
-const cleanShip=s=>({d:SHIPS[s.d]?s.d:'corbeta',n:String(s.n||'').slice(0,24),c1:/^#[0-9a-f]{6}$/i.test(s.c1)?s.c1:DEF_SHIP.c1,c2:/^#[0-9a-f]{6}$/i.test(s.c2)?s.c2:DEF_SHIP.c2});
+async function packFile(){const raw=new TextEncoder().encode(JSON.stringify(snapshot(D.h.length)));let flag=0,body=raw;if(typeof CompressionStream!=='undefined'){body=await pipe(raw,CompressionStream);flag=1}
+  const out=new Uint8Array(5+body.length+4);out.set([0x41,0x44,0x41,3,flag]);out.set(body,5);new DataView(out.buffer).setUint32(5+body.length,crc32(raw));return out}
+async function unpackFile(buf){const u=new Uint8Array(buf);if(u.length<10||u[0]!==0x41||u[1]!==0x44||u[2]!==0x41)throw new Error('magic');
+  const body=u.subarray(5,u.length-4),raw=u[4]===1?await pipe(body,DecompressionStream):body;if(new DataView(u.buffer,u.byteOffset).getUint32(u.length-4)!==crc32(raw))throw new Error('crc');
+  return normState(JSON.parse(new TextDecoder().decode(raw)))}
+async function downloadSave(){const u=await packFile(),blob=new Blob([u],{type:'application/octet-stream'}),a=document.createElement('a'),d=new Date(),p=n=>String(n).padStart(2,'0');
+  a.href=URL.createObjectURL(blob);a.download=`ad-astra-${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}.partida`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),3000);return u.length}
+async function loadSaveFile(f){try{offerImport(await unpackFile(await f.arrayBuffer()))}catch(e){alert(e.message==='magic'?'Ese archivo no es una partida de Ad Astra.':'La partida está dañada (falló la verificación).')}}
 async function buildShare(){
   const base=baseUrl();let n=D.h.length,tok=await encodeState(n),full=base+'#d='+tok,qrText=full,qrN=n,qr=null;
   const tryQr=t=>{const q=qrcode(0,'L');q.addData(t,'Byte');q.make();return q};
-  while(true){try{qr=tryQr(qrText);break}catch(e){if(qrN<=0){qr=null;break}qrN=Math.floor(qrN*.8);tok=await encodeState(qrN);qrText=base+'#d='+tok}}
+  while(true){try{qr=tryQr(qrText);break}catch(e){if(qrN<=0){qr=null;break}qrN=Math.floor(qrN*.7);tok=await encodeState(qrN);qrText=base+'#d='+tok}}
   return{full,fullLen:full.length,qr,qrN,total:n,base};
 }
 function drawQR(canvas,qr){const n=qr.getModuleCount(),m=Math.max(2,Math.floor(300/(n+8)));canvas.width=canvas.height=(n+8)*m;const c=canvas.getContext('2d');
   c.fillStyle='#fff';c.fillRect(0,0,canvas.width,canvas.height);c.fillStyle='#000';for(let r=0;r<n;r++)for(let k=0;k<n;k++)if(qr.isDark(r,k))c.fillRect((k+4)*m,(r+4)*m,m,m)}
 async function renderShare(){
   const el=$('#p-share');
-  el.innerHTML=`<div class="field"><label>Apodo</label><input id="nick" maxlength="24" placeholder="tu nombre de explorador" value="${esc(D.n||'')}"></div>
-  <div class="field"><label>URL pública</label><input id="base" placeholder="https://…/ (para que el QR abra la herramienta)" value="${esc(D.base||'')}"></div><div id="shareBody" class="note">Generando…</div>`;
-  $('#nick').onchange=e=>{D.n=e.target.value.slice(0,24);saveD();renderShare()};$('#base').onchange=e=>{D.base=e.target.value.trim();saveD();renderShare()};
-  const info=await buildShare();if(tab!=='share')return;
-  $('#shareBody').innerHTML=`${info.base?'':'<p class="bad">Estás abriendo el archivo localmente: escribe arriba la URL donde publiques la herramienta (p. ej. GitHub Pages) para que el enlace y el QR funcionen en otros dispositivos.</p>'}
-  <h3>Historial + nave + datos en un enlace</h3><textarea id="lnk" readonly>${esc(info.full)}</textarea>
-  <div class="row"><button class="pri" id="cpl">Copiar enlace</button><span class="dim">${info.total} registros · ${info.fullLen.toLocaleString()} caracteres</span></div>
-  <h3>QR</h3>${info.qr?`<div id="qrBox"><canvas id="qr"></canvas></div><div class="row"><button id="dlq">Descargar PNG</button></div>
-   <p class="note ${info.qrN<info.total?'bad':''}">${info.qrN<info.total?`El QR tiene capacidad limitada: incluye los últimos ${info.qrN} de ${info.total} registros (y tu nave). El enlace y el archivo llevan todo.`:'Incluye todo. Escanéalo con la cámara del otro dispositivo.'}</p>`:'<p class="bad">El QR no alcanza ni con el historial vacío (URL demasiado larga). Usa el enlace.</p>'}
-  <h3>Partida (archivo)</h3><p class="note">Un archivo binario comprimido con toda tu sesión: bitácora, nave y su posición, apodo, cámara y opciones. Pásalo a otro dispositivo y cárgalo aquí (o arrástralo a la ventana).</p>
+  el.innerHTML=`<div class="kick">TRASLADAR LA PARTIDA</div><div class="field"><label>Apodo</label><input id="nick" maxlength="24" placeholder="tu nombre de capitán" value="${esc(D.n||'')}"></div>
+  <div class="field"><label>URL pública</label><input id="base" placeholder="https://…/ (para que el QR abra la carta)" value="${esc(D.base||'')}"></div>
+  <h3>Partida (archivo)</h3><p class="note">Archivo binario comprimido con toda la sesión: nave, recursos, tripulación, misiones, descubrimientos, bitácora y cámara. Cárgalo en otro dispositivo o arrástralo a la ventana.</p>
   <div class="row"><button class="pri" id="dls">⬇ Descargar partida</button><button id="lds">Cargar partida…</button><input type="file" id="ldf" hidden></div><div id="saveMsg" class="note"></div>
-  <h3>Solo esta ubicación</h3><div class="row"><button id="cps">Copiar enlace a ${esc(seedStr(loc))}</button></div>`;
-  if(info.qr)drawQR($('#qr'),info.qr);
-  $('#cpl').onclick=()=>copy(info.full,'Enlace copiado');$('#cps').onclick=()=>copy(baseUrl()+'#s='+encodeURIComponent(seedStr(loc)),'Enlace copiado');
-  if($('#dlq'))$('#dlq').onclick=()=>{const a=document.createElement('a');a.download='ad-astra-exploracion.png';a.href=$('#qr').toDataURL('image/png');a.click()};
-  $('#dls').onclick=async()=>{const n=await downloadSave();$('#saveMsg').textContent=`Partida descargada (${(n/1024).toFixed(1)} KB, ${D.h.length} registros).`;$('#saveMsg').className='note ok'};
+  <div id="shareBody" class="note">Generando enlace…</div>`;
+  $('#nick').onchange=e=>{D.n=e.target.value.slice(0,24);saveD();renderShare()};$('#base').onchange=e=>{D.base=e.target.value.trim();saveD();renderShare()};
+  $('#dls').onclick=async()=>{const n=await downloadSave();$('#saveMsg').textContent=`Partida descargada (${(n/1024).toFixed(1)} KB).`;$('#saveMsg').className='note ok'};
   $('#lds').onclick=()=>$('#ldf').click();$('#ldf').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)loadSaveFile(f)};
+  const info=await buildShare();if(tab!=='share'||!$('#shareBody'))return;
+  $('#shareBody').innerHTML=`${info.base?'':'<p class="bad">Estás abriendo el archivo localmente: escribe arriba la URL donde publiques la carta (p. ej. GitHub Pages) para que el enlace y el QR funcionen en otros dispositivos.</p>'}
+  <h3>Enlace con toda la partida</h3><textarea id="lnk" readonly>${esc(info.full)}</textarea><div class="row"><button class="pri" id="cpl">Copiar enlace</button><span class="dim">${info.fullLen.toLocaleString()} caracteres</span></div>
+  <h3>QR</h3>${info.qr?`<div id="qrBox"><canvas id="qr"></canvas></div><div class="row"><button id="dlq">Descargar PNG</button></div><p class="note ${info.qrN<info.total?'bad':''}">${info.qrN<info.total?`Por capacidad, el QR lleva la partida completa pero sólo los últimos ${info.qrN} de ${info.total} registros de bitácora.`:'Incluye toda la partida.'}</p>`:'<p class="bad">La partida no cabe en un QR. Usa el archivo o el enlace.</p>'}`;
+  if(info.qr)drawQR($('#qr'),info.qr);$('#cpl').onclick=()=>copy(info.full,'Enlace copiado');
+  if($('#dlq'))$('#dlq').onclick=()=>{const a=document.createElement('a');a.download='ad-astra-partida.png';a.href=$('#qr').toDataURL('image/png');a.click()};
 }
-function syncViewBtns(){$('#routeBtn').classList.toggle('on',opt.route);$('#colorBtn').classList.toggle('on',!opt.color);$('#spinBtn').classList.toggle('on',opt.spin);saveView()}
-function closeModal(){$('#modal').style.display='none'}
 function offerImport(st){
-  const valid=st.h.filter(e=>parseSeed(e.s).loc),m=$('#modal'),b=$('#modalBox');
-  b.innerHTML=`<h2>Exploración recibida</h2><p>${st.n?`De <b>${esc(st.n)}</b>: `:''}<b>${valid.length}</b> registros${st.c?` · última posición <span class="seed" style="font-size:14px">${esc(st.c)}</span>`:''}.</p>
-  ${st.ship?`<div style="display:flex;gap:10px;align-items:center">${shipImg(st.ship.d,st.ship.c1,st.ship.c2,48)}<span>Nave: <b>${esc(st.ship.n||SHIPS[st.ship.d].n)}</b></span></div>`:''}
-  <p class="note">Tu bitácora actual tiene ${D.h.length} registros.</p>
-  <div class="row"><button class="pri" id="mMerge">Fusionar</button><button id="mRep">Reemplazar la mía</button><button id="mNo">Cancelar</button></div>`;
-  m.style.display='flex';
-  const finish=(rep)=>{if(st.n&&(!D.n||rep))D.n=st.n;if(st.ship&&(rep||!D.ship.n&&D.ship.d===DEF_SHIP.d&&D.ship.c1===DEF_SHIP.c1&&D.ship.c2===DEF_SHIP.c2)){D.ship=st.ship;if(st.sp)D.sp=st.sp}
-    if(rep){if(Array.isArray(st.cm))setCam(+st.cm[0]||0,clamp(+st.cm[1]||0,-1.5,1.5),clamp(+st.cm[2]||2.3,.7,9));if(Array.isArray(st.op)){opt.route=!!st.op[0];opt.color=st.op[1]!==0;opt.spin=st.op[2]!==0&&!RM;D.anon=!!st.op[3];syncViewBtns()}if(st.b)D.base=st.b}
-    D.c=st.c||D.c;saveD();closeModal();const p=parseSeed(st.c);if(p.loc)go(p.loc,{animate:false});renderHist();if(tab==='share')renderShare();if(tab==='ship')renderShip()};
-  $('#mMerge').onclick=()=>{const seen=new Set(D.h.map(e=>e.s+'|'+e.t));for(const e of valid)if(!seen.has(e.s+'|'+e.t))D.h.push(e);D.h.sort((a,b)=>a.t-b.t);if(D.h.length>3000)D.h.splice(0,D.h.length-3000);finish(false)};
-  $('#mRep').onclick=()=>{if(D.h.length&&!confirm('Esto sustituye tu bitácora y tu nave locales. ¿Seguro?'))return;D.h=valid.sort((a,b)=>a.t-b.t);finish(true)};
-  $('#mNo').onclick=closeModal;
+  modalOpen=true;const g=st.game,sh=st.ship;
+  showModal(`<div class="kick">PARTIDA RECIBIDA</div><h2>${st.n?esc(st.n):'Capitán sin nombre'}</h2>
+  ${sh?`<div class="dh">${shipImg(sh.d,sh.c1,sh.c2,48)}<div><b>${esc(sh.n||SHIPS[sh.d].n)}</b><div class="note">${SHIPS[sh.d].n}${st.sp?' · en '+esc(starName(starFromSeed(st.sp))):''}</div></div></div>`:''}
+  ${g?`<div class="kv"><span>Tripulación</span><span>${(st.crew||[]).filter(m=>m.st!=='perdido').length+g.extra}</span><span>Saltos</span><span>${g.jumps} · ${fmtLen(g.ly)}</span><span>Sistemas</span><span>${Object.keys(st.disc||{}).length}</span><span>Bitácora</span><span>${st.h.length} registros</span></div>`:`<p class="note">${st.h.length} registros de bitácora (formato antiguo).</p>`}
+  <div class="row"><button class="pri" id="mFull">Cargar partida completa</button><button id="mMerge">Sólo fusionar bitácora</button><button id="no">Cancelar</button></div>`);
+  const done=()=>{modalOpen=false;closeModal();_sp='';const p=shipStar();if(!(Array.isArray(st.cm)&&st.v===3))flyTo(p.gx,p.gy,p.gz,20);selStar=null;route=null;mode='map';SYS=null;surf=null;refresh();toast('Partida cargada.')};
+  $('#mFull').onclick=()=>{if(D.h.length&&!confirm('Esto sustituye tu partida local. ¿Seguro?'))return;
+    D.h=st.h.sort((a,b)=>a.t-b.t);if(st.n)D.n=st.n;if(st.ship)D.ship=st.ship;if(st.sp)D.sp=st.sp;if(st.b)D.base=st.b;
+    if(g){D.st=g;D.crew=st.crew;D.hib=st.flags.hib;D.cr=st.flags.cr;D.q=st.flags.q;D.anon=st.flags.anon;D.ex=st.ex;D.scan=st.scan;D.disc=st.disc}
+    if(Array.isArray(st.cm)&&st.cm.length===6&&st.cm.every(v=>isFinite(v))){[tg.fx,tg.fy,tg.fz,tg.R,tg.yaw,tg.pitch]=st.cm.map(Number);Object.assign(cam,tg)}
+    if(Array.isArray(st.op)&&st.v===3){opt.color=!!st.op[0];opt.spin=!!st.op[1]&&!RM;opt.nav=!!st.op[2];opt.pet=!!st.op[3]}
+    saveD();done()};
+  $('#mMerge').onclick=()=>{const seen=new Set(D.h.map(e=>e.s+'|'+e.t));for(const e of st.h)if(!seen.has(e.s+'|'+e.t))D.h.push(e);D.h.sort((a,b)=>a.t-b.t);if(D.h.length>3000)D.h.splice(0,D.h.length-3000);
+    if(st.disc)Object.assign(D.disc,st.disc);saveD();done()};
+  $('#no').onclick=()=>{modalOpen=false;closeModal()};
 }
 async function handleHash(){
   const h=location.hash.slice(1),m=h.match(/^(s|d)=(.*)$/);if(!m)return;history.replaceState(null,'',location.pathname+location.search);
-  if(m[1]==='s')teleportStr(decodeURIComponent(m[2]));else{try{offerImport(await decodeState(m[2]))}catch(e){alert('El enlace de exploración está incompleto o dañado.')}}
+  if(m[1]==='s')gotoSeed(decodeURIComponent(m[2]));else{try{offerImport(await decodeState(m[2]))}catch(e){alert('El enlace de la partida está incompleto o dañado.')}}
 }
 
 /* ═════════ Arranque ═════════ */
-$('#seedForm').addEventListener('submit',e=>{e.preventDefault();teleportStr($('#seedIn').value);$('#seedIn').blur()});
-$('#rndBtn').onclick=randomSeed;
-$('#modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
-$('#ctr').onclick=centerOnShip;syncViewBtns();
+$('#seedForm').addEventListener('submit',e=>{e.preventDefault();gotoSeed($('#seedIn').value);$('#seedIn').blur()});
+$('#rndBtn').onclick=randomPlace;
 addEventListener('dragover',e=>{if(e.dataTransfer&&[...e.dataTransfer.types].includes('Files'))e.preventDefault()});
 addEventListener('drop',e=>{const f=e.dataTransfer&&e.dataTransfer.files[0];if(f){e.preventDefault();loadSaveFile(f)}});
-resize();curList=cellList(cell);syncUI();setTab('info');requestAnimationFrame(frame);scheduleRecord();handleHash();
-setTimeout(()=>{const b=$('#boot');if(b){b.classList.add('out');setTimeout(()=>b.remove(),700)}},RM?0:1300);
-window.__adastra={parseSeed,cellOf,posToLoc,globalToLoc,seedStr,sToXYZ,xyzToS,sToHead,headToS,starsIn,genSystem,ANCHSTARS,starLoc,starInCell,encodeState,decodeState,get loc(){return loc},go,D:()=>D,teleportStr,enterSystem,SHIPS,setTab,get cell(){return cell},centerOnShip,moveShipTo,packFile,unpackFile,get flight(){return flight},get warp(){return warp}};
+resize();toggleDrawer(innerWidth>1100);setTab('carta');refresh();requestAnimationFrame(frame);handleHash();
+setTimeout(()=>{const b=$('#boot');if(b){b.classList.add('out');setTimeout(()=>b.remove(),700)}
+  if(!D.intro){D.intro=1;saveD();queueDialog({t:'Corporación Ad Astra · Orden de misión',who:alive()[0]||null,tx:`Capitán: el Sol pierde brillo y nadie sabe por qué, salvo que hay algo —lo llaman astrófago— alimentándose de su luz. Tau Ceti, a 11,9 años luz, parece inmune. Tu nave y tu tripulación están listas. Cada salto cuesta astrófago, provisiones y años. Elige bien.`,res:'Primera misión: '+QUESTS[0].t,next:'Consejo: selecciona una estrella en la carta para calcular el salto.'})}
+},RM?0:1400);
+window.__adastra={D:()=>D,cam,tg,selectStar,startTravel,get travel(){return travel},get route(){return route},ANCHSTARS,enterSystem,land,planetInfo,get SYS(){return SYS},openExpedition,packFile,unpackFile,gotoSeed,shipStar,A_BY,questEvent,crewCount,get mode(){return mode},setTab,exitToMap,centerOnShip};
 })();
 </script>
 </body>
