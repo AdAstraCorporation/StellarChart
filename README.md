@@ -30,9 +30,35 @@ Las estrellas se generan de forma determinista; el vecindario del Sol usa RA/Dec
 - Misiones con historia: Primer salto → La línea Petrova → Destino: Tau Ceti → Superficie de Adrian → El eco de 40 Eridani…
 - Modo creativo y rescate si te quedas varado.
 
+## Plan de viaje
+Pestaña «Plan»: paradas en orden (estrellas o puntos libres) con tareas en cada una: recolectar astrófago, descansar,
+reparar, escanear, aterrizar y explorar un planeta, contactar una civilización o reabastecer en la Tierra. Calcula las rutas
+entre paradas, estima combustible y provisiones con las tareas incluidas y lo ejecuta solo (pausando en los eventos).
+
+## Civilizaciones y lore
+Cada planeta puede albergar una civilización según sus condiciones (zona habitable, atmósfera, gravedad, tipo de estrella) y
+la semilla: especie, nivel tecnológico (de ruinas extintas a interestelar), gobierno, disposición, población, valores e
+historia generada con datos del entorno (planetas vecinos, estrellas cercanas). Se puede contactar (tirada de Diplomacia),
+comerciar, aprender y reclutar según la reputación. Cada sistema tiene además su propio lore.
+
+## Sesión compartida
+Pestaña «Sesión»: el anfitrión crea una sala con código (o enlace `#sala=CÓDIGO`) y su navegador guarda la partida. Cada jugador
+se une **subiendo su ficha de Members** (PNG del reverso con el QR, o el enlace `#C…`) y maneja su propio personaje. Viajes,
+acciones, expediciones, planes y eventos se deciden por votación (mayoría; 90 s, 60 s en eventos). Hay chat y votaciones libres.
+Usa WebRTC con el servidor de enlace gratuito de PeerJS; `?peer=host:puerto` permite usar uno propio.
+
+## Conexión con Members
+- Lee credenciales v4 de Members (`#C…`, también desde la imagen del QR con jsQR) y su campo de rol
+  `R1;rol=…;ras=…;s=pil,ing,cie,med,seg,soc;lv=…;xp=…;hp=…;mo=…;t=semilla.n.total`.
+- Al terminar («🏁 Terminar partida y actualizar fichas») genera para cada personaje un enlace
+  `https://adastracorporation.github.io/Membership/#X…` (deflate-raw + base43 de `{"v":1,"id","n","e","x","res"}`) con sus
+  estadísticas actualizadas; Members pide la credencial actual y la contraseña de la crew y emite la tarjeta renovada.
+
 ## Partida
 - Se guarda en `localStorage`. «Partida» descarga un archivo binario comprimido (`ADA` + deflate + CRC32) con toda la sesión;
   también hay enlace y QR. Al cargar se elige partida completa o sólo fusionar la bitácora.
 - Para que el enlace y el QR funcionen en otros dispositivos, publica el archivo (p. ej. GitHub Pages) y escribe la URL.
+
+Librerías incluidas: [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) (MIT), [jsQR](https://github.com/cozmo/jsQR) (Apache-2.0), [PeerJS](https://github.com/peers/peerjs) (MIT).
 
 QR: [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) (MIT), incluido en `index.html`.
