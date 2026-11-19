@@ -16,6 +16,17 @@ En *Settings → Pages* la fuente debe ser **GitHub Actions**.
 - `src/`: código fuente de la Carta (`head.html` + módulos JS) · `vendor/`: qrcode-generator, jsQR, PeerJS.
 - `tools/build.py`: genera `carta/index.html` (archivo único). Ejecuta `python3 tools/build.py` tras editar `src/`.
 
+## Director de partida
+- **Crear partida** (pestaña Sesión): el anfitrión es el director. Puede **fijar la tripulación** con una credencial; sólo entran
+  quienes suban una credencial de esa tripulación (el resto es rechazado). El logo de la tripulación se toma de la credencial
+  y se muestra en la cabecera y junto a la nave; las fotos de los personajes se usan en sus fichas.
+- **Decisiones por rol**: cada evento lo decide el jugador cuyo personaje tiene el rol de la habilidad en juego (p. ej. el de
+  Ingeniería en una avería); el director puede imponer otra opción. También puede hacer que vote toda la tripulación o decidir él.
+- **Rumbos**: cada viaje o plan pregunta al director si lo decide él o lo somete a votación de todos.
+- **📜 Registro**: ventana flotante, movible y ocultable con todo lo que pasa (eventos, tiradas, votos, chat, llegadas).
+- **🖥 Doble pantalla**: el panel con métricas e información se abre en otra ventana (para otro monitor) y esta queda con el
+  mapa y los mensajes de la partida.
+
 ## Fin de misión → Credenciales
 Al cerrar una misión, la Carta muestra **un QR general** (enlace `credenciales/#X…`, versión 2). Cada jugador lo escanea
 desde Credenciales («Actualizar → Escanear QR de la misión») y después su credencial: se renueva con estadísticas, nivel,

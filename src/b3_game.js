@@ -1,12 +1,13 @@
 
 /* ═════════ Avisos y diálogos ═════════ */
 let toastT;
-function toast(h,bl,fn){const t=$('#toast');t.innerHTML=h+(bl?` <button class="sm pri" id="tbtn">${esc(bl)}</button>`:'');t.classList.remove('show');void t.offsetWidth;t.classList.add('show');
+function toast(h,bl,fn){logDM(h);const t=$('#toast');t.innerHTML=h+(bl?` <button class="sm pri" id="tbtn">${esc(bl)}</button>`:'');t.classList.remove('show');void t.offsetWidth;t.classList.add('show');
   if(bl)$('#tbtn').onclick=()=>{t.classList.remove('show');fn()};clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),bl?10000:5200)}
 function showModal(html){$('#modalBox').innerHTML=html;$('#modal').style.display='flex'}
 function closeModal(){$('#modal').style.display='none'}
 const dq=[];
 function queueDialog(d){
+  if(!d.ev)logDM(`${d.t}: ${d.tx||''} ${d.res||''}`,'dlg');
   if(NET&&NET.role==='host'&&!d.ev&&!d.local)bcast({t:'dialog',d:{t:d.t,tx:d.tx,res:d.res||'',next:d.next||'',who:d.who?{nm:d.who.nm,sp:d.who.sp,role:d.who.role}:null}});
   dq.push(d);if(!modalOpen)nextDialog();
 }
@@ -17,20 +18,24 @@ function nextDialog(){
     $('#dOk').onclick=()=>{d.done&&d.done();nextDialog()};return}
   const ev=d.ev,who=pick(alive())||null,tx=typeof ev.tx==='function'?ev.tx(d.ctx):ev.tx;
   const optLab=o=>o.l+(o.k?` · ${STATN[o.k]} ${o.dc} · ${Math.round(chance(o.k,o.dc)*100)}%`:'');
-  const voting=NET&&NET.role==='host'&&NET.conns.size>0;let vid=null;
+  const voting=NET&&NET.role==='host'&&NET.conns.size>0&&NET.decide!=='yo';let vid=null;logDM('Evento: '+ev.t+' — '+tx,'ev');
+  const k0=(ev.op.find(o=>o.k)||{}).k,resp=voting&&NET.decide!=='todos'&&k0?respFor(k0):null;
   const resolveOpt=i=>{
     let o=ev.op[i];if(o.need&&!o.need()){const j=ev.op.findIndex(x=>!x.need||x.need());o=ev.op[j]}
     let res,line='';
     if(o.k){const r=roll(o.k,o.dc);line=r.line;res=(r.ok?o.ok(d.ctx,r):o.ko(d.ctx,r))||'';if(r.ok)res+=gainXp(r.m,10)}else res=o.run(d.ctx)||'';
     if(D.st.hull<=0)res+=' El casco no resiste.';saveD();
+    logDM(`→ ${o.l}. ${line.replace(/<[^>]+>/g,'')} ${res}`,'ev');
     if(voting)bcast({t:'dialog',d:{t:ev.t+' · '+o.l,tx:res,res:line.replace(/<[^>]+>/g,''),who:null}});
     showModal(`<div class="dh">${portrait(who)}<div><div class="kick">RESULTADO</div><b>${esc(ev.t)}</b><div class="note">${esc(o.l)}</div></div></div>${line?`<p class="roll">${line}</p>`:''}<p class="story">${esc(res)}</p><div class="row"><button class="pri" id="dOk">Continuar</button></div>`);
     $('#dOk').onclick=()=>{if(D.st.hull<=0)rescue('El casco cedió.');d.done&&d.done();nextDialog()};
   };
   showModal(`<div class="dh">${portrait(who)}<div><div class="kick">EVENTO${voting?' · VOTACIÓN DE LA TRIPULACIÓN':''}</div><b>${esc(ev.t)}</b><div class="note">${who?esc(who.nm)+' informa':'IA de a bordo informa'}</div></div></div>
     <p class="story">${esc(tx)}</p><div class="opts">${ev.op.map((o,i)=>`<button data-o="${i}" ${o.need&&!o.need()?'disabled':''}>${esc(o.l)}${o.k?`<span class="dim"> · ${STATN[o.k]} ${o.dc} · ${Math.round(chance(o.k,o.dc)*100)}%</span>`:''}</button>`).join('')}</div><div id="vstat" class="note"></div>`);
-  if(voting){vid=createVote({kind:'ev',title:ev.t,tx,opts:ev.op.map(optLab),by:NET.me});NET.vcb[vid]=resolveOpt;$('#vstat').textContent='Vota tu opción; se decide por mayoría (60 s).'}
+  if(voting){vid=createVote({kind:'ev',title:ev.t,tx,opts:ev.op.map(optLab),by:NET.me,voters:resp?[resp.pid]:null,who:resp?`${resp.m.nm} (${resp.pl}, ${ROLES[resp.m.role]})`:''});NET.vcb[vid]=resolveOpt;
+    $('#vstat').textContent=resp&&resp.pid!==NET.me?`Decide ${resp.m.nm} (${resp.pl}, ${ROLES[resp.m.role]}). Como director puedes imponer una opción.`:resp?'Te toca decidir por tu rol.':'Vota tu opción; se decide por mayoría (60 s).'}
   $('#modalBox').querySelectorAll('[data-o]').forEach(b=>b.onclick=()=>{
+    if(vid&&resp&&resp.pid!==NET.me){forceVote(vid,+b.dataset.o);return}
     if(vid){castVote(vid,NET.me,+b.dataset.o);$('#modalBox').querySelectorAll('[data-o]').forEach(x=>x.classList.toggle('pri',x===b));$('#vstat').textContent='Voto registrado. Esperando al resto de la tripulación…';return}
     resolveOpt(+b.dataset.o)});
 }

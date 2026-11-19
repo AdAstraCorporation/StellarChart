@@ -99,6 +99,7 @@ function drawMap(now){
     ctx.save();ctx.translate(x,y);ctx.strokeStyle='rgba(120,220,255,.6)';ctx.setLineDash([2,3]);ctx.rotate(now/1500);ctx.beginPath();ctx.arc(0,0,11,0,7);ctx.stroke();ctx.restore();
     ctx.save();ctx.translate(x,y);ctx.rotate(ang+Math.PI/2);ctx.fillStyle='#78dcff';ctx.beginPath();ctx.moveTo(0,-8);ctx.lineTo(5.5,6);ctx.lineTo(0,3);ctx.lineTo(-5.5,6);ctx.closePath();ctx.fill();ctx.restore();
     ctx.fillStyle='rgba(120,220,255,.95)';ctx.font='9px ui-monospace,Menlo,monospace';ctx.textAlign='center';ctx.fillText(spaced(lab.toUpperCase()),x,y+22);shipHit={x,y,r:18};
+    const li=crewLogoImg();if(li){const s=18,k=Math.min(s/li.naturalWidth,s/li.naturalHeight),w=li.naturalWidth*k,h=li.naturalHeight*k;ctx.save();ctx.globalAlpha=.95;ctx.drawImage(li,x+14,y-14-h/2,w,h);ctx.restore()}
   }else{
     const dx=P0[0]-fx,dy=P0[1]-fy,dz=P0[2]-fz,x1=dx*c.cy-dy*c.sy,y1=dx*c.sy+dy*c.cy,Z=y1*c.sp+dz*c.cp;let vx=x1,vy=-Z;const vl=Math.hypot(vx,vy)||1;vx/=vl;vy/=vl;
     const mx=W/2-50,my=H/2-90,k=Math.min(mx/Math.max(1e-6,Math.abs(vx)),my/Math.max(1e-6,Math.abs(vy))),ex=W/2+vx*k,ey=H/2+vy*k,pu=1+.1*Math.sin(now/260);

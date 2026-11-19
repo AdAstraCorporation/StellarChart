@@ -3,7 +3,7 @@
 const SEC=240,HALF=120,SC=8,NC=30,MAXD=18,MAXHEAD=10,LY_AU=63241.077,AU_KM=149597870.7;
 const DETAIL='0123456789ABCDEFGHIJKLMNOPQ'; // 27 símbolos = 3×3×3 celdas por nivel
 const LS_KEY='adastra.explorer.v3';
-const $=s=>document.querySelector(s);
+const $=s=>document.querySelector(s)||(typeof POP!=='undefined'&&POP&&!POP.closed?POP.document.querySelector(s):null);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
 const lerp=(a,b,t)=>a+(b-a)*t;

@@ -26,6 +26,15 @@ canvas#cv{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
 #stage::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:1;background:radial-gradient(ellipse at 50% 50%,transparent 60%,rgba(0,0,0,.55) 100%)}
 /* cabecera estilo carta */
 #brand{left:18px;top:16px;max-width:330px}
+#brand .aalogo{width:22px;height:22px;vertical-align:-5px;margin-right:6px;border-radius:50%}
+.crewlogo{display:block;max-width:120px;max-height:56px;margin:8px 0 2px;object-fit:contain}
+.pt img{width:100%;height:100%;object-fit:cover}
+.dm{position:fixed;left:18px;top:220px;width:min(380px,92vw);max-height:55vh;z-index:8;background:rgba(8,10,14,.96);border:1px solid rgba(224,170,70,.6);display:none;flex-direction:column;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.dm.show{display:flex;animation:boxIn .2s ease}.dmh{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 8px;border-bottom:1px solid var(--line);cursor:move;touch-action:none;font-size:11px;letter-spacing:.12em;color:var(--amb)}
+.dmh span{display:flex;gap:4px}#dmL{overflow:auto;padding:6px 8px;font-size:11px;line-height:1.45}.dm.min #dmL{display:none}.dm.min{max-height:none}
+.dmr{padding:2px 0;border-bottom:1px dashed rgba(205,215,235,.07);color:#cdd5e0}.dmr span{color:var(--dim)}.dm-ev{color:#ffd9a0}.dm-chat{color:#bfe8ff}.dm-cmd{color:#9fe8b0}
+body.dual #drawerBtn{display:none}
+@media(max-width:860px){#dualBtn{display:none}}
 #brand .t1{display:block;font-size:15px;letter-spacing:.42em;color:#f2f5fb;text-decoration:none}#brand .t1:hover{color:var(--cy)}
 #brand .t2{font-size:12px;letter-spacing:.08em;color:#c9d1dd;margin-top:2px}
 #brand .t3{font-size:9px;letter-spacing:.24em;color:var(--dim);margin:3px 0 10px}
@@ -147,7 +156,7 @@ select{background:rgba(0,0,0,.5);border:1px solid var(--line);color:inherit;padd
 <section id="stage">
   <canvas id="cv"></canvas>
   <div class="ov" id="brand">
-    <a class="t1" href="../" title="Volver al menú">⌂ AD ASTRA</a><div class="t2">Carta de navegación estelar</div><div class="t3">SEMILLAS · ECL J2000 · SOL-CENTRADA</div>
+    <a class="t1" href="../" title="Volver al menú"><img src="../icons/logo.png" alt="" class="aalogo"> AD ASTRA</a><img id="crewLogo" class="crewlogo" alt="" hidden><div class="t2">Carta de navegación estelar</div><div class="t3">SEMILLAS · ECL J2000 · SOL-CENTRADA</div>
     <form id="seedForm" autocomplete="off"><input id="seedIn" placeholder="A-DD5PN" spellcheck="false" maxlength="48" aria-label="Semilla"><button class="pri" type="submit">IR</button><button type="button" id="rndBtn" title="Lugar aleatorio">⚄</button></form>
     <div class="info" id="info"></div>
   </div>
@@ -156,7 +165,7 @@ select{background:rgba(0,0,0,.5);border:1px solid var(--line);color:inherit;padd
   <button class="ov" id="backBtn">⤒ VOLVER</button>
   <div class="ov" id="toast"></div>
   <div class="ov" id="travel"><div class="tl" id="trTxt"></div><div class="tb"><i id="trBar"></i></div></div>
-  <div class="ov" id="views"><button data-v="sol">Sistema Solar</button><button data-v="traj">Trayectoria</button><button data-v="tau">Tau Ceti</button><button data-v="gal">Galáctica</button><button data-v="here" title="Fijar destino en el centro de la carta">⌖ Destino</button><button data-v="pilot" id="pilotBtn" title="Pilotaje libre (F)">✈ Pilotar</button></div>
+  <div class="ov" id="views"><button data-v="sol">Sistema Solar</button><button data-v="traj">Trayectoria</button><button data-v="tau">Tau Ceti</button><button data-v="gal">Galáctica</button><button data-v="here" title="Fijar destino en el centro de la carta">⌖ Destino</button><button data-v="pilot" id="pilotBtn" title="Pilotaje libre (F)">✈ Pilotar</button><button id="logBtn" title="Registro de la partida">📜 Registro</button><button id="dualBtn" title="Mapa en esta ventana, panel en otra">🖥 Doble pantalla</button></div>
   <div class="ov" id="zoom"><button data-z="-1" title="Acercar">+</button><button data-z="1" title="Alejar">−</button><button id="spinBtn" title="Rotación automática">⟳</button></div>
   <button class="ov" id="drawerBtn">☰ MANDO</button>
   <button class="ov" id="ctr">◎ MI NAVE</button>
@@ -169,6 +178,7 @@ select{background:rgba(0,0,0,.5);border:1px solid var(--line);color:inherit;padd
   <div class="pane on" id="p-carta"></div><div class="pane" id="p-plan"></div><div class="pane" id="p-ship"></div><div class="pane" id="p-crew"></div><div class="pane" id="p-sess"></div><div class="pane" id="p-hist"></div><div class="pane" id="p-nav"></div><div class="pane" id="p-share"></div>
 </aside>
 </div>
+<div id="dmBox" class="dm"><div class="dmh"><b>📜 Registro de la partida</b><span><button id="dmCopy" class="sm" title="Copiar">⧉</button><button id="dmMin" class="sm" title="Minimizar">–</button><button id="dmX" class="sm" title="Ocultar">✕</button></span></div><div id="dmL"></div></div>
 <div id="modal"><div class="box" id="modalBox"></div></div>
 <script>
 /* qrcode-generator 2.x — MIT License — https://github.com/kazuhikoarase/qrcode-generator */
