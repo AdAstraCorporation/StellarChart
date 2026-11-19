@@ -3306,6 +3306,12 @@ var ITEMS={
  traductor:{n:'Traductor universal',v:0,b:'soc',d:'+1 a Diplomacia para quien lo lleve.'},
  sensor:{n:'Sensor portátil',v:0,b:'cie',d:'+1 a Ciencia para quien lo lleve.'},
  casco:{n:'Casco de vuelo',v:0,b:'pil',d:'+1 a Pilotaje para quien lo lleve.'}};
+/* Formato compacto para la credencial (contrato R1): fa=aa.lc  ·  iv=k,aai,cvc2  (facción opcional + letra + cantidad 2-9) */
+const IVL={insignia:'i',uniforme:'u',salvo:'s',reliquia:'r',tec:'t',contra:'c',botiquin:'b',herram:'h',arma:'a',traductor:'d',sensor:'n',casco:'k'},IVR=Object.fromEntries(Object.entries(IVL).map(([k,v])=>[v,k]));
+function ivEncode(inv){return Object.entries(inv||{}).filter(([k,n])=>n>0&&okItem(k)&&!k.endsWith('.sello')).slice(0,6).map(([k,n])=>{const[f,t]=k.split('.');return(f==='gen'?'':f)+IVL[t]+(n>1?Math.min(9,n):'')})}
+function ivDecode(s){const o={};for(const p of String(s||'').split(',').slice(0,6)){const m=/^(aa|lc|mh|ce|cv|ca)?([a-z])([2-9])?$/.exec(p.trim());if(!m||!IVR[m[2]])continue;const k=(m[1]||'gen')+'.'+IVR[m[2]];if(okItem(k))o[k]=Math.min(9,(o[k]||0)+(+m[3]||1))}return o}
+const faDecode=s=>[...new Set(String(s||'').split('.').filter(f=>FAC[f]))].slice(0,6);
+const memberFa=m=>Array.isArray(m.fa)?m.fa:m.fa&&FAC[m.fa]?[m.fa]:[];
 const GEAR={pil:'casco',ing:'herram',cie:'sensor',med:'botiquin',seg:'arma',soc:'traductor'};
 const isGen=key=>String(key).startsWith('gen.');
 const CAP_M=6;
@@ -3359,7 +3365,7 @@ function exposure(obs){
   for(const f of FK){let p=0;const why=[];
     if(x.aff.includes(f)){p+=.12;const fama=Math.min(.3,(x.done[f]||0)*.04);if(fama){p+=fama;why.push('vuestra fama')}}
     const add=(inv,who)=>{for(const[k,n]of Object.entries(inv||{})){const[ff,t]=k.split('.');if(ff!==f||!(n>0)||!ITEMS[t]||!ITEMS[t].v)continue;p+=ITEMS[t].v*.11*Math.min(n,3)**.7*(who?1.15:1);why.push(ITEMS[t].n.toLowerCase()+(who?' de '+who:''))}};
-    add(x.inv,'');for(const m of alive()){add(m.inv,m.nm);if(m.fa===f){p+=.08;why.push(m.nm)}}
+    add(x.inv,'');for(const m of alive()){add(m.inv,m.nm);if(memberFa(m).includes(f)){p+=.08;why.push(m.nm+' (miembro)')}}
     if(obs===f&&p>0)p+=.15;if(obs&&x.wnt[obs]&&x.aff.includes(f))p+=.25;
     p=Math.min(.95,p);if(p>.01)out[f]={p,why:[...new Set(why)].slice(0,3),aff:x.aff.includes(f)}}
   return out}
@@ -4068,9 +4074,12 @@ async function membersId(n,e,i){const h=new Uint8Array(await crypto.subtle.diges
 function parseX(x){
   const o={};if(!x||!/^R1;/.test(x))return null;for(const kv of x.split(';').slice(1)){const i=kv.indexOf('=');if(i>0)o[kv.slice(0,i)]=kv.slice(i+1)}
   const s=(o.s||'').split(',').map(Number);if(s.length!==6||s.some(v=>!(v>=1&&v<=12)))return null;
-  return{role:ROLES[o.rol]?o.rol:'pil',tr:TRAITS[o.ras]?o.ras:'Curioso',s:Object.fromEntries(KS.map((k,i)=>[k,s[i]|0])),lv:clamp(+o.lv||1,1,999),xp:Math.max(0,+o.xp||0),hp:clamp(+o.hp||100,1,100),mor:clamp(+o.mo||75,0,100),t:/^[0-9A-Fa-f]{8}\.[1-9]\.\d{1,2}$/.test(o.t||'')?o.t:'',fv:Math.max(0,+o.fv|0),ms:Math.max(0,+o.ms|0),mi:/^[0-9A-F]{8}$/.test(o.mi||'')?o.mi:''};
+  return{role:ROLES[o.rol]?o.rol:'pil',tr:TRAITS[o.ras]?o.ras:'Curioso',s:Object.fromEntries(KS.map((k,i)=>[k,s[i]|0])),lv:clamp(+o.lv||1,1,999),xp:Math.max(0,+o.xp||0),hp:clamp(+o.hp||100,1,100),mor:clamp(+o.mo||75,0,100),t:/^[0-9A-Fa-f]{8}\.[1-9]\.\d{1,2}$/.test(o.t||'')?o.t:'',fv:Math.max(0,+o.fv|0),ms:Math.max(0,+o.ms|0),mi:/^[0-9A-F]{8}$/.test(o.mi||'')?o.mi:'',fa:faDecode(o.fa),iv:ivDecode(o.iv)};
 }
-const buildX=(m,mis)=>{const fv=Math.round((m.fv0||0)+(mis?mis.dv:0)),ms=(m.ms0||0)+(mis?1:0),mi=mis?mis.id:(m.mi0||'');return`R1;rol=${m.role};ras=${m.tr};s=${KS.map(k=>clamp(m.s[k],1,12)).join(',')};lv=${m.lv};xp=${Math.round(m.xp)};hp=${Math.round(m.hp)};mo=${Math.round(m.mor)}${fv?';fv='+fv:''}${ms?';ms='+ms:''}${mi?';mi='+mi:''}${m.t?';t='+m.t:''}`};
+/* x ≤ 160 caracteres: si no cabe, se recorta el equipo */
+const buildX=(m,mis,crewFa)=>{const fv=Math.round((m.fv0||0)+(mis?mis.dv:0)),ms=(m.ms0||0)+(mis?1:0),mi=mis?mis.id:(m.mi0||''),fa=[...new Set([...memberFa(m),...(crewFa||[])])].filter(f=>FAC[f]),iv=ivEncode(m.inv);
+  const mk=n=>`R1;rol=${m.role};ras=${m.tr};s=${KS.map(k=>clamp(m.s[k],1,12)).join(',')};lv=${m.lv};xp=${Math.round(m.xp)};hp=${Math.round(m.hp)};mo=${Math.round(m.mor)}${fa.length?';fa='+fa.join('.'):''}${n?';iv='+iv.slice(0,n).join(','):''}${fv?';fv='+fv:''}${ms?';ms='+ms:''}${mi?';mi='+mi:''}${m.t?';t='+m.t:''}`;
+  let n=iv.length,x=mk(n);while(x.length>160&&n>0)x=mk(--n);return x};
 async function membersDecode(text){
   const mm=/#C([0-9A-Z$*+\-./:]+)/.exec(String(text||'').trim());if(!mm)throw new Error('No es un enlace ni un QR de una credencial de Members.');
   const b=deB43(mm[1]),v=b[0];if(v!==3&&v!==4)throw new Error('Versión de credencial desconocida.');const cab=v===3?11:13;if(b.length<cab+18)throw new Error('Credencial incompleta.');
@@ -4087,9 +4096,9 @@ async function membersDecode(text){
 function memberFromCard(card){
   const sp=SPEMO[card.e]?card.e:(SPECIES.find(s=>card.e&&card.e.toLowerCase().includes(s.toLowerCase()))||card.e||'Zorro');
   const R=card.rol,r=rng(hash(...[...card.id].map(c=>c.charCodeAt(0))));
-  const base=R?{role:R.role,tr:R.tr,s:R.s,lv:R.lv,xp:R.xp,hp:R.hp,mor:R.mor,t:R.t,fv:R.fv,ms:R.ms,mi:R.mi}:(()=>{const m=genMember(r,null);return{role:m.role,tr:m.tr,s:m.s,lv:1,xp:0,hp:100,mor:75,t:''}})();
+  const base=R?{role:R.role,tr:R.tr,s:R.s,lv:R.lv,xp:R.xp,hp:R.hp,mor:R.mor,t:R.t,fv:R.fv,ms:R.ms,mi:R.mi,fa:R.fa||[],iv:R.iv||{}}:(()=>{const m=genMember(r,null);return{role:m.role,tr:m.tr,s:m.s,lv:1,xp:0,hp:100,mor:75,t:''}})();
   return{id:card.id,ph:card.foto||'',e0:card.e,nm:card.n,sp,role:base.role,s:base.s,tr:base.tr,hp:base.hp,mor:base.mor,xp:base.xp,lv:base.lv,st:'ok',t:base.t,mid:card.id,crewName:card.c,
-    fv0:base.fv||0,ms0:base.ms||0,mi0:base.mi||'',d0:D.st.days,bio:`Credencial ${card.id} · ${card.c||'sin crew'}${card.p?' · '+card.p:''}${card.r?' · '+card.r:''}.${R?'':' Sin estadísticas en la ficha: se generaron por azar.'}`,s0:{...base.s},lv0:base.lv};
+    fv0:base.fv||0,ms0:base.ms||0,mi0:base.mi||'',d0:D.st.days,...(base.fa&&base.fa.length?{fa:base.fa}:{}),...(base.iv&&Object.keys(base.iv).length?{inv:base.iv}:{}),bio:`Credencial ${card.id} · ${card.c||'sin crew'}${card.p?' · '+card.p:''}${card.r?' · '+card.r:''}.${R?'':' Sin estadísticas en la ficha: se generaron por azar.'}`,s0:{...base.s},lv0:base.lv};
 }
 async function readQrFromImage(file){
   const bmp=await createImageBitmap(file);
@@ -4121,7 +4130,7 @@ async function missionLink(){
   const s=D.st,ms=D.crew.filter(m=>m.mid&&m.st!=='perdido');if(!ms.length)return null;
   const idSrc=ms.map(m=>m.mid).sort().join(',')+'|'+Math.round(s.days)+'|'+s.jumps+'|'+(D.n||''),hh=new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(idSrc)));
   const id=[...hh.slice(0,4)].map(b=>b.toString(16).padStart(2,'0')).join('').toUpperCase(),f=new Date().toISOString().slice(0,10);
-  const c=ms.map(m=>{const dv=Math.max(0,Math.round(s.days-(m.d0||0)));return{id:m.mid,n:m.n0||m.nm,e:m.e0!=null?m.e0:m.sp,x:buildX(m,{id,dv}),dv,
+  const c=ms.map(m=>{const dv=Math.max(0,Math.round(s.days-(m.d0||0)));return{id:m.mid,n:m.n0||m.nm,e:m.e0!=null?m.e0:m.sp,x:buildX(m,{id,dv},FX().aff),dv,
     res:`Nivel ${m.lv0||1}→${m.lv}${m.s0?'; '+KS.filter(k=>m.s[k]!==m.s0[k]).map(k=>`${STATN[k]} ${m.s0[k]}→${m.s[k]}`).join(', '):''}; ${dv} días de vuelo.`.replace('; ;',';').slice(0,200)}});
   const js=JSON.stringify({v:2,mi:{id,f,nave:`${D.ship.n||SHIPS[D.ship.d].n} (${SHIPS[D.ship.d].n})`,dn:Math.round(s.days),ye:+s.yrs.toFixed(2),ly:+s.ly.toFixed(2),sj:s.jumps,ss:Object.keys(D.disc).length,q:D.q},c});
   return{id,url:MEMBERS_URL+'#X'+aB43(await pipe(new TextEncoder().encode(js),CompressionStream)),n:ms.length};
@@ -4129,7 +4138,7 @@ async function missionLink(){
 /* Exportar a Members: enlace #X con las estadísticas actualizadas */
 async function exportLink(m){
   const res=`Partida del ${new Date().toLocaleDateString('es')}: nivel ${m.lv0||1}→${m.lv}, salud ${Math.round(m.hp)}%, moral ${Math.round(m.mor)}%; ${D.st.jumps} saltos, ${fmtLen(D.st.ly)}, ${Object.keys(D.disc).length} sistemas.`.slice(0,300);
-  const js=JSON.stringify({v:1,id:m.mid,n:m.n0||m.nm,e:m.e0!=null?m.e0:m.sp,x:buildX(m,null),res});return MEMBERS_URL+'#X'+aB43(await pipe(new TextEncoder().encode(js),CompressionStream));
+  const js=JSON.stringify({v:1,id:m.mid,n:m.n0||m.nm,e:m.e0!=null?m.e0:m.sp,x:buildX(m,null,FX().aff),res});return MEMBERS_URL+'#X'+aB43(await pipe(new TextEncoder().encode(js),CompressionStream));
 }
 
 /* ═════════ Sesión compartida (WebRTC con PeerJS; el anfitrión manda la partida) ═════════ */
@@ -4163,7 +4172,7 @@ function hostRecv(c,m){
   if(!m||typeof m!=='object')return;const pl=NET.players[c.peer];
   if(m.t==='hello'&&NET.crewLock&&(!m.card||m.card.crew!==NET.crewLock.id)){try{c.send({t:'reject',msg:`Esta partida es sólo para la tripulación «${NET.crewLock.name}» (${NET.crewLock.id}). Sube una credencial de esa tripulación.`})}catch(e){}logDM(`Rechazado: ${String(m.name||'?').slice(0,24)} (otra tripulación)`,'sys');setTimeout(()=>{try{c.close()}catch(e){}},600);return}
   if(m.t==='hello'){const name=String(m.name||'Tripulante').slice(0,24);NET.players[c.peer]={name};sysMsg(`${name} se une a la sala.`);
-    if(m.card&&m.card.n){const card={...m.card,n:String(m.card.n).slice(0,40),e:String(m.card.e||'').slice(0,40),c:String(m.card.c||'').slice(0,30),p:String(m.card.p||''),r:String(m.card.r||''),id:String(m.card.id||'').slice(0,8),rol:(()=>{try{const r=m.card.rol;return r?parseX(buildX({...r,fv0:r.fv,ms0:r.ms,mi0:r.mi},null)):null}catch(e){return null}})()};
+    if(m.card&&m.card.n){const card={...m.card,n:String(m.card.n).slice(0,40),e:String(m.card.e||'').slice(0,40),c:String(m.card.c||'').slice(0,30),p:String(m.card.p||''),r:String(m.card.r||''),id:String(m.card.id||'').slice(0,8),rol:(()=>{try{const r=m.card.rol;return r?parseX(buildX({...r,fv0:r.fv,ms0:r.ms,mi0:r.mi,fa:r.fa,inv:r.iv&&typeof r.iv==='object'?Object.fromEntries(Object.entries(r.iv).filter(([k])=>okItem(k))):null},null)):null}catch(e){return null}})()};
       const msg=addCardLocally(card,c.peer,name);NET.players[c.peer].ch=card.id;sysMsg(msg)}
     netSync();return}
   if(!pl)return;
@@ -4618,7 +4627,7 @@ function renderCrew(){
   const el=$('#p-crew'),sp=SPEC[D.ship.d],a=alive(),lost=D.crew.filter(m=>m.st==='perdido');ACTS=[];
   el.innerHTML=`<div class="kick">FICHAS DE TRIPULACIÓN</div><h2>${crewCount()} a bordo</h2><p class="note">Mínimo para operar: ${sp.crew[0]} · capacidad ${sp.crew[1]}${D.st.extra?` · ${fmtI(D.st.extra)} en la tripulación general`:''}.</p>
   <div class="row">${A('⬆ Subir ficha de Members',()=>openCardUpload(card=>{if(NET.role==='client')NET.host.send({t:'hello',name:D.n||card.n,card});else{toast(esc(addCardLocally(card,NET.me||'local',D.n||card.n)));refresh()}}),0,'pri')}${A('🏁 Fin de misión: QR para actualizar fichas',endGame,NET.role==='client')}</div>
-  ${a.map(m=>{const up=m.s0?KS.filter(k=>m.s[k]!==m.s0[k]).map(k=>`${STATN[k]} ${m.s0[k]}→${m.s[k]}`).join(', '):'';return`<div class="card"><div class="dh">${portrait(m)}<div><b>${esc(m.nm)}</b><div class="note">${esc(m.sp)} · ${ROLES[m.role]} · nivel ${m.lv}${m.pl?' · 👤 '+esc(m.pl):''}${m.mid?' · '+esc(m.mid):''}</div></div></div>
+  ${a.map(m=>{const up=m.s0?KS.filter(k=>m.s[k]!==m.s0[k]).map(k=>`${STATN[k]} ${m.s0[k]}→${m.s[k]}`).join(', '):'';return`<div class="card"><div class="dh">${portrait(m)}<div><b>${esc(m.nm)}</b><div class="note">${esc(m.sp)} · ${ROLES[m.role]} · nivel ${m.lv}${m.pl?' · 👤 '+esc(m.pl):''}${m.mid?' · '+esc(m.mid):''}</div>${memberFa(m).length?`<div class="note">${memberFa(m).map(f=>`<span style="color:${FAC[f].c}">${FAC[f].ic} ${esc(FAC[f].n)}</span>`).join(' · ')}</div>`:''}</div></div>
     <div class="res"><span>Salud</span><span>${Math.round(m.hp)}%</span></div>${meter(m.hp,100,m.hp<50?'#ff6b6b':'#7ee787')}
     <div class="res"><span>Moral</span><span>${Math.round(m.mor)}%</span></div>${meter(m.mor,100,m.mor<30?'#ff6b6b':'#78dcff')}
     <div class="res"><span>Experiencia</span><span>${m.xp} / ${30*m.lv}</span></div>${meter(m.xp,30*m.lv,'#e0aa46')}
@@ -4689,7 +4698,7 @@ function snapshot(maxN){
   const sh=D.ship,s=D.st;
   return{v:3,n:D.n||'',c:seedStr(focusLoc(14)),sh:[sh.d,sh.n||'',sh.c1,sh.c2],sp:D.sp,
     st:[+s.fuel.toFixed(2),Math.round(s.prov),s.extra|0,Math.round(s.hull),Math.round(s.min),+s.days.toFixed(1),+s.yrs.toFixed(3),s.jumps,+s.ly.toFixed(2)],
-    cw:D.crew.map(m=>[m.nm,m.sp,m.role,KS.map(k=>m.s[k]),m.tr,Math.round(m.hp),Math.round(m.mor),m.xp,m.lv,m.st==='perdido'?1:0,m.bio,m.mid||'',m.pid||'',m.pl||'',m.e0??'',m.s0?KS.map(k=>m.s0[k]):0,m.lv0||0,m.t||'',m.n0||'',m.id,m.fv0||0,m.ms0||0,m.mi0||'',m.d0||0,m.ph||'',m.inv&&invCount(m.inv)?m.inv:0]),lg:D.crewLogo||null,pl:D.plan||null,rp:D.rep||{},fx:D.fx||null,bs:D.bases||[],cv:D.conv||[],rt:D.rutas||[],
+    cw:D.crew.map(m=>[m.nm,m.sp,m.role,KS.map(k=>m.s[k]),m.tr,Math.round(m.hp),Math.round(m.mor),m.xp,m.lv,m.st==='perdido'?1:0,m.bio,m.mid||'',m.pid||'',m.pl||'',m.e0??'',m.s0?KS.map(k=>m.s0[k]):0,m.lv0||0,m.t||'',m.n0||'',m.id,m.fv0||0,m.ms0||0,m.mi0||'',m.d0||0,m.ph||'',m.inv&&invCount(m.inv)?m.inv:0,memberFa(m).length?memberFa(m):0]),lg:D.crewLogo||null,pl:D.plan||null,rp:D.rep||{},fx:D.fx||null,bs:D.bases||[],cv:D.conv||[],rt:D.rutas||[],
     f:[D.hib?1:0,D.cr?1:0,D.q|0,D.anon?1:0],ex:D.ex,sc:Object.keys(D.scan),ds:Object.keys(D.disc),
     cm:[cam.fx,cam.fy,cam.fz,cam.R,cam.yaw,cam.pitch].map(v=>+v.toFixed(3)),op:[opt.color?1:0,opt.spin?1:0,opt.nav?1:0,opt.pet?1:0],b:D.base||'',
     h:D.h.slice(-maxN).map(e=>[e.s,Math.round(e.t/1000).toString(36),e.k,e.f?1:0,e.n||''])};
@@ -4704,7 +4713,7 @@ function normState(st){
     st.crew=(st.cw||[]).slice(0,12).map(c=>({id:Math.random().toString(36).slice(2),nm:String(c[0]).slice(0,40),sp:SPEMO[c[1]]?c[1]:'Zorro',role:ROLES[c[2]]?c[2]:'pil',s:Object.fromEntries(KS.map((k,i)=>[k,clamp(+((c[3]||[])[i])||3,1,12)])),
       tr:TRAITS[c[4]]?c[4]:'Curioso',hp:clamp(+c[5]||100,0,100),mor:clamp(+c[6]||70,0,100),xp:+c[7]||0,lv:clamp(+c[8]||1,1,20),st:c[9]?'perdido':'ok',bio:String(c[10]||'').slice(0,200),
       ...(c[11]?{mid:String(c[11]).slice(0,8)}:{}),...(c[12]?{pid:String(c[12]).slice(0,60)}:{}),...(c[13]?{pl:String(c[13]).slice(0,24)}:{}),...(c[14]!==undefined&&c[14]!==''?{e0:String(c[14]).slice(0,40)}:{}),
-      ...(Array.isArray(c[15])?{s0:Object.fromEntries(KS.map((k,i)=>[k,clamp(+c[15][i]||3,1,12)]))}:{}),...(c[16]?{lv0:+c[16]|0}:{}),...(c[17]?{t:String(c[17]).slice(0,30)}:{}),...(c[18]?{n0:String(c[18]).slice(0,40)}:{}),...(c[19]?{id:String(c[19]).slice(0,40)}:{}),...(c[20]?{fv0:+c[20]|0}:{}),...(c[21]?{ms0:+c[21]|0}:{}),...(c[22]?{mi0:String(c[22]).slice(0,8)}:{}),...(c[23]?{d0:+c[23]||0}:{}),...(okImg(c[24])?{ph:c[24]}:{}),...(c[25]&&typeof c[25]==='object'?{inv:Object.fromEntries(Object.entries(c[25]).filter(([k,n])=>okItem(k)&&+n>0).slice(0,CAP_M).map(([k,n])=>[k,Math.min(CAP_M,+n|0)]))}:{})}));
+      ...(Array.isArray(c[15])?{s0:Object.fromEntries(KS.map((k,i)=>[k,clamp(+c[15][i]||3,1,12)]))}:{}),...(c[16]?{lv0:+c[16]|0}:{}),...(c[17]?{t:String(c[17]).slice(0,30)}:{}),...(c[18]?{n0:String(c[18]).slice(0,40)}:{}),...(c[19]?{id:String(c[19]).slice(0,40)}:{}),...(c[20]?{fv0:+c[20]|0}:{}),...(c[21]?{ms0:+c[21]|0}:{}),...(c[22]?{mi0:String(c[22]).slice(0,8)}:{}),...(c[23]?{d0:+c[23]||0}:{}),...(okImg(c[24])?{ph:c[24]}:{}),...(c[25]&&typeof c[25]==='object'?{inv:Object.fromEntries(Object.entries(c[25]).filter(([k,n])=>okItem(k)&&+n>0).slice(0,CAP_M).map(([k,n])=>[k,Math.min(CAP_M,+n|0)]))}:{}),...(Array.isArray(c[26])&&c[26].length?{fa:c[26].filter(f=>FAC[f]).slice(0,6)}:{})}));
     st.logo=st.lg&&okImg(st.lg.src)?{src:st.lg.src,name:String(st.lg.name||'').slice(0,30),id:String(st.lg.id||'').slice(0,10)}:null;
     st.plan=st.pl&&Array.isArray(st.pl.stops)?{stops:st.pl.stops.slice(0,40).map(s=>({s:String(s.s).slice(0,40),a:(s.a||[]).slice(0,12).map(x=>String(x).slice(0,20))}))}:null;
     st.rep=st.rp&&typeof st.rp==='object'?Object.fromEntries(Object.entries(st.rp).slice(0,500).map(([k,v])=>[String(k).slice(0,60),clamp(+v||0,-100,100)])):{};
@@ -4785,7 +4794,7 @@ resize();toggleDrawer(innerWidth>1100);setTab('carta');refresh();requestAnimatio
 setTimeout(()=>{const b=$('#boot');if(b){b.classList.add('out');setTimeout(()=>b.remove(),700)}
   if(!D.intro){D.intro=1;saveD();queueDialog({t:'Corporación Ad Astra · Orden de misión',who:alive()[0]||null,tx:`Capitán: el Sol pierde brillo y nadie sabe por qué, salvo que hay algo —lo llaman astrófago— alimentándose de su luz. Tau Ceti, a 11,9 años luz, parece inmune. Tu nave y tu tripulación están listas. Cada salto cuesta astrófago, provisiones y años. Elige bien.`,res:'Primera misión: '+QUESTS[0].t,next:'Consejo: selecciona una estrella en la carta para calcular el salto.'})}
 },RM?0:1400);
-window.__adastra={baseRes,buildBase,sendBase,addRoute,doBase,convTick,routeTick,baseTick,FX,facOf,boardFor,doFac,facEvent,exposure,genMission,EV,queueDialog,missionLink,endGame,NET,starsNearPub:starsNear,seedOf,starFromSeed,genSystem,starName,membersDecode,addCardLocally,exportLink,memberFromCard,doCiv,civInfo,getPlan,addToPlan,simulatePlan,startPlanNow,get planRun(){return planRun},cmd,execCmd,hostSession,joinSession,createVote,castVote,D:()=>D,cam,tg,selectStar,startTravel,get travel(){return travel},get route(){return route},ANCHSTARS,enterSystem,land,planetInfo,get SYS(){return SYS},openExpedition,packFile,unpackFile,gotoSeed,shipStar,A_BY,questEvent,crewCount,get mode(){return mode},setTab,exitToMap,centerOnShip};
+window.__adastra={parseX,buildX,baseRes,buildBase,sendBase,addRoute,doBase,convTick,routeTick,baseTick,FX,facOf,boardFor,doFac,facEvent,exposure,genMission,EV,queueDialog,missionLink,endGame,NET,starsNearPub:starsNear,seedOf,starFromSeed,genSystem,starName,membersDecode,addCardLocally,exportLink,memberFromCard,doCiv,civInfo,getPlan,addToPlan,simulatePlan,startPlanNow,get planRun(){return planRun},cmd,execCmd,hostSession,joinSession,createVote,castVote,D:()=>D,cam,tg,selectStar,startTravel,get travel(){return travel},get route(){return route},ANCHSTARS,enterSystem,land,planetInfo,get SYS(){return SYS},openExpedition,packFile,unpackFile,gotoSeed,shipStar,A_BY,questEvent,crewCount,get mode(){return mode},setTab,exitToMap,centerOnShip};
 })();
 </script>
 </body>

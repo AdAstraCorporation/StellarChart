@@ -48,9 +48,12 @@ async function membersId(n,e,i){const h=new Uint8Array(await crypto.subtle.diges
 function parseX(x){
   const o={};if(!x||!/^R1;/.test(x))return null;for(const kv of x.split(';').slice(1)){const i=kv.indexOf('=');if(i>0)o[kv.slice(0,i)]=kv.slice(i+1)}
   const s=(o.s||'').split(',').map(Number);if(s.length!==6||s.some(v=>!(v>=1&&v<=12)))return null;
-  return{role:ROLES[o.rol]?o.rol:'pil',tr:TRAITS[o.ras]?o.ras:'Curioso',s:Object.fromEntries(KS.map((k,i)=>[k,s[i]|0])),lv:clamp(+o.lv||1,1,999),xp:Math.max(0,+o.xp||0),hp:clamp(+o.hp||100,1,100),mor:clamp(+o.mo||75,0,100),t:/^[0-9A-Fa-f]{8}\.[1-9]\.\d{1,2}$/.test(o.t||'')?o.t:'',fv:Math.max(0,+o.fv|0),ms:Math.max(0,+o.ms|0),mi:/^[0-9A-F]{8}$/.test(o.mi||'')?o.mi:''};
+  return{role:ROLES[o.rol]?o.rol:'pil',tr:TRAITS[o.ras]?o.ras:'Curioso',s:Object.fromEntries(KS.map((k,i)=>[k,s[i]|0])),lv:clamp(+o.lv||1,1,999),xp:Math.max(0,+o.xp||0),hp:clamp(+o.hp||100,1,100),mor:clamp(+o.mo||75,0,100),t:/^[0-9A-Fa-f]{8}\.[1-9]\.\d{1,2}$/.test(o.t||'')?o.t:'',fv:Math.max(0,+o.fv|0),ms:Math.max(0,+o.ms|0),mi:/^[0-9A-F]{8}$/.test(o.mi||'')?o.mi:'',fa:faDecode(o.fa),iv:ivDecode(o.iv)};
 }
-const buildX=(m,mis)=>{const fv=Math.round((m.fv0||0)+(mis?mis.dv:0)),ms=(m.ms0||0)+(mis?1:0),mi=mis?mis.id:(m.mi0||'');return`R1;rol=${m.role};ras=${m.tr};s=${KS.map(k=>clamp(m.s[k],1,12)).join(',')};lv=${m.lv};xp=${Math.round(m.xp)};hp=${Math.round(m.hp)};mo=${Math.round(m.mor)}${fv?';fv='+fv:''}${ms?';ms='+ms:''}${mi?';mi='+mi:''}${m.t?';t='+m.t:''}`};
+/* x ≤ 160 caracteres: si no cabe, se recorta el equipo */
+const buildX=(m,mis,crewFa)=>{const fv=Math.round((m.fv0||0)+(mis?mis.dv:0)),ms=(m.ms0||0)+(mis?1:0),mi=mis?mis.id:(m.mi0||''),fa=[...new Set([...memberFa(m),...(crewFa||[])])].filter(f=>FAC[f]),iv=ivEncode(m.inv);
+  const mk=n=>`R1;rol=${m.role};ras=${m.tr};s=${KS.map(k=>clamp(m.s[k],1,12)).join(',')};lv=${m.lv};xp=${Math.round(m.xp)};hp=${Math.round(m.hp)};mo=${Math.round(m.mor)}${fa.length?';fa='+fa.join('.'):''}${n?';iv='+iv.slice(0,n).join(','):''}${fv?';fv='+fv:''}${ms?';ms='+ms:''}${mi?';mi='+mi:''}${m.t?';t='+m.t:''}`;
+  let n=iv.length,x=mk(n);while(x.length>160&&n>0)x=mk(--n);return x};
 async function membersDecode(text){
   const mm=/#C([0-9A-Z$*+\-./:]+)/.exec(String(text||'').trim());if(!mm)throw new Error('No es un enlace ni un QR de una credencial de Members.');
   const b=deB43(mm[1]),v=b[0];if(v!==3&&v!==4)throw new Error('Versión de credencial desconocida.');const cab=v===3?11:13;if(b.length<cab+18)throw new Error('Credencial incompleta.');
@@ -67,9 +70,9 @@ async function membersDecode(text){
 function memberFromCard(card){
   const sp=SPEMO[card.e]?card.e:(SPECIES.find(s=>card.e&&card.e.toLowerCase().includes(s.toLowerCase()))||card.e||'Zorro');
   const R=card.rol,r=rng(hash(...[...card.id].map(c=>c.charCodeAt(0))));
-  const base=R?{role:R.role,tr:R.tr,s:R.s,lv:R.lv,xp:R.xp,hp:R.hp,mor:R.mor,t:R.t,fv:R.fv,ms:R.ms,mi:R.mi}:(()=>{const m=genMember(r,null);return{role:m.role,tr:m.tr,s:m.s,lv:1,xp:0,hp:100,mor:75,t:''}})();
+  const base=R?{role:R.role,tr:R.tr,s:R.s,lv:R.lv,xp:R.xp,hp:R.hp,mor:R.mor,t:R.t,fv:R.fv,ms:R.ms,mi:R.mi,fa:R.fa||[],iv:R.iv||{}}:(()=>{const m=genMember(r,null);return{role:m.role,tr:m.tr,s:m.s,lv:1,xp:0,hp:100,mor:75,t:''}})();
   return{id:card.id,ph:card.foto||'',e0:card.e,nm:card.n,sp,role:base.role,s:base.s,tr:base.tr,hp:base.hp,mor:base.mor,xp:base.xp,lv:base.lv,st:'ok',t:base.t,mid:card.id,crewName:card.c,
-    fv0:base.fv||0,ms0:base.ms||0,mi0:base.mi||'',d0:D.st.days,bio:`Credencial ${card.id} · ${card.c||'sin crew'}${card.p?' · '+card.p:''}${card.r?' · '+card.r:''}.${R?'':' Sin estadísticas en la ficha: se generaron por azar.'}`,s0:{...base.s},lv0:base.lv};
+    fv0:base.fv||0,ms0:base.ms||0,mi0:base.mi||'',d0:D.st.days,...(base.fa&&base.fa.length?{fa:base.fa}:{}),...(base.iv&&Object.keys(base.iv).length?{inv:base.iv}:{}),bio:`Credencial ${card.id} · ${card.c||'sin crew'}${card.p?' · '+card.p:''}${card.r?' · '+card.r:''}.${R?'':' Sin estadísticas en la ficha: se generaron por azar.'}`,s0:{...base.s},lv0:base.lv};
 }
 async function readQrFromImage(file){
   const bmp=await createImageBitmap(file);
@@ -101,7 +104,7 @@ async function missionLink(){
   const s=D.st,ms=D.crew.filter(m=>m.mid&&m.st!=='perdido');if(!ms.length)return null;
   const idSrc=ms.map(m=>m.mid).sort().join(',')+'|'+Math.round(s.days)+'|'+s.jumps+'|'+(D.n||''),hh=new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(idSrc)));
   const id=[...hh.slice(0,4)].map(b=>b.toString(16).padStart(2,'0')).join('').toUpperCase(),f=new Date().toISOString().slice(0,10);
-  const c=ms.map(m=>{const dv=Math.max(0,Math.round(s.days-(m.d0||0)));return{id:m.mid,n:m.n0||m.nm,e:m.e0!=null?m.e0:m.sp,x:buildX(m,{id,dv}),dv,
+  const c=ms.map(m=>{const dv=Math.max(0,Math.round(s.days-(m.d0||0)));return{id:m.mid,n:m.n0||m.nm,e:m.e0!=null?m.e0:m.sp,x:buildX(m,{id,dv},FX().aff),dv,
     res:`Nivel ${m.lv0||1}→${m.lv}${m.s0?'; '+KS.filter(k=>m.s[k]!==m.s0[k]).map(k=>`${STATN[k]} ${m.s0[k]}→${m.s[k]}`).join(', '):''}; ${dv} días de vuelo.`.replace('; ;',';').slice(0,200)}});
   const js=JSON.stringify({v:2,mi:{id,f,nave:`${D.ship.n||SHIPS[D.ship.d].n} (${SHIPS[D.ship.d].n})`,dn:Math.round(s.days),ye:+s.yrs.toFixed(2),ly:+s.ly.toFixed(2),sj:s.jumps,ss:Object.keys(D.disc).length,q:D.q},c});
   return{id,url:MEMBERS_URL+'#X'+aB43(await pipe(new TextEncoder().encode(js),CompressionStream)),n:ms.length};
@@ -109,7 +112,7 @@ async function missionLink(){
 /* Exportar a Members: enlace #X con las estadísticas actualizadas */
 async function exportLink(m){
   const res=`Partida del ${new Date().toLocaleDateString('es')}: nivel ${m.lv0||1}→${m.lv}, salud ${Math.round(m.hp)}%, moral ${Math.round(m.mor)}%; ${D.st.jumps} saltos, ${fmtLen(D.st.ly)}, ${Object.keys(D.disc).length} sistemas.`.slice(0,300);
-  const js=JSON.stringify({v:1,id:m.mid,n:m.n0||m.nm,e:m.e0!=null?m.e0:m.sp,x:buildX(m,null),res});return MEMBERS_URL+'#X'+aB43(await pipe(new TextEncoder().encode(js),CompressionStream));
+  const js=JSON.stringify({v:1,id:m.mid,n:m.n0||m.nm,e:m.e0!=null?m.e0:m.sp,x:buildX(m,null,FX().aff),res});return MEMBERS_URL+'#X'+aB43(await pipe(new TextEncoder().encode(js),CompressionStream));
 }
 
 /* ═════════ Sesión compartida (WebRTC con PeerJS; el anfitrión manda la partida) ═════════ */
@@ -143,7 +146,7 @@ function hostRecv(c,m){
   if(!m||typeof m!=='object')return;const pl=NET.players[c.peer];
   if(m.t==='hello'&&NET.crewLock&&(!m.card||m.card.crew!==NET.crewLock.id)){try{c.send({t:'reject',msg:`Esta partida es sólo para la tripulación «${NET.crewLock.name}» (${NET.crewLock.id}). Sube una credencial de esa tripulación.`})}catch(e){}logDM(`Rechazado: ${String(m.name||'?').slice(0,24)} (otra tripulación)`,'sys');setTimeout(()=>{try{c.close()}catch(e){}},600);return}
   if(m.t==='hello'){const name=String(m.name||'Tripulante').slice(0,24);NET.players[c.peer]={name};sysMsg(`${name} se une a la sala.`);
-    if(m.card&&m.card.n){const card={...m.card,n:String(m.card.n).slice(0,40),e:String(m.card.e||'').slice(0,40),c:String(m.card.c||'').slice(0,30),p:String(m.card.p||''),r:String(m.card.r||''),id:String(m.card.id||'').slice(0,8),rol:(()=>{try{const r=m.card.rol;return r?parseX(buildX({...r,fv0:r.fv,ms0:r.ms,mi0:r.mi},null)):null}catch(e){return null}})()};
+    if(m.card&&m.card.n){const card={...m.card,n:String(m.card.n).slice(0,40),e:String(m.card.e||'').slice(0,40),c:String(m.card.c||'').slice(0,30),p:String(m.card.p||''),r:String(m.card.r||''),id:String(m.card.id||'').slice(0,8),rol:(()=>{try{const r=m.card.rol;return r?parseX(buildX({...r,fv0:r.fv,ms0:r.ms,mi0:r.mi,fa:r.fa,inv:r.iv&&typeof r.iv==='object'?Object.fromEntries(Object.entries(r.iv).filter(([k])=>okItem(k))):null},null)):null}catch(e){return null}})()};
       const msg=addCardLocally(card,c.peer,name);NET.players[c.peer].ch=card.id;sysMsg(msg)}
     netSync();return}
   if(!pl)return;

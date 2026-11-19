@@ -36,6 +36,12 @@ var ITEMS={
  traductor:{n:'Traductor universal',v:0,b:'soc',d:'+1 a Diplomacia para quien lo lleve.'},
  sensor:{n:'Sensor portátil',v:0,b:'cie',d:'+1 a Ciencia para quien lo lleve.'},
  casco:{n:'Casco de vuelo',v:0,b:'pil',d:'+1 a Pilotaje para quien lo lleve.'}};
+/* Formato compacto para la credencial (contrato R1): fa=aa.lc  ·  iv=k,aai,cvc2  (facción opcional + letra + cantidad 2-9) */
+const IVL={insignia:'i',uniforme:'u',salvo:'s',reliquia:'r',tec:'t',contra:'c',botiquin:'b',herram:'h',arma:'a',traductor:'d',sensor:'n',casco:'k'},IVR=Object.fromEntries(Object.entries(IVL).map(([k,v])=>[v,k]));
+function ivEncode(inv){return Object.entries(inv||{}).filter(([k,n])=>n>0&&okItem(k)&&!k.endsWith('.sello')).slice(0,6).map(([k,n])=>{const[f,t]=k.split('.');return(f==='gen'?'':f)+IVL[t]+(n>1?Math.min(9,n):'')})}
+function ivDecode(s){const o={};for(const p of String(s||'').split(',').slice(0,6)){const m=/^(aa|lc|mh|ce|cv|ca)?([a-z])([2-9])?$/.exec(p.trim());if(!m||!IVR[m[2]])continue;const k=(m[1]||'gen')+'.'+IVR[m[2]];if(okItem(k))o[k]=Math.min(9,(o[k]||0)+(+m[3]||1))}return o}
+const faDecode=s=>[...new Set(String(s||'').split('.').filter(f=>FAC[f]))].slice(0,6);
+const memberFa=m=>Array.isArray(m.fa)?m.fa:m.fa&&FAC[m.fa]?[m.fa]:[];
 const GEAR={pil:'casco',ing:'herram',cie:'sensor',med:'botiquin',seg:'arma',soc:'traductor'};
 const isGen=key=>String(key).startsWith('gen.');
 const CAP_M=6;
@@ -89,7 +95,7 @@ function exposure(obs){
   for(const f of FK){let p=0;const why=[];
     if(x.aff.includes(f)){p+=.12;const fama=Math.min(.3,(x.done[f]||0)*.04);if(fama){p+=fama;why.push('vuestra fama')}}
     const add=(inv,who)=>{for(const[k,n]of Object.entries(inv||{})){const[ff,t]=k.split('.');if(ff!==f||!(n>0)||!ITEMS[t]||!ITEMS[t].v)continue;p+=ITEMS[t].v*.11*Math.min(n,3)**.7*(who?1.15:1);why.push(ITEMS[t].n.toLowerCase()+(who?' de '+who:''))}};
-    add(x.inv,'');for(const m of alive()){add(m.inv,m.nm);if(m.fa===f){p+=.08;why.push(m.nm)}}
+    add(x.inv,'');for(const m of alive()){add(m.inv,m.nm);if(memberFa(m).includes(f)){p+=.08;why.push(m.nm+' (miembro)')}}
     if(obs===f&&p>0)p+=.15;if(obs&&x.wnt[obs]&&x.aff.includes(f))p+=.25;
     p=Math.min(.95,p);if(p>.01)out[f]={p,why:[...new Set(why)].slice(0,3),aff:x.aff.includes(f)}}
   return out}
