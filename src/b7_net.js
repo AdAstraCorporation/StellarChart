@@ -26,6 +26,8 @@ function execCmd(c){
   if(c.k==='plan'){startPlanNow(c.plan);return'Plan de viaje en marcha.'}
   if(c.k==='rescue'){rescue('');return''}
   if(c.k==='ship'){return changeShip(String(c.d))}
+  if(c.k==='fac')return doFac(c);
+  if(c.k==='base')return doBase(c);
   return'';
 }
 function changeShip(k){
@@ -112,9 +114,12 @@ async function exportLink(m){
 
 /* ═════════ Sesión compartida (WebRTC con PeerJS; el anfitrión manda la partida) ═════════ */
 const PEER_OPTS=(()=>{const u=new URLSearchParams(location.search).get('peer');if(u&&/^[\w.-]+:\d+$/.test(u)){const [h,p]=u.split(':');return{host:h,port:+p,path:'/',secure:location.protocol==='https:'}}return{}})();
-var NET={decide:'rol',crewLock:null,role:null,peer:null,conns:new Map(),host:null,code:'',me:'',players:{},votes:[],chat:[],demo:true,vcb:{},myPlan:null,shownVote:null,syncT:0,wantJoin:''};
+var NET={anon:false,myVotes:{},luckPaint:null,decide:'rol',crewLock:null,role:null,peer:null,conns:new Map(),host:null,code:'',me:'',players:{},votes:[],chat:[],demo:true,vcb:{},myPlan:null,shownVote:null,syncT:0,wantJoin:''};
+/* En votaciones anónimas los demás sólo reciben el recuento, nunca quién votó qué */
+function voteCnt(v){return v.cnt&&!v.ballots?v.cnt:v.opts.map((_,i)=>Object.values(v.ballots||{}).filter(b=>b===i).length)}
+function pubVote(v){const o={...v,cnt:voteCnt(v),nv:Object.keys(v.ballots||{}).length};if(v.anon){delete o.ballots;o.dice=Object.fromEntries(Object.values(v.dice||{}).map((d,i)=>['a'+i,d]))}return o}
 function bcast(m){if(NET.role!=='host')return;for(const c of NET.conns.values())try{c.open&&c.send(m)}catch(e){}}
-function netSync(){if(NET.role!=='host')return;clearTimeout(NET.syncT);NET.syncT=setTimeout(async()=>{const tok=await encodeState(300);bcast({t:'state',tok,logo:D.crewLogo||null,players:NET.players,votes:NET.votes.map(v=>({...v})),chat:NET.chat.slice(-60),demo:NET.demo})},250)}
+function netSync(){if(NET.role!=='host')return;clearTimeout(NET.syncT);NET.syncT=setTimeout(async()=>{const tok=await encodeState(300);bcast({t:'state',tok,logo:D.crewLogo||null,anon:NET.anon,players:NET.players,votes:NET.votes.map(pubVote),chat:NET.chat.slice(-60),demo:NET.demo})},250)}
 const sysMsg=tx=>{logDM(tx,'sys');NET.chat.push({f:'',tx,t:Date.now()});if(NET.chat.length>120)NET.chat.shift();renderSessDyn();netSync()};
 const randCode=()=>Array.from(crypto.getRandomValues(new Uint8Array(5)),b=>MABC[b%32]).join('');
 function hostSession(){
@@ -124,14 +129,14 @@ function hostSession(){
   peer.on('error',e=>{if(e.type==='unavailable-id'){peer.destroy();hostSession();return}toast('Red: '+esc(e.type||e.message));renderSess()});
   peer.on('disconnected',()=>{try{peer.reconnect()}catch(e){}});
 }
-function joinSession(code){
+function joinSession(code,card0){
   if(typeof Peer==='undefined'){toast('No se pudo cargar el módulo de red.');return}code=String(code||'').trim().toUpperCase();if(!/^[A-Z2-9]{5}$/.test(code)){toast('Código de sala no válido.');return}
-  openCardUpload(card=>{
+  const go=card=>{
     const peer=new Peer(undefined,PEER_OPTS);peer.on('open',id=>{const c=peer.connect('adastra-'+code,{reliable:true});
       c.on('open',()=>{Object.assign(NET,{role:'client',peer,host:c,code,me:id});c.send({t:'hello',name:D.n||card.n,card:{...card,rol:card.rol}});toast('Conectado a la sala '+code+'. Esperando la partida…');renderSess()});
       c.on('data',clientRecv);c.on('close',()=>{toast('Se perdió la conexión con el anfitrión.');leaveSession(true)})});
     peer.on('error',e=>{toast(e.type==='peer-unavailable'?'No existe la sala '+esc(code)+' (o el anfitrión se desconectó).':'Red: '+esc(e.type||e.message));renderSess()});
-  },'Únete con tu ficha de personaje');
+  };if(card0&&card0.n)go(card0);else openCardUpload(go,'Únete con tu ficha de personaje');
 }
 function leaveSession(reload){try{NET.peer&&NET.peer.destroy()}catch(e){}const wasClient=NET.role==='client';Object.assign(NET,{role:null,peer:null,conns:new Map(),host:null,players:{},votes:[],chat:[]});if(wasClient||reload)location.reload();else refresh()}
 function hostRecv(c,m){
@@ -145,11 +150,12 @@ function hostRecv(c,m){
   if(m.t==='chat'){logDM(`💬 ${pl.name}: ${String(m.tx||'').slice(0,300)}`,'chat');NET.chat.push({f:pl.name,tx:String(m.tx||'').slice(0,300),t:Date.now()});renderSessDyn();netSync()}
   else if(m.t==='propose'&&m.v){propose({...m.v,by:c.peer,title:String(m.v.title||'').slice(0,140),opts:(m.v.opts||[]).slice(0,6).map(o=>String(o).slice(0,80))})}
   else if(m.t==='vote')castVote(String(m.id),c.peer,m.o|0);
+  else if(m.t==='dice')castDice(String(m.id),c.peer,m.d|0);
   else if(m.t==='editchar'){const x=D.crew.find(q=>q.pid===c.peer&&q.id===m.id);if(x){x.nm=String(m.nm||x.nm).slice(0,40);x.bio=String(m.bio||x.bio).slice(0,200);saveD()}}
 }
 async function clientRecv(m){
   if(!m||typeof m!=='object')return;
-  if(m.t==='state'){try{const st=await decodeState(m.tok);applyRemote(st)}catch(e){}if(m.logo&&typeof m.logo.src==='string'&&/^(data:image\/(webp|jpeg);base64,|https:\/\/)/.test(m.logo.src)&&(!D.crewLogo||D.crewLogo.src!==m.logo.src)){D.crewLogo={src:m.logo.src,name:String(m.logo.name||'').slice(0,30),id:String(m.logo.id||'')};updateCrewLogo()}NET.players=m.players||{};NET.votes=m.votes||[];NET.chat=m.chat||[];NET.demo=!!m.demo;renderSessDyn();showEvVote();refresh()}
+  if(m.t==='state'){try{const st=await decodeState(m.tok);applyRemote(st)}catch(e){}if(m.logo&&typeof m.logo.src==='string'&&/^(data:image\/(webp|jpeg);base64,|https:\/\/)/.test(m.logo.src)&&(!D.crewLogo||D.crewLogo.src!==m.logo.src)){D.crewLogo={src:m.logo.src,name:String(m.logo.name||'').slice(0,30),id:String(m.logo.id||'')};updateCrewLogo()}NET.players=m.players||{};NET.votes=m.votes||[];NET.anon=!!m.anon;NET.chat=m.chat||[];NET.demo=!!m.demo;renderSessDyn();showEvVote();const v=NET.votes.find(x=>x.id===NET.shownVote);if(v&&$('#luck'))$('#luck').innerHTML=luckTxt(v.dice,v.anon);refresh()}
   else if(m.t==='travel'&&!travel){const stars=(m.seeds||[]).map(s=>starFromSeed(s)||pointFromSeed(s)).filter(Boolean);if(stars.length>1){route=null;travel={legs:stars.slice(1).map((s,i)=>({from:stars[i],to:s})),i:0,t0:0,pos:null,int:0,ghost:1};$('#travel').classList.add('show')}}
   else if(m.t==='dialog'&&m.d)queueDialog({...m.d,local:1});
   else if(m.t==='toast')toast(String(m.h||''));
@@ -157,7 +163,7 @@ async function clientRecv(m){
 }
 function applyRemote(st){
   const g=st.game;if(!g)return;D.st=g;D.crew=st.crew;D.hib=st.flags.hib;D.cr=st.flags.cr;D.q=st.flags.q;D.ex=st.ex;D.scan=st.scan;D.disc=st.disc;D.h=st.h;
-  if(st.ship)D.ship=st.ship;if(st.sp&&!travel){D.sp=st.sp;_sp=''}if(st.n)D.n=D.n||st.n;D.plan=st.plan||D.plan;D.rep=st.rep||D.rep;
+  if(st.ship)D.ship=st.ship;if(st.sp&&!travel){D.sp=st.sp;_sp=''}if(st.n)D.n=D.n||st.n;D.plan=st.plan||D.plan;D.rep=st.rep||D.rep;if(st.fx)D.fx=st.fx;D.bases=st.bases||[];D.conv=st.conv||[];D.rutas=st.rutas||[];
 }
 function propose(v){
   if(NET.role==='client'){NET.host.send({t:'propose',v:{kind:v.kind,title:v.title,opts:v.opts,cmd:v.cmd}});return}
@@ -165,16 +171,18 @@ function propose(v){
 }
 function createVote(v){
   const id=Date.now().toString(36)+Math.random().toString(36).slice(2,6);
-  NET.votes.push({id,by:v.by,byName:(NET.players[v.by]||{}).name||'?',kind:v.kind||'free',title:v.title,tx:v.tx||'',opts:v.opts&&v.opts.length?v.opts:['Sí','No'],cmd:v.cmd||null,ballots:{},open:true,ends:Date.now()+(v.kind==='ev'?60000:90000),voters:v.voters||null,who:v.who||''});
+  NET.votes.push({id,by:v.by,byName:(NET.players[v.by]||{}).name||'?',kind:v.kind||'free',title:v.title,tx:v.tx||'',opts:v.opts&&v.opts.length?v.opts:['Sí','No'],cmd:v.cmd||null,ballots:{},dice:{},anon:!!NET.anon,open:true,ends:Date.now()+(v.kind==='ev'?60000:90000),voters:v.voters||null,who:v.who||''});
   sysMsg(v.voters?`🎭 Decide ${v.who}: ${v.title}`:`🗳 Nueva votación: ${v.title}`);bcast({t:'toast',h:'🗳 Nueva votación: <b>'+esc(v.title)+'</b>'});checkVotes();return id;
 }
-function castVote(id,pid,o){if(NET.role==='client'){NET.host.send({t:'vote',id,o});return}const v=NET.votes.find(x=>x.id===id&&x.open);if(!v||o<0||o>=v.opts.length)return;if(v.voters&&!v.voters.includes(pid)&&pid!==NET.me)return;v.ballots[pid]=o;checkVotes();netSync();renderSessDyn()}
+function castDice(id,pid,d){if(!(d>=1&&d<=6))return;if(NET.role==='client'){NET.host.send({t:'dice',id,d});return}const v=NET.votes.find(x=>x.id===id&&x.open);if(!v||!v.dice||pid in v.dice)return;v.dice[pid]=d;
+  sysMsg(`🎲 ${v.anon?'Alguien':((NET.players[pid]||{}).name||'?')} tira el dado de fortuna en «${v.title}»: ${d} (${DIEM[d]>0?'+':''}${DIEM[d]}).`);if(NET.luckPaint)NET.luckPaint();netSync()}
+function castVote(id,pid,o){if(NET.role==='client'){NET.myVotes[id]=o;NET.host.send({t:'vote',id,o});return}const v=NET.votes.find(x=>x.id===id&&x.open);if(!v||o<0||o>=v.opts.length)return;if(v.voters&&!v.voters.includes(pid)&&pid!==NET.me)return;v.ballots[pid]=o;checkVotes();netSync();renderSessDyn()}
 function checkVotes(){
   if(NET.role!=='host')return;const everyone=[NET.me,...NET.conns.keys()];
   for(const v of NET.votes){if(!v.open)continue;let voters=v.voters&&v.voters.some(p=>everyone.includes(p))?v.voters.filter(p=>everyone.includes(p)):everyone;const all=voters.every(p=>p in v.ballots);if(!all&&Date.now()<v.ends)continue;
     const cnt=v.opts.map((_,i)=>Object.values(v.ballots).filter(b=>b===i).length),max=Math.max(...cnt);let w=cnt.indexOf(max);
     if(v.kind==='cmd'&&cnt[0]===cnt[1])w=1;if(!Object.keys(v.ballots).length&&v.kind==='ev')w=0;v.open=false;v.result=w;
-    sysMsg(`Resultado de «${v.title}»: ${v.opts[w]} (${cnt.join(' / ')})`);
+    sysMsg(`Resultado de «${v.title}»: ${v.opts[w]} (${v.anon?cnt.join(' / ')+' · voto anónimo':v.opts.map((o,i)=>`${o}: ${Object.entries(v.ballots).filter(([,b])=>b===i).map(([p])=>(NET.players[p]||{}).name||'?').join(', ')||'—'}`).join(' · ')})`);
     if(v.kind==='cmd'&&w===0){const msg=execCmd(v.cmd);if(msg){toast(esc(msg));bcast({t:'toast',h:esc(msg)})}}
     if(v.kind==='ev'&&NET.vcb[v.id]){const f=NET.vcb[v.id];delete NET.vcb[v.id];f(w)}}
   const closed=NET.votes.filter(v=>!v.open);if(closed.length>12)NET.votes=NET.votes.filter(v=>v.open).concat(closed.slice(-12));refresh();
@@ -184,9 +192,12 @@ function showEvVote(){
   const v=NET.votes.find(x=>x.open&&x.kind==='ev');
   if(NET.shownVote&&!NET.votes.some(x=>x.id===NET.shownVote&&x.open)){if(NET.shownVote&&modalOpen&&$('#evv')){modalOpen=false;closeModal()}NET.shownVote=null}
   if(!v||NET.shownVote===v.id||modalOpen)return;NET.shownVote=v.id;
-  if(v.voters&&!v.voters.includes(NET.me)){toast(`🎭 ${esc(v.title)}: decide ${esc(v.who)}…`);return}
+  const spect=v.voters&&!v.voters.includes(NET.me),hasK=/·\s*(Pilotaje|Ingeniería|Ciencia|Medicina|Seguridad|Diplomacia)\s\d+/.test(v.opts.join('|'))||Object.values(STATN).some(n=>v.opts.some(o=>o.includes('· '+n+' ')));
   modalOpen=true;
-  showModal(`<div id="evv" class="kick">EVENTO · ${v.voters?'TE TOCA DECIDIR POR TU ROL':'VOTACIÓN DE LA TRIPULACIÓN'}</div><h2>${esc(v.title)}</h2><p class="story">${esc(v.tx)}</p><div class="opts">${v.opts.map((o,i)=>`<button data-o="${i}">${esc(o)}</button>`).join('')}</div><div class="note" id="vstat">Tu voto cuenta: se decide por mayoría.</div>`);
+  showModal(`<div id="evv" class="kick">EVENTO · ${spect?'DECIDE '+esc(v.who).toUpperCase():v.voters?'TE TOCA DECIDIR POR TU ROL':'VOTACIÓN DE LA TRIPULACIÓN'}${v.anon?' · VOTO ANÓNIMO':''}</div><h2>${esc(v.title)}</h2><p class="story">${esc(v.tx)}</p>
+  ${hasK?`<div class="row"><button id="dice">🎲 Tirar dado de fortuna</button></div><div id="luck" class="note">${luckTxt(v.dice,v.anon)}</div>`:''}
+  ${spect?`<p class="note">Decide ${esc(v.who)}. Tu dado de fortuna también cuenta para la prueba.</p><div class="row"><button id="evHide">Ocultar</button></div>`:`<div class="opts">${v.opts.map((o,i)=>`<button data-o="${i}">${esc(o)}</button>`).join('')}</div><div class="note" id="vstat">${v.anon?'Voto secreto: nadie sabrá qué elegiste.':'Voto público: la tripulación verá qué elegiste.'}</div>`}`);
+  if($('#dice'))$('#dice').onclick=e=>dieAnim(e.currentTarget,d=>castDice(v.id,NET.me,d));if($('#evHide'))$('#evHide').onclick=()=>{modalOpen=false;closeModal()};
   $('#modalBox').querySelectorAll('[data-o]').forEach(b=>b.onclick=()=>{castVote(v.id,NET.me,+b.dataset.o);$('#modalBox').querySelectorAll('[data-o]').forEach(x=>x.classList.toggle('pri',x===b));$('#vstat').textContent='Voto registrado. Esperando al resto…'});
 }
 /* Pestaña Sesión */
@@ -207,13 +218,14 @@ function renderSess(){
   <div class="row"><button id="sCopy">Copiar ${link?'enlace':'código'}</button><button id="sLeave">Salir</button></div>
   ${NET.role==='host'?`<div class="card"><div class="kick">DIRECTOR DE PARTIDA</div>${NET.crewLock?`<p class="note">Sólo tripulación «${esc(NET.crewLock.name)}» (${esc(NET.crewLock.id)}).</p>`:'<p class="note">Abierta a cualquier tripulación.</p>'}
     <div class="field"><label>Eventos</label><select id="sDec"><option value="rol" ${NET.decide==='rol'?'selected':''}>Decide el rol responsable</option><option value="todos" ${NET.decide==='todos'?'selected':''}>Vota toda la tripulación</option><option value="yo" ${NET.decide==='yo'?'selected':''}>Decido yo</option></select></div>
-    <label class="chk"><input type="checkbox" id="sDemo" ${NET.demo?'checked':''}> Las acciones de los sistemas también se votan</label><p class="note">Los rumbos siempre te preguntan si decides tú o se vota.</p>
+    <label class="chk"><input type="checkbox" id="sDemo" ${NET.demo?'checked':''}> Las acciones de los sistemas también se votan</label>
+    <label class="chk"><input type="checkbox" id="sAnon" ${NET.anon?'checked':''}> Votos anónimos (sólo se ve el recuento)</label><p class="note">Los rumbos siempre te preguntan si decides tú o se vota.</p>
     <div class="row"><button id="sLog">📜 Registro de la partida</button></div></div>`:''}
   <div id="sessDyn"></div>
   <h3>Proponer votación</h3><input id="vT" placeholder="¿Qué se vota?" style="width:100%" maxlength="140"><input id="vO" placeholder="Opciones separadas por comas (Sí, No)" style="width:100%;margin-top:4px" maxlength="200"><div class="row"><button id="vGo">🗳 Proponer</button></div>
   <h3>Chat</h3><div id="chatL" class="lst" style="max-height:220px;overflow:auto"></div><div class="row"><input id="chT" style="flex:1" maxlength="300" placeholder="Mensaje a la tripulación"><button id="chGo">Enviar</button></div>`;
   $('#sCopy').onclick=()=>copy(link||NET.code,'Copiado');$('#sLeave').onclick=()=>{if(confirm(NET.role==='host'?'¿Cerrar la sala? Los demás se desconectarán.':'¿Salir de la sala? Se recargará tu partida local.'))leaveSession()};
-  if($('#sDemo'))$('#sDemo').onchange=e=>{NET.demo=e.target.checked;netSync()};if($('#sDec'))$('#sDec').onchange=e=>{NET.decide=e.target.value;logDM('Eventos: '+e.target.selectedOptions[0].text,'sys')};if($('#sLog'))$('#sLog').onclick=()=>showDM(true);
+  if($('#sDemo'))$('#sDemo').onchange=e=>{NET.demo=e.target.checked;netSync()};if($('#sAnon'))$('#sAnon').onchange=e=>{NET.anon=e.target.checked;sysMsg(NET.anon?'🕶 Las votaciones nuevas serán anónimas.':'👁 Las votaciones nuevas serán públicas.')};if($('#sDec'))$('#sDec').onchange=e=>{NET.decide=e.target.value;logDM('Eventos: '+e.target.selectedOptions[0].text,'sys')};if($('#sLog'))$('#sLog').onclick=()=>showDM(true);
   $('#vGo').onclick=()=>{const t=$('#vT').value.trim();if(!t)return;const o=$('#vO').value.split(',').map(s=>s.trim()).filter(Boolean);propose({kind:'free',title:t,opts:o.length>1?o:['Sí','No']});$('#vT').value='';$('#vO').value=''};
   const send=()=>{const tx=$('#chT').value.trim();if(!tx)return;if(NET.role==='client')NET.host.send({t:'chat',tx});else{NET.chat.push({f:(NET.players[NET.me]||{}).name||'Anfitrión',tx,t:Date.now()});renderSessDyn();netSync()}$('#chT').value=''};
   $('#chGo').onclick=send;$('#chT').onkeydown=e=>{if(e.key==='Enter')send()};renderSessDyn();
@@ -223,8 +235,9 @@ function renderSessDyn(){
   const mine=D.crew.find(m=>m.pid===NET.me&&m.st!=='perdido');
   el.innerHTML=`<h3>Jugadores</h3><div class="lst">${Object.entries(NET.players).map(([id,p])=>{const ch=D.crew.find(m=>m.pid===id&&m.st!=='perdido');return`<div class="item">${portrait(ch)}<div class="m"><b>${esc(p.name)}${p.host?' · anfitrión':''}${id===NET.me?' (tú)':''}</b><i>${ch?esc(ch.nm)+' · '+ROLES[ch.role]+' · nivel '+ch.lv:'sin personaje'}</i></div></div>`}).join('')}</div>
   ${mine?'':`<div class="row"><button class="pri" id="myCard">Subir mi ficha de Members</button></div>`}
-  <h3>Votaciones</h3><div class="lst">${NET.votes.slice().reverse().map(v=>{const my=v.ballots&&v.ballots[NET.me],cnt=v.opts.map((_,i)=>Object.values(v.ballots||{}).filter(b=>b===i).length);
-    return`<div class="item col"><div><b>${esc(v.title)}</b> <span class="dim">· ${esc(v.byName||'')} · ${v.open?Math.max(0,Math.round((v.ends-Date.now())/1000))+' s':'cerrada'}</span></div><div class="row">${v.opts.map((o,i)=>`<button class="sm ${my===i?'pri':''} ${!v.open&&v.result===i?'pri':''}" data-v="${v.id}" data-o="${i}" ${v.open?'':'disabled'}>${esc(o)} · ${cnt[i]}</button>`).join('')}</div></div>`}).join('')||'<p class="note">Sin votaciones.</p>'}</div>`;
+  <h3>Votaciones ${NET.anon?'<span class="tag">🕶 anónimas</span>':'<span class="tag">👁 públicas</span>'}</h3><div class="lst">${NET.votes.slice().reverse().map(v=>{const my=v.ballots&&NET.me in v.ballots?v.ballots[NET.me]:NET.myVotes[v.id],cnt=voteCnt(v);
+    const who=i=>v.anon||!v.ballots?'':Object.entries(v.ballots).filter(([,b])=>b===i).map(([p])=>(NET.players[p]||{}).name||'?').join(', ');
+    return`<div class="item col"><div><b>${esc(v.title)}</b> <span class="dim">· ${esc(v.byName||'')} · ${v.anon?'🕶 ':''}${v.open?Math.max(0,Math.round((v.ends-Date.now())/1000))+' s':'cerrada'}</span></div><div class="row">${v.opts.map((o,i)=>`<button class="sm ${my===i?'pri':''} ${!v.open&&v.result===i?'pri':''}" data-v="${v.id}" data-o="${i}" ${v.open?'':'disabled'} title="${esc(who(i))}">${esc(o)} · ${cnt[i]}</button>`).join('')}</div>${!v.anon&&v.ballots&&Object.keys(v.ballots).length?`<div class="note">${v.opts.map((o,i)=>who(i)?`${esc(o)}: ${esc(who(i))}`:'').filter(Boolean).join(' · ')}</div>`:''}${v.dice&&Object.keys(v.dice).length?`<div class="note">${luckTxt(v.dice,v.anon)}</div>`:''}</div>`}).join('')||'<p class="note">Sin votaciones.</p>'}</div>`;
   el.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>castVote(b.dataset.v,NET.me,+b.dataset.o));
   if($('#myCard'))$('#myCard').onclick=()=>openCardUpload(card=>{if(NET.role==='client')NET.host.send({t:'hello',name:D.n||card.n,card});else{toast(esc(addCardLocally(card,NET.me,D.n||'Anfitrión')));netSync();refresh()}});
   const cl=$('#chatL');if(cl){cl.innerHTML=NET.chat.map(c=>`<div class="note" style="margin:0">${c.f?`<b style="color:var(--tx)">${esc(c.f)}:</b> `:'· '}${esc(c.tx)}</div>`).join('');cl.scrollTop=cl.scrollHeight}

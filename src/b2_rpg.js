@@ -30,15 +30,15 @@ if(!D.st)D.st=freshState(D.ship.d);
 if(!Array.isArray(D.crew)){const n=newCrew(D.ship.d);D.crew=n.c;D.st.extra=n.extra}
 const alive=()=>D.crew.filter(m=>m.st!=='perdido');
 const crewCount=()=>alive().length+(D.st.extra|0);
-const eff=(m,k)=>m.s[k]+((TRAITS[m.tr]||{m:{}}).m[k]||0)+Math.floor((m.lv-1)/2)+(m.hp<50?-2:0)+(m.mor<30?-1:0);
+const eff=(m,k)=>m.s[k]+((TRAITS[m.tr]||{m:{}}).m[k]||0)+Math.floor((m.lv-1)/2)+(m.hp<50?-2:0)+(m.mor<30?-1:0)+(typeof gearB==='function'?gearB(m,k):0);
 const okImg=s=>typeof s==='string'&&/^(data:image\/(webp|jpeg);base64,[A-Za-z0-9+/=]+|https:\/\/[^\s"'<>]+)$/.test(s);
 const portrait=m=>m?(okImg(m.ph)?`<span class="pt"><img src="${esc(m.ph)}" alt="${esc(m.nm)}"></span>`:`<span class="pt" title="${esc(m.sp)}">${SPEMO[m.sp]||'🐾'}</span>`):'<span class="pt">🤖</span>';
 const AI={nm:'IA de a bordo',sp:'IA',s:{pil:5,ing:5,cie:5,med:3,seg:3,soc:3},tr:'',lv:1,hp:100,mor:100};
 function best(k,team){const c=(team&&team.length?team:alive().filter(m=>m.hp>0));if(!c.length)return{m:AI,v:AI.s[k]};let b=c[0],v=eff(b,k);for(const m of c){const e=eff(m,k);if(e>v){v=e;b=m}}return{m:b,v}}
-const chance=(k,dc,team)=>{const b=best(k,team).v+((team&&team.length>1)?team.length-1:0);return clamp((11-(dc-b))/10,0,1)};
-function roll(k,dc,team){
-  const b=best(k,team),bonus=(team&&team.length>1)?team.length-1:0,d=1+(Math.random()*10|0),tot=b.v+d+bonus,ok=tot>=dc;
-  return{ok,crit:d===10,fumble:d===1,m:b.m,line:`🎲 ${d} + ${b.v} (${esc(b.m.nm)}, ${STATN[k]})${bonus?` + ${bonus} equipo`:''} = ${tot} vs ${dc} ${ok?'✓':'✗'}`};
+const chance=(k,dc,team,luck)=>{const b=best(k,team).v+((team&&team.length>1)?team.length-1:0)+(luck|0);return clamp((11-(dc-b))/10,0,1)};
+function roll(k,dc,team,luck){
+  luck=luck|0;const b=best(k,team),bonus=(team&&team.length>1)?team.length-1:0,d=1+(Math.random()*10|0),tot=b.v+d+bonus+luck,ok=tot>=dc;
+  return{ok,crit:d===10,fumble:d===1,m:b.m,line:`🎲 ${d} + ${b.v} (${esc(b.m.nm)}, ${STATN[k]})${bonus?` + ${bonus} equipo`:''}${luck?` ${luck>0?'+':'−'} ${Math.abs(luck)} fortuna`:''} = ${tot} vs ${dc} ${ok?'✓':'✗'}`};
 }
 function gainXp(m,n){if(!m||m===AI||m.st==='perdido')return'';m.xp+=n;let out='';while(m.xp>=30*m.lv){m.xp-=30*m.lv;m.lv++;m.s[m.role]=Math.min(12,m.s[m.role]+1);out+=` ${m.nm} sube a nivel ${m.lv}.`}return out}
 function hurt(m,n){if(!m||m===AI)return'';if(m.tr==='Cauteloso')n=Math.round(n/2);m.hp=Math.max(5,m.hp-n);return` ${m.nm} resulta herido (−${n} salud).`}
@@ -112,7 +112,7 @@ const EV=[
   op:[{l:'Estudiarla',k:'cie',dc:13,ok:(c,r)=>{D.st.min=Math.min(SPEC[D.ship.d].cargo,D.st.min+20);morAll(5);return'Datos únicos y fragmentos exóticos: +20 t de minerales.'+gainXp(r.m,20)},ko:()=>{D.st.hull=Math.max(1,D.st.hull-10);return'La marea gravitacional tuerce el casco: −10%.'}},
       {l:'Rodearla',run:()=>'Prudencia ante todo.'}]},
  {id:'contenedor',w:3,at:'leg',t:'Contenedor a la deriva',tx:'Un módulo de carga sin marcas gira lentamente frente a la nave.',
-  op:[{l:'Abrirlo',k:'ing',dc:9,ok:()=>{const sp=SPEC[D.ship.d];D.st.min=Math.min(sp.cargo,D.st.min+15);D.st.prov=Math.min(sp.prov,D.st.prov+sp.prov*.06);return'Suministros y repuestos útiles.'},ko:()=>{D.st.hull=Math.max(1,D.st.hull-6);return'Un mecanismo de seguridad explota: casco −6%.'}},
+  op:[{l:'Abrirlo',k:'ing',dc:9,ok:()=>{const sp=SPEC[D.ship.d];D.st.min=Math.min(sp.cargo,D.st.min+15);D.st.prov=Math.min(sp.prov,D.st.prov+sp.prov*.06);return'Suministros y repuestos útiles.'+(Math.random()<.5?' Entre ellos hay algo con dueño.'+giveItem(pick(FK)+'.'+pick(['contra','tec','uniforme','reliquia'])):'')},ko:()=>{D.st.hull=Math.max(1,D.st.hull-6);return'Un mecanismo de seguridad explota: casco −6%.'}},
       {l:'Dejarlo',run:()=>'Sigue girando a su suerte.'}]},
  {id:'transmision',w:2,at:'arr',t:'Transmisión desconocida',tx:'Un patrón de pulsos repetido, demasiado regular para ser natural.',
   op:[{l:'Descifrarla',k:'soc',dc:12,ok:(c,r)=>{morAll(6);return'«'+pick(LORE)+'»'+gainXp(r.m,20)},ko:()=>'Ruido. Sólo ruido. ¿O no?'},{l:'Grabarla y seguir',run:()=>'Queda archivada en la bitácora.'}]},
@@ -132,7 +132,7 @@ const EV=[
   op:[{l:'Atraparlo',k:'seg',dc:10,ok:()=>{morAll(10);return'Es pequeño, peludo y ronronea. Ahora es la mascota de la nave. Moral +10.'},ko:()=>hurt(pick(alive()),8)+' Muerde.'},{l:'Sellar la bodega',run:()=>'Silencio… por ahora.'}]},
  {id:'lluvia',w:1,at:'arr',cond:c=>c.star&&PETROVA.has(c.star.P.k),t:'Nube de astrófago',tx:'La nave atraviesa una corriente de astrófago migrando hacia la estrella.',
   op:[{l:'Abrir los colectores',k:'pil',dc:10,ok:()=>{const sp=SPEC[D.ship.d];D.st.fuel=Math.min(sp.tank,D.st.fuel+sp.tank*.2);return'Tanques +20%.'},ko:()=>'Demasiado rápida. Se escapa.'}]}];
-function pickEvent(at,c){const pool=EV.filter(e=>(e.at===at||e.at==='any')&&(!e.cond||e.cond(c)));let w=pool.reduce((a,e)=>a+e.w,0)*Math.random();for(const e of pool){w-=e.w;if(w<=0)return e}return null}
+function pickEvent(at,c){if(typeof facEvent==='function'&&Math.random()<.38){const fe=facEvent(at,c);if(fe&&fe.op.length)return fe}const pool=EV.filter(e=>(e.at===at||e.at==='any')&&(!e.cond||e.cond(c)));let w=pool.reduce((a,e)=>a+e.w,0)*Math.random();for(const e of pool){w-=e.w;if(w<=0)return e}return null}
 
 /* ═════════ Misiones e historia ═════════ */
 const QUESTS=[

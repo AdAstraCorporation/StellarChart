@@ -77,6 +77,27 @@ la semilla: especie, nivel tecnológico (de ruinas extintas a interestelar), gob
 historia generada con datos del entorno (planetas vecinos, estrellas cercanas). Se puede contactar (tirada de Diplomacia),
 comerciar, aprender y reclutar según la reputación. Cada sistema tiene además su propio lore.
 
+## Facciones y contratos
+- **Seis facciones** con territorio propio: Corporación Ad Astra, Liga de Comerciantes Libres, Manada de Hierro, Círculo de la Estrella Oscura, Corsarios del Vacío y Custodios del Archivo. El mapa político sale de la semilla, y el botón **⬡ Facciones** colorea las estrellas y marca sus núcleos.
+- **Afiliación y reputación:** la tripulación puede ser miembro de varias facciones. Para unirse hace falta reputación 40, y sus enemigas lo notan.
+- **¿Saben quiénes sois?** Cada encuentro tira para comprobar si os reconocen. La afiliación, la fama y **cada objeto de una facción a bordo** suben la probabilidad, aunque no seáis de ella. Según lo que sepan, el encuentro es amistoso, neutral u hostil: huir, plantar cara, sobornar, arrojar lo que os delata, mostrar un salvoconducto, hacerse pasar por otra facción…
+- **Contratos aleatorios:** cada sistema tiene un tablón que se renueva cada 120 días a bordo. Hay entregas, contrabando, rescates, reconocimiento, diplomacia, caza, sabotaje y recuperación de reliquias, con plazo, pago, reputación y a veces objetos. Las misiones de historia siguen en la Bitácora.
+
+## Inventarios
+- **Bodega de la nave** (pestaña Nave) y **inventario de cada tripulante** (pestaña Tripulación, con un máximo de 6 objetos). Los objetos se pasan de uno a otro con «Dar a…».
+- El equipo que lleva encima un tripulante le da +1 a su estadística (máximo +2). Cada tripulante empieza con el equipo de su rol.
+- Todo lo que hay a bordo, en la bodega o encima de alguien, puede delataros. La Manada registra bodega y bolsillos.
+
+## Bases, colonias y logística
+- Se construyen desde el panel de un planeta en órbita: mina, refinería de astrófago, granja hidropónica o puesto avanzado. Cuestan 40 t y 20 días, y llegan hasta nivel 3.
+- Producen con el tiempo de a bordo según la riqueza del planeta (minerales, astrófago, alimento), que sale de la semilla y **puede ser nula**.
+- Los **envíos** viajan en tiempo real a **1 año luz cada 5 segundos** (mínimo 5 s): de una base a la nave o de una base a otra.
+- Las **rutas automáticas** envían recursos de X a Y cada N días a bordo o cada N minutos reales, por ejemplo para que una colonia te mande recursos con regularidad. Se ven en el mapa y en la pestaña **Bases**.
+
+## Votos y dados
+- El capitán elige en la pestaña Sesión si los votos son **públicos** (se ve quién votó qué) o **anónimos** (solo el recuento). Cada jugador vota desde su dispositivo.
+- **Dado de fortuna:** en los eventos con prueba de habilidad, cada jugador puede tirar 1d6 una vez: 1 → −2, 2 → −1, 3-4 → 0, 5 → +1, 6 → +2. La suma, de −3 a +3, se aplica a la tirada.
+
 ## Sesión compartida
 Pestaña «Sesión»: el anfitrión crea una sala con código (o enlace `#sala=CÓDIGO`) y su navegador guarda la partida. Cada jugador
 se une **subiendo su ficha de Members** (PNG del reverso con el QR, o el enlace `#C…`) y maneja su propio personaje. Viajes,

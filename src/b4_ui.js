@@ -27,7 +27,7 @@ function frame(now){
   if(!idleDone&&now-lastInput>2200){idleDone=true;saveView()}
   requestAnimationFrame(frame);
 }
-function saveView(){if(pilot){D.sp=pointAt(...pilot.pos).seed;_sp='';}D.cm=[cam.fx,cam.fy,cam.fz,cam.R,cam.yaw,cam.pitch].map(v=>+v.toFixed(4));D.op=[opt.color?1:0,opt.spin?1:0,opt.nav?1:0,opt.pet?1:0];D.c=seedStr(focusLoc(14));saveD();
+function saveView(){if(pilot){D.sp=pointAt(...pilot.pos).seed;_sp='';}D.cm=[cam.fx,cam.fy,cam.fz,cam.R,cam.yaw,cam.pitch].map(v=>+v.toFixed(4));D.op=[opt.color?1:0,opt.spin?1:0,opt.nav?1:0,opt.pet?1:0,opt.fac?1:0];D.c=seedStr(focusLoc(14));saveD();
   if(mode==='map'&&!travel)record('m',focusLoc())}
 
 /* ═════════ Entrada: ratón, táctil y teclado ═════════ */
@@ -140,11 +140,11 @@ function refresh(){renderPanel();updateHud();syncToggles();$('#backBtn').style.d
 function setTab(t){tab=t;document.querySelectorAll('.tabs button[data-t]').forEach(b=>b.classList.toggle('on',b.dataset.t===t));document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('on',p.id==='p-'+t));if(t!=='ship')prevCv=null;renderPanel()}
 document.querySelectorAll('.tabs button[data-t]').forEach(b=>b.onclick=()=>setTab(b.dataset.t));
 $('#drawerX').onclick=()=>toggleDrawer(false);
-function renderPanel(){if(tab==='sess'&&$('#sessDyn')){renderSessDyn();return}({carta:renderCarta,plan:renderPlan,ship:renderShip,crew:renderCrew,sess:renderSess,hist:renderHist,nav:renderNav,share:renderShare})[tab]()}
+function renderPanel(){if(tab==='sess'&&$('#sessDyn')){renderSessDyn();return}({carta:renderCarta,plan:renderPlan,ship:renderShip,crew:renderCrew,fac:renderFac,base:renderBases,sess:renderSess,hist:renderHist,nav:renderNav,share:renderShare})[tab]()}
 let ACTS=[];const A=(label,fn,dis,cls)=>{ACTS.push(fn);return`<button class="sm ${cls||''}" data-a="${ACTS.length-1}" ${dis?'disabled':''}>${label}</button>`};
 const bindActs=el=>el.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>ACTS[+b.dataset.a]());
 function starKV(st){const P=st.P,ship=shipStar();return`<div class="kv"><span>Clase</span><span>${P.k} · ${esc(P.lab)}</span><span>Temperatura</span><span>${fmtI(P.T)} K</span><span>Luminosidad</span><span>${P.lum<.01?P.lum.toExponential(1):P.lum.toFixed(2)} L☉</span>
-  <span>Masa · radio</span><span>${P.mass.toFixed(2)} M☉ · ${P.rad.toFixed(2)} R☉</span><span>Desde tu nave</span><span>${fmtLen(gd(ship,st))}</span><span>Desde el Sol</span><span>${fmtLen(Math.hypot(st.gx,st.gy,st.gz))}</span><span>Semilla</span><span class="seed">${esc(sSeed(st))}</span></div>`}
+  <span>Masa · radio</span><span>${P.mass.toFixed(2)} M☉ · ${P.rad.toFixed(2)} R☉</span><span>Desde tu nave</span><span>${fmtLen(gd(ship,st))}</span><span>Desde el Sol</span><span>${fmtLen(Math.hypot(st.gx,st.gy,st.gz))}</span><span>Semilla</span><span class="seed">${esc(sSeed(st))}</span><span>Territorio</span><span>${esc(terLab(facOf(st)))}</span></div>`}
 function renderCarta(){
   const el=$('#p-carta');ACTS=[];
   if(mode==='system')return systemPanel(el);if(mode==='surface')return surfacePanel(el);
@@ -205,6 +205,8 @@ function systemPanel(el){
     h+=A('Escanear todo',()=>orbitAct('scanall',0,'Escanear todos los planetas de '+S.name));
     if(S.star.anchor&&S.star.anchor.id==='sol')h+=A('Reabastecer en la Tierra · 60 d',()=>orbitAct('earth',0,'Reabastecer en la Tierra (60 días)'),0,'pri');
     h+=`</div>`;
+    const due=FX().mis.filter(m=>misHere(m,S.star));if(due.length)h+=`<h3>Contratos aquí</h3><div class="row">${due.map(m=>A(`${MTY[m.ty].ic} Cumplir: ${esc(MTY[m.ty].n)} (${esc(FAC[m.g].s)})`,()=>cmd({k:'fac',a:'do',id:m.id},'Cumplir el contrato '+m.id),NET.role==='client','pri')).join('')}</div>`;
+    h+=boardHtml(S);
   }else h+=`<p class="note">Datos de sondeo remoto. Viaja hasta aquí para escanear, aterrizar y recolectar.</p>`;
   h+=`<div class="row">${A('+ Añadir este sistema al plan',()=>addToPlan(S.star))}</div>`;
   h+=`<h3>Planetas</h3><div class="lst">`;
@@ -226,6 +228,7 @@ function systemPanel(el){
         <p class="note">${civ.tech?`${esc(civ.sp)} · ~${fmtNum(civ.pop)} habitantes. `:''}${civ.hist.map(esc).join(' ')}</p>
         ${here&&civ.tech&&!civ.home?`<div class="row">${A('Contactar · 5 d',()=>cmd({k:'civ',i,a:'contact'},'Contactar a los '+civ.name),!!D.ex[civ.key+':contact'])}${A('Comerciar (15 t)',()=>cmd({k:'civ',i,a:'trade'},'Comerciar con los '+civ.name),rp<20)}${A('Aprender',()=>cmd({k:'civ',i,a:'learn'},'Aprender de los '+civ.name),rp<20||!!D.ex[civ.key+':learn'])}${A('Reclutar',()=>cmd({k:'civ',i,a:'recruit'},'Reclutar a un voluntario '+civ.name),rp<40||!!D.ex[civ.key+':rec'])}</div>`:''}</div>`}
       else if(here&&!sc)h+=`<p class="note">Escanea el planeta para saber si está habitado.</p>`;
+      if(!info.gas&&(sc||!here))h+=baseCardHtml(S,i,here);
       if(!info.gas)h+=`<div class="row">${A('+ Al plan: explorar '+esc(p.name),()=>addToPlan(S.star,'explore:'+i))}${civ&&civ.tech&&!civ.home?A('+ Al plan: contactar',()=>addToPlan(S.star,'civ:'+i)):''}</div>`;
     }
     h+=`</div>`;
@@ -260,11 +263,12 @@ function renderShip(){
   ${sp.hib?`<label class="chk"><input type="checkbox" id="hib" ${D.hib?'checked':''}> Hibernar a la tripulación durante los saltos</label>`:''}
   <label class="chk"><input type="checkbox" id="cre" ${D.cr?'checked':''}> Modo creativo (sin consumo de recursos)</label>
   <div class="row">${A('Reparar casco (10 t → +12%)',()=>orbitAct('rep',0,'Reparar el casco'),st.min<10||st.hull>=100||shipStar().point)}${A('📡 Pedir rescate',()=>{if(confirm('Una nave de Ad Astra remolcará la tuya hasta la Tierra. Pierdes la carga y pasan 10 años. ¿Continuar?'))cmd({k:'rescue'},'Pedir rescate a la Tierra')},!!travel)}</div>
+  ${holdHtml()}
   <h3>Astillero ${atSol||D.cr?'':'<span class="dim">(sólo en el Sistema Solar o en modo creativo)</span>'}</h3>
   <div class="ships">${Object.entries(SHIPS).map(([k,v])=>`<button data-k="${k}" class="${k===s.d?'on':''}" ${atSol||D.cr||k===s.d?'':'disabled'}>${shipImg(k,s.c1,s.c2,52)}<span>${v.n}</span><span class="dim">${fmtI(SPEC[k].len)} m</span></button>`).join('')}</div>
   <h3>Personalizar</h3><div class="field"><label>Nombre</label><input id="sn" maxlength="24" placeholder="${esc(S.n)}" value="${esc(s.n)}"></div>
   <div class="field"><label>Color 1</label><input id="sc1" type="color" value="${esc(s.c1)}"></div><div class="field"><label>Color 2</label><input id="sc2" type="color" value="${esc(s.c2)}"></div>`;
-  bindActs(el);prevCv=$('#shipPrev');const pc=prevCv,r=pc.getBoundingClientRect(),d=Math.min(2,window.devicePixelRatio||1);pc.width=Math.max(10,r.width*d);pc.height=Math.max(10,r.height*d);
+  bindActs(el);bindMv(el);prevCv=$('#shipPrev');const pc=prevCv,r=pc.getBoundingClientRect(),d=Math.min(2,window.devicePixelRatio||1);pc.width=Math.max(10,r.width*d);pc.height=Math.max(10,r.height*d);
   pc.onpointerdown=e=>{pc.setPointerCapture(e.pointerId);prevSt.drag={x:e.clientX,y:e.clientY,yaw:prevSt.yaw,pitch:prevSt.pitch}};
   pc.onpointermove=e=>{if(!prevSt.drag)return;prevSt.yaw=prevSt.drag.yaw-(e.clientX-prevSt.drag.x)*.012;prevSt.pitch=clamp(prevSt.drag.pitch+(e.clientY-prevSt.drag.y)*.01,-1.2,1.3);prevSt.last=performance.now()};
   pc.onpointerup=()=>{prevSt.drag=null;prevSt.last=performance.now()};
@@ -293,16 +297,16 @@ function renderCrew(){
     <div class="res"><span>Moral</span><span>${Math.round(m.mor)}%</span></div>${meter(m.mor,100,m.mor<30?'#ff6b6b':'#78dcff')}
     <div class="res"><span>Experiencia</span><span>${m.xp} / ${30*m.lv}</span></div>${meter(m.xp,30*m.lv,'#e0aa46')}
     <div class="stats">${STATS.map(([k,n])=>`<span>${n}</span><span class="sb"><i style="width:${eff(m,k)*8.3}%"></i></span><b>${eff(m,k)}</b>`).join('')}</div>
-    <p class="note"><b>${esc(m.tr)}</b>: ${esc((TRAITS[m.tr]||{d:''}).d)}</p><p class="note">${esc(m.bio)}</p>${up?`<p class="ok">Mejoras en esta partida: ${esc(up)}</p>`:''}
+    <p class="note"><b>${esc(m.tr)}</b>: ${esc((TRAITS[m.tr]||{d:''}).d)}</p><p class="note">${esc(m.bio)}</p>${up?`<p class="ok">Mejoras en esta partida: ${esc(up)}</p>`:''}${memberInvHtml(m)}
     ${m.mid?`<div class="row">${A('Actualizar su tarjeta en Members',async()=>{const u=await exportLink(m);window.open(u,'_blank','noopener')})}${A('Copiar enlace',async()=>copy(await exportLink(m),'Enlace de actualización copiado'))}</div>`:''}</div>`}).join('')||'<p class="note">Nave no tripulada: la IA de a bordo se encarga de todo.</p>'}
-  ${lost.length?`<h3>En memoria</h3><p class="note">${lost.map(m=>esc(m.nm)).join(' · ')}</p>`:''}`;bindActs(el);
+  ${lost.length?`<h3>En memoria</h3><p class="note">${lost.map(m=>esc(m.nm)).join(' · ')}</p>`:''}`;bindActs(el);bindMv(el);
 }
 async function endGame(){
   const s=D.st,ms=D.crew.filter(m=>m.mid),L=await missionLink();modalOpen=true;
   const rows=ms.map(m=>{const up=m.s0?KS.filter(k=>m.s[k]!==m.s0[k]).map(k=>`${STATN[k]} ${m.s0[k]}→${m.s[k]}`).join(', '):'',dv=Math.max(0,Math.round(s.days-(m.d0||0)));
     return`<div class="item"><span>${portrait(m)}</span><div class="m"><b>${esc(m.nm)}${m.pl?` <span class="dim">· ${esc(m.pl)}</span>`:''}</b><i>${m.st==='perdido'?'<span class="bad">Perdido en la misión</span>':`Nivel ${m.lv0||1}→${m.lv} · ${fmtT(dv/365.25)} de vuelo · salud ${Math.round(m.hp)}%`}${up?' · '+esc(up):''}</i></div></div>`}).join('');
   showModal(`<div class="kick">FIN DE LA MISIÓN${L?' · '+L.id:''}</div><h2>Informe de misión</h2>
-  <div class="kv"><span>Saltos</span><span>${s.jumps} · ${fmtLen(s.ly)}</span><span>Sistemas</span><span>${Object.keys(D.disc).length}</span><span>Tiempo a bordo</span><span>${fmtT(s.days/365.25)}</span><span>Año en la Tierra</span><span>${(2026+s.yrs).toFixed(1)}</span><span>Misiones de historia</span><span>${D.q} de ${QUESTS.length}</span></div>
+  <div class="kv"><span>Saltos</span><span>${s.jumps} · ${fmtLen(s.ly)}</span><span>Sistemas</span><span>${Object.keys(D.disc).length}</span><span>Tiempo a bordo</span><span>${fmtT(s.days/365.25)}</span><span>Año en la Tierra</span><span>${(2026+s.yrs).toFixed(1)}</span><span>Misiones de historia</span><span>${D.q} de ${QUESTS.length}</span><span>Contratos cumplidos</span><span>${Object.values(FX().done).reduce((a,b)=>a+b,0)}</span></div>
   ${L?`<h3>QR de la misión</h3><p class="note">Cada jugador lo escanea desde la app de Members («Actualizar → Escanear QR de la misión») y luego su credencial: su ficha se renueva con estadísticas, nivel, tiempo de vuelo y misiones. Cada misión sólo se aplica una vez por credencial.</p>
     <div style="text-align:center"><div id="qrBox"><canvas id="mqr"></canvas></div></div>
     <div class="row"><button class="pri" id="mDl">Descargar QR</button><button id="mCp">Copiar enlace</button><a class="btn" href="${esc(L.url)}" target="_blank" rel="noopener">Abrir en Members</a></div>`:''}
@@ -317,7 +321,8 @@ async function endGame(){
 function entryLabel(e){const st=starFromSeed(e.s);if(e.k==='j')return'🚀 '+(st?starName(st):e.s);if(e.k==='s')return'★ '+(st?starName(st):'Sistema');const p=parseSeed(e.s);return p.loc?regionName(p.loc):e.s}
 function renderHist(){
   const el=$('#p-hist'),favOnly=el.dataset.fav==='1',list=D.h.map((e,i)=>({e,i})).filter(x=>!favOnly||x.e.f).reverse(),s=D.st;
-  el.innerHTML=`<div class="kick">MISIONES</div>${QUESTS.map((q,i)=>`<div class="item ${i<D.q?'done':i===D.q?'cur':'lock'}"><span>${i<D.q?'✓':i===D.q?'▶':'·'}</span><div class="m"><b>${esc(q.t)}</b><i>${i<=D.q?esc(q.d):'???'}</i></div></div>`).join('')}
+  el.innerHTML=`<div class="kick">HISTORIA</div>${QUESTS.map((q,i)=>`<div class="item ${i<D.q?'done':i===D.q?'cur':'lock'}"><span>${i<D.q?'✓':i===D.q?'▶':'·'}</span><div class="m"><b>${esc(q.t)}</b><i>${i<=D.q?esc(q.d):'???'}</i></div></div>`).join('')}
+  <p class="note">Contratos activos: ${FX().mis.length} · cumplidos: ${Object.values(FX().done).reduce((a,b)=>a+b,0)} (ver pestaña Facciones).</p>
   <h3>Registro de la misión</h3><div class="kv"><span>Saltos</span><span>${s.jumps}</span><span>Distancia</span><span>${fmtLen(s.ly)}</span><span>Sistemas registrados</span><span>${Object.keys(D.disc).length}</span><span>Tiempo a bordo</span><span>${fmtT(s.days/365.25)}</span><span>Año en la Tierra</span><span>${(2026+s.yrs).toFixed(1)}</span></div>
   <h3>Bitácora</h3><div class="row"><label class="chk"><input type="checkbox" id="anon" ${D.anon?'checked':''}> No registrar</label><button class="sm" id="favF">${favOnly?'Ver todo':'Solo ★'}</button><button class="sm" id="clr">Borrar</button><span class="dim">${D.h.length}</span></div>
   <div class="lst">${list.slice(0,250).map(({e,i})=>`<div class="item"><button class="fav ${e.f?'on':''}" data-f="${i}">${e.f?'★':'☆'}</button><div class="m"><b>${esc(entryLabel(e))}</b><i>${esc(e.s)} · ${new Date(e.t).toLocaleString('es',{dateStyle:'short',timeStyle:'short'})}</i>${e.n?`<i style="color:var(--tx)">“${esc(e.n)}”</i>`:''}</div><button class="sm" data-n="${i}">✎</button><button class="sm" data-g="${i}">Ir</button><button class="sm" data-x="${i}">✕</button></div>`).join('')||'<p class="note">Aún no hay registros.</p>'}</div>`;

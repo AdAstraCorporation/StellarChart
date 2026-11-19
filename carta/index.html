@@ -160,7 +160,7 @@ select{background:rgba(0,0,0,.5);border:1px solid var(--line);color:inherit;padd
     <form id="seedForm" autocomplete="off"><input id="seedIn" placeholder="A-DD5PN" spellcheck="false" maxlength="48" aria-label="Semilla"><button class="pri" type="submit">IR</button><button type="button" id="rndBtn" title="Lugar aleatorio">⚄</button></form>
     <div class="info" id="info"></div>
   </div>
-  <div class="ov" id="toggles"><button data-o="nav">◇ Navegación</button><button data-o="color">◇ Color</button><button data-o="pet">✦ Petrova</button></div>
+  <div class="ov" id="toggles"><button data-o="nav">◇ Navegación</button><button data-o="color">◇ Color</button><button data-o="pet">✦ Petrova</button><button data-o="fac">⬡ Facciones</button></div>
   <div class="ov" id="hud"></div>
   <button class="ov" id="backBtn">⤒ VOLVER</button>
   <div class="ov" id="toast"></div>
@@ -174,8 +174,8 @@ select{background:rgba(0,0,0,.5);border:1px solid var(--line);color:inherit;padd
   <div class="ov" id="tip"></div>
 </section>
 <aside id="drawer">
-  <div class="tabs"><button id="drawerX" title="Cerrar panel" aria-label="Cerrar panel">✕</button><button data-t="carta" class="on">Carta</button><button data-t="plan">Plan</button><button data-t="ship">Nave</button><button data-t="crew">Tripul.</button><button data-t="sess">Sesión</button><button data-t="hist">Bitácora</button><button data-t="nav">Navegar</button><button data-t="share">Partida</button></div>
-  <div class="pane on" id="p-carta"></div><div class="pane" id="p-plan"></div><div class="pane" id="p-ship"></div><div class="pane" id="p-crew"></div><div class="pane" id="p-sess"></div><div class="pane" id="p-hist"></div><div class="pane" id="p-nav"></div><div class="pane" id="p-share"></div>
+  <div class="tabs"><button id="drawerX" title="Cerrar panel" aria-label="Cerrar panel">✕</button><button data-t="carta" class="on">Carta</button><button data-t="plan">Plan</button><button data-t="ship">Nave</button><button data-t="crew">Tripul.</button><button data-t="fac">Facciones</button><button data-t="base">Bases</button><button data-t="sess">Sesión</button><button data-t="hist">Bitácora</button><button data-t="nav">Navegar</button><button data-t="share">Partida</button></div>
+  <div class="pane on" id="p-carta"></div><div class="pane" id="p-plan"></div><div class="pane" id="p-ship"></div><div class="pane" id="p-crew"></div><div class="pane" id="p-fac"></div><div class="pane" id="p-base"></div><div class="pane" id="p-sess"></div><div class="pane" id="p-hist"></div><div class="pane" id="p-nav"></div><div class="pane" id="p-share"></div>
 </aside>
 </div>
 <div id="dmBox" class="dm"><div class="dmh"><b>📜 Registro de la partida</b><span><button id="dmCopy" class="sm" title="Copiar">⧉</button><button id="dmMin" class="sm" title="Minimizar">–</button><button id="dmX" class="sm" title="Ocultar">✕</button></span></div><div id="dmL"></div></div>
@@ -2947,7 +2947,7 @@ function drawGizmo(){
 
 /* ═════════ Estilo de carta de navegación (tipo «Hail Mary – Stellar Navigation Chart») ═════════ */
 const spaced=s=>String(s);
-opt.nav=true;opt.pet=true;if(!Array.isArray(D.op))opt.color=false;if(Array.isArray(D.op)){opt.nav=D.op[2]!==0;opt.pet=D.op[3]!==0}
+opt.nav=true;opt.pet=true;opt.fac=Array.isArray(D.op)&&D.op[4]===1;if(!Array.isArray(D.op))opt.color=false;if(Array.isArray(D.op)){opt.nav=D.op[2]!==0;opt.pet=D.op[3]!==0}
 /* — Fondo de todo el cielo con la banda de la Vía Láctea (sólo rota con la cámara) — */
 const SKYP=(()=>{
   const n=NGP,a=Math.abs(n[0])<.9?[1,0,0]:[0,1,0],e1=[n[1]*a[2]-n[2]*a[1],n[2]*a[0]-n[0]*a[2],n[0]*a[1]-n[1]*a[0]],l1=Math.hypot(...e1);e1.forEach((v,i)=>e1[i]=v/l1);
@@ -2997,9 +2997,11 @@ function drawMap(now){
         ctx.strokeStyle=`rgba(225,232,245,${.16*a})`;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(px,py);ctx.stroke();ctx.fillStyle=`rgba(225,232,245,${.3*a})`;ctx.fillRect(px-1.5,py-.5,3,1)}}
       ctx.globalAlpha=a;ctx.fillStyle=inf?PET:opt.color?s.P.col:'#f2f5fb';
       if(r<2.2)ctx.fillRect(x-r/2,y-r/2,r,r);else{ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();ctx.globalAlpha=a*.1;ctx.beginPath();ctx.arc(x,y,r*2.4,0,7);ctx.fill()}
+      if(opt.fac&&R<220){const t=facOf(s);if(t){ctx.globalAlpha=a*(t.core?.75:.45);ctx.strokeStyle=FAC[t.f].c;ctx.lineWidth=1;ctx.beginPath();ctx.arc(x,y,r+2.5,0,7);ctx.stroke()}}
       if(R<45&&!s.anchor&&df<R*.8){const sc=Math.log10(lum+.001)-df/R*2;if(labels.length<9||sc>labels[labels.length-1][0]){labels.push([sc,s,x,y,inf]);labels.sort((p,q)=>q[0]-p[0]);if(labels.length>9)labels.pop()}}
     }
     ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
+    if(opt.fac&&R<400){const i0=Math.floor(fx/HUBG),j0=Math.floor(fy/HUBG),k0=Math.floor(fz/(HUBG*.35)),n=Math.ceil(R/HUBG)+1;for(let i=i0-n;i<=i0+n;i++)for(let j=j0-n;j<=j0+n;j++)for(let k=k0-1;k<=k0+1;k++){const h=hubAt(i,j,k);if(!h||!proj(h.x,h.y,h.z))continue;labelAt(_p[0],_p[1],FAC[h.f].ic+' '+h.name.toUpperCase(),FAC[h.f].c,9)}}
     for(const [,s,x,y,inf] of labels)labelAt(x,y,starName(s),inf?'rgba(255,59,92,.85)':'rgba(220,228,240,.62)',9);
   }
   // líneas de navegación (visuales desde la nave)
@@ -3052,6 +3054,7 @@ function drawMap(now){
     ctx.save();ctx.translate(ex,ey);ctx.rotate(Math.atan2(vy,vx));ctx.fillStyle='rgba(120,220,255,.9)';ctx.beginPath();ctx.moveTo(14*pu,0);ctx.lineTo(-7,8);ctx.lineTo(-3,0);ctx.lineTo(-7,-8);ctx.closePath();ctx.fill();ctx.restore();
     ctx.fillStyle='rgba(120,220,255,.95)';ctx.font='9px ui-monospace,Menlo,monospace';ctx.textAlign=vx>.3?'right':vx<-.3?'left':'center';ctx.fillText(spaced(`${lab} · ${fmtLen(Math.hypot(dx,dy,dz))}`.toUpperCase()),ex-vx*22,ey-vy*22);shipHit={x:ex,y:ey,r:26};
   }
+  drawBases(now);
   if(travel)drawStreaks(travel.int*.8,now/1600);
   ctx.letterSpacing='0px';
 }
@@ -3087,15 +3090,15 @@ if(!D.st)D.st=freshState(D.ship.d);
 if(!Array.isArray(D.crew)){const n=newCrew(D.ship.d);D.crew=n.c;D.st.extra=n.extra}
 const alive=()=>D.crew.filter(m=>m.st!=='perdido');
 const crewCount=()=>alive().length+(D.st.extra|0);
-const eff=(m,k)=>m.s[k]+((TRAITS[m.tr]||{m:{}}).m[k]||0)+Math.floor((m.lv-1)/2)+(m.hp<50?-2:0)+(m.mor<30?-1:0);
+const eff=(m,k)=>m.s[k]+((TRAITS[m.tr]||{m:{}}).m[k]||0)+Math.floor((m.lv-1)/2)+(m.hp<50?-2:0)+(m.mor<30?-1:0)+(typeof gearB==='function'?gearB(m,k):0);
 const okImg=s=>typeof s==='string'&&/^(data:image\/(webp|jpeg);base64,[A-Za-z0-9+/=]+|https:\/\/[^\s"'<>]+)$/.test(s);
 const portrait=m=>m?(okImg(m.ph)?`<span class="pt"><img src="${esc(m.ph)}" alt="${esc(m.nm)}"></span>`:`<span class="pt" title="${esc(m.sp)}">${SPEMO[m.sp]||'🐾'}</span>`):'<span class="pt">🤖</span>';
 const AI={nm:'IA de a bordo',sp:'IA',s:{pil:5,ing:5,cie:5,med:3,seg:3,soc:3},tr:'',lv:1,hp:100,mor:100};
 function best(k,team){const c=(team&&team.length?team:alive().filter(m=>m.hp>0));if(!c.length)return{m:AI,v:AI.s[k]};let b=c[0],v=eff(b,k);for(const m of c){const e=eff(m,k);if(e>v){v=e;b=m}}return{m:b,v}}
-const chance=(k,dc,team)=>{const b=best(k,team).v+((team&&team.length>1)?team.length-1:0);return clamp((11-(dc-b))/10,0,1)};
-function roll(k,dc,team){
-  const b=best(k,team),bonus=(team&&team.length>1)?team.length-1:0,d=1+(Math.random()*10|0),tot=b.v+d+bonus,ok=tot>=dc;
-  return{ok,crit:d===10,fumble:d===1,m:b.m,line:`🎲 ${d} + ${b.v} (${esc(b.m.nm)}, ${STATN[k]})${bonus?` + ${bonus} equipo`:''} = ${tot} vs ${dc} ${ok?'✓':'✗'}`};
+const chance=(k,dc,team,luck)=>{const b=best(k,team).v+((team&&team.length>1)?team.length-1:0)+(luck|0);return clamp((11-(dc-b))/10,0,1)};
+function roll(k,dc,team,luck){
+  luck=luck|0;const b=best(k,team),bonus=(team&&team.length>1)?team.length-1:0,d=1+(Math.random()*10|0),tot=b.v+d+bonus+luck,ok=tot>=dc;
+  return{ok,crit:d===10,fumble:d===1,m:b.m,line:`🎲 ${d} + ${b.v} (${esc(b.m.nm)}, ${STATN[k]})${bonus?` + ${bonus} equipo`:''}${luck?` ${luck>0?'+':'−'} ${Math.abs(luck)} fortuna`:''} = ${tot} vs ${dc} ${ok?'✓':'✗'}`};
 }
 function gainXp(m,n){if(!m||m===AI||m.st==='perdido')return'';m.xp+=n;let out='';while(m.xp>=30*m.lv){m.xp-=30*m.lv;m.lv++;m.s[m.role]=Math.min(12,m.s[m.role]+1);out+=` ${m.nm} sube a nivel ${m.lv}.`}return out}
 function hurt(m,n){if(!m||m===AI)return'';if(m.tr==='Cauteloso')n=Math.round(n/2);m.hp=Math.max(5,m.hp-n);return` ${m.nm} resulta herido (−${n} salud).`}
@@ -3169,7 +3172,7 @@ const EV=[
   op:[{l:'Estudiarla',k:'cie',dc:13,ok:(c,r)=>{D.st.min=Math.min(SPEC[D.ship.d].cargo,D.st.min+20);morAll(5);return'Datos únicos y fragmentos exóticos: +20 t de minerales.'+gainXp(r.m,20)},ko:()=>{D.st.hull=Math.max(1,D.st.hull-10);return'La marea gravitacional tuerce el casco: −10%.'}},
       {l:'Rodearla',run:()=>'Prudencia ante todo.'}]},
  {id:'contenedor',w:3,at:'leg',t:'Contenedor a la deriva',tx:'Un módulo de carga sin marcas gira lentamente frente a la nave.',
-  op:[{l:'Abrirlo',k:'ing',dc:9,ok:()=>{const sp=SPEC[D.ship.d];D.st.min=Math.min(sp.cargo,D.st.min+15);D.st.prov=Math.min(sp.prov,D.st.prov+sp.prov*.06);return'Suministros y repuestos útiles.'},ko:()=>{D.st.hull=Math.max(1,D.st.hull-6);return'Un mecanismo de seguridad explota: casco −6%.'}},
+  op:[{l:'Abrirlo',k:'ing',dc:9,ok:()=>{const sp=SPEC[D.ship.d];D.st.min=Math.min(sp.cargo,D.st.min+15);D.st.prov=Math.min(sp.prov,D.st.prov+sp.prov*.06);return'Suministros y repuestos útiles.'+(Math.random()<.5?' Entre ellos hay algo con dueño.'+giveItem(pick(FK)+'.'+pick(['contra','tec','uniforme','reliquia'])):'')},ko:()=>{D.st.hull=Math.max(1,D.st.hull-6);return'Un mecanismo de seguridad explota: casco −6%.'}},
       {l:'Dejarlo',run:()=>'Sigue girando a su suerte.'}]},
  {id:'transmision',w:2,at:'arr',t:'Transmisión desconocida',tx:'Un patrón de pulsos repetido, demasiado regular para ser natural.',
   op:[{l:'Descifrarla',k:'soc',dc:12,ok:(c,r)=>{morAll(6);return'«'+pick(LORE)+'»'+gainXp(r.m,20)},ko:()=>'Ruido. Sólo ruido. ¿O no?'},{l:'Grabarla y seguir',run:()=>'Queda archivada en la bitácora.'}]},
@@ -3189,7 +3192,7 @@ const EV=[
   op:[{l:'Atraparlo',k:'seg',dc:10,ok:()=>{morAll(10);return'Es pequeño, peludo y ronronea. Ahora es la mascota de la nave. Moral +10.'},ko:()=>hurt(pick(alive()),8)+' Muerde.'},{l:'Sellar la bodega',run:()=>'Silencio… por ahora.'}]},
  {id:'lluvia',w:1,at:'arr',cond:c=>c.star&&PETROVA.has(c.star.P.k),t:'Nube de astrófago',tx:'La nave atraviesa una corriente de astrófago migrando hacia la estrella.',
   op:[{l:'Abrir los colectores',k:'pil',dc:10,ok:()=>{const sp=SPEC[D.ship.d];D.st.fuel=Math.min(sp.tank,D.st.fuel+sp.tank*.2);return'Tanques +20%.'},ko:()=>'Demasiado rápida. Se escapa.'}]}];
-function pickEvent(at,c){const pool=EV.filter(e=>(e.at===at||e.at==='any')&&(!e.cond||e.cond(c)));let w=pool.reduce((a,e)=>a+e.w,0)*Math.random();for(const e of pool){w-=e.w;if(w<=0)return e}return null}
+function pickEvent(at,c){if(typeof facEvent==='function'&&Math.random()<.38){const fe=facEvent(at,c);if(fe&&fe.op.length)return fe}const pool=EV.filter(e=>(e.at===at||e.at==='any')&&(!e.cond||e.cond(c)));let w=pool.reduce((a,e)=>a+e.w,0)*Math.random();for(const e of pool){w-=e.w;if(w<=0)return e}return null}
 
 /* ═════════ Misiones e historia ═════════ */
 const QUESTS=[
@@ -3266,12 +3269,390 @@ function doCiv(i,a){
   D.rep[c.key]=clamp(rep,-100,100);saveD();return out;
 }
 
+/* ═════════ Facciones: territorio, reputación, afiliación y objetos que delatan ═════════
+   · El territorio sale de «núcleos» deterministas repartidos en una rejilla de 70 al (misma semilla = mismo mapa político).
+   · La tripulación pertenece a una o varias facciones (D.fx.aff). Quien os encuentra tira para saber si lo sabe:
+     cada objeto de una facción en la bodega aumenta la probabilidad de que os relacionen con ella (aunque no seáis de ella). */
+var FAC={
+ aa:{n:'Corporación Ad Astra',s:'la Corporación',ic:'✦',c:'#e0aa46',w:1,tipo:'corporación exploradora',val:'la exploración y salvar el Sol',k:['cie','pil'],
+   who:'Una nave de la Corporación',enc:'Un explorador de la Corporación Ad Astra cruza vuestra ruta.'},
+ lc:{n:'Liga de Comerciantes Libres',s:'la Liga',ic:'⚖',c:'#7ee787',w:3,tipo:'gremio mercantil',val:'los contratos cumplidos',k:['soc','ing'],
+   who:'Un convoy de la Liga',enc:'Un convoy de cargueros de la Liga de Comerciantes Libres os llama por radio.'},
+ mh:{n:'Manada de Hierro',s:'la Manada',ic:'⛨',c:'#ff6b6b',w:3,tipo:'hegemonía militar',val:'el orden y la jerarquía',k:['seg','pil'],
+   who:'Una patrulla de la Manada',enc:'Una corbeta de la Manada de Hierro se coloca a vuestro lado y ordena detener motores.'},
+ ce:{n:'Círculo de la Estrella Oscura',s:'el Círculo',ic:'☾',c:'#b48cff',w:2,tipo:'culto del astrófago',val:'el apagado de las estrellas como renacimiento',k:['soc','cie'],
+   who:'Una nave del Círculo',enc:'Una nave negra del Círculo de la Estrella Oscura emite cánticos en todas las frecuencias.'},
+ cv:{n:'Corsarios del Vacío',s:'los Corsarios',ic:'☠',c:'#ff9f43',w:2,tipo:'confederación pirata',val:'la libertad y el botín',k:['pil','seg'],
+   who:'Una banda de corsarios',enc:'Tres cazas sin matrícula salen de la sombra de un asteroide: Corsarios del Vacío.'},
+ ca:{n:'Custodios del Archivo',s:'los Custodios',ic:'⌬',c:'#78dcff',w:2,tipo:'orden de cartógrafos',val:'el conocimiento sin dueño',k:['cie','med'],
+   who:'Una sonda de los Custodios',enc:'Una sonda de los Custodios del Archivo os escanea y pide intercambiar cartas estelares.'}};
+const FK=Object.keys(FAC);
+/* Relaciones entre facciones: −2 enemigas … +2 aliadas */
+const REL={aa:{lc:1,mh:0,ce:-2,cv:-1,ca:2},lc:{aa:1,mh:0,ce:-1,cv:-2,ca:1},mh:{aa:0,lc:0,ce:-1,cv:-2,ca:-1},ce:{aa:-2,lc:-1,mh:-1,cv:1,ca:-2},cv:{aa:-1,lc:-2,mh:-2,ce:1,ca:0},ca:{aa:2,lc:1,mh:-1,ce:-2,cv:0}};
+const rel=(a,b)=>a===b?3:(REL[a]||{})[b]||0;
+const relLab=v=>v>=3?'propia':v>=2?'aliada':v>=1?'cordial':v>-1?'neutral':v>-2?'rival':'enemiga';
+var ITEMS={
+ insignia:{n:'Insignia',v:2.2,d:'Distintivo oficial: quien lo vea sabe a quién servís.'},
+ uniforme:{n:'Uniformes',v:1.5,d:'Ropa con los colores de la facción.'},
+ salvo:{n:'Salvoconducto',v:1,d:'Permiso firmado: sus patrullas os dejan pasar.'},
+ sello:{n:'Carga sellada',v:1.2,d:'Paquete de un contrato. No debe abrirse ni perderse.'},
+ reliquia:{n:'Reliquia',v:1.3,d:'Objeto de culto o de valor histórico.'},
+ tec:{n:'Tecnología',v:.6,d:'Equipo fabricado por la facción; sólo un experto lo reconoce.'},
+ contra:{n:'Contrabando',v:1.8,d:'Mercancía prohibida en casi todas partes.'},
+ /* Equipo sin dueño (no delata): da +1 a quien lo lleva encima */
+ botiquin:{n:'Botiquín de campaña',v:0,b:'med',d:'+1 a Medicina para quien lo lleve.'},
+ herram:{n:'Caja de herramientas',v:0,b:'ing',d:'+1 a Ingeniería para quien la lleve.'},
+ arma:{n:'Arma de mano',v:0,b:'seg',d:'+1 a Seguridad para quien la lleve.'},
+ traductor:{n:'Traductor universal',v:0,b:'soc',d:'+1 a Diplomacia para quien lo lleve.'},
+ sensor:{n:'Sensor portátil',v:0,b:'cie',d:'+1 a Ciencia para quien lo lleve.'},
+ casco:{n:'Casco de vuelo',v:0,b:'pil',d:'+1 a Pilotaje para quien lo lleve.'}};
+const GEAR={pil:'casco',ing:'herram',cie:'sensor',med:'botiquin',seg:'arma',soc:'traductor'};
+const isGen=key=>String(key).startsWith('gen.');
+const CAP_M=6;
+const itemName=key=>{const[f,t]=key.split('.');return f==='gen'?(ITEMS[t]||{n:t}).n:`${(ITEMS[t]||{n:t}).n} · ${(FAC[f]||{s:f}).s}`};
+const okItem=key=>{const[f,t]=String(key).split('.');return!!((FAC[f]||f==='gen')&&ITEMS[t]&&(f==='gen')===(ITEMS[t].v===0))};
+const itemIc=key=>{const f=key.split('.')[0];return f==='gen'?'⚙':FAC[f].ic};
+const itemCol=key=>{const f=key.split('.')[0];return f==='gen'?'#c9d3e0':FAC[f].c};
+/* Bonificación por el equipo que lleva encima un tripulante (máx. +2 por estadística) */
+function gearB(m,k){if(!m||!m.inv||typeof ITEMS==='undefined')return 0;let b=0;for(const[key,n]of Object.entries(m.inv)){if(!(n>0))continue;const[f,t]=key.split('.'),it=ITEMS[t];if(!it)continue;
+  if(it.b===k)b++;else if(t==='tec'&&FAC[f]&&FAC[f].k[0]===k)b++}return Math.min(2,b)}
+const mInv=m=>{if(!m.inv||typeof m.inv!=='object')m.inv={};return m.inv};
+const invCount=o=>Object.values(o||{}).reduce((a,n)=>a+(n>0?n:0),0);
+function ownerInv(o){if(o==='nave')return FX().inv;const m=D.crew.find(q=>q.id===o&&q.st!=='perdido');return m?mInv(m):null}
+const ownerName=o=>o==='nave'?'la bodega':((D.crew.find(q=>q.id===o)||{}).nm||'?');
+function moveItem(key,from,to){const a=ownerInv(from),b=ownerInv(to);if(!a||!b||from===to||!okItem(key)||!(a[key]>0))return'';
+  if(to!=='nave'&&invCount(b)>=CAP_M)return`${ownerName(to)} ya lleva ${CAP_M} objetos.`;a[key]--;if(!a[key])delete a[key];b[key]=(b[key]||0)+1;return`${itemName(key)}: de ${ownerName(from)} a ${ownerName(to)}.`}
+/* Busca un objeto en la nave o en cualquier tripulante; quita una unidad */
+function takeAny(key){const x=FX();if(x.inv[key]>0){x.inv[key]--;if(!x.inv[key])delete x.inv[key];return true}for(const m of alive()){const v=mInv(m);if(v[key]>0){v[key]--;if(!v[key])delete v[key];return true}}return false}
+const totalOf=key=>(FX().inv[key]||0)+alive().reduce((a,m)=>a+((m.inv||{})[key]||0),0);
+const REP0={aa:40,lc:5,mh:0,ce:-30,cv:-10,ca:15};
+
+function FX(){
+  if(!D.fx||typeof D.fx!=='object')D.fx={};const f=D.fx;
+  if(!f.rep||typeof f.rep!=='object')f.rep={};if(!Array.isArray(f.aff))f.aff=['aa'];if(!f.inv||typeof f.inv!=='object')f.inv={'aa.insignia':1,'aa.uniforme':1};
+  if(!Array.isArray(f.mis))f.mis=[];if(!f.done||typeof f.done!=='object')f.done={};if(!Array.isArray(f.dn))f.dn=[];if(!f.wnt||typeof f.wnt!=='object')f.wnt={};
+  if(!f.g0&&Array.isArray(D.crew)){f.g0=1;for(const m of D.crew)if(!m.inv&&GEAR[m.role])m.inv={['gen.'+GEAR[m.role]]:1}}return f}
+const repF=f=>{const x=FX().rep;return f in x?x[f]:REP0[f]||0};
+function addRep(f,v){if(!FAC[f]||!v)return'';const x=FX();x.rep[f]=clamp(Math.round(repF(f)+v),-100,100);return` ${FAC[f].ic} ${FAC[f].s} ${v>0?'+':''}${v}.`}
+function giveItem(key,n=1){if(!okItem(key))return'';const x=FX();if(n<0){for(let i=0;i<-n;i++)takeAny(key);return''}x.inv[key]=(x.inv[key]||0)+n;return` Obtenéis: ${itemName(key)}${n>1?' ×'+n:''} (a la bodega).`}
+const hasItem=key=>totalOf(key)>0;
+
+/* — Territorio — */
+const HUBG=70,_hub=new Map(),_ter=new Map();
+function hubAt(i,j,k){const key=i+','+j+','+k;let h=_hub.get(key);if(h!==undefined)return h;
+  const r=rng(hash(i+7000,j+7000,k+7000,4321));h=null;
+  if(r()<.78){let w=FK.reduce((a,f)=>a+FAC[f].w,0)*r(),f=FK[0];for(const q of FK){w-=FAC[q].w;if(w<=0){f=q;break}}
+    h={f,x:(i+.15+.7*r())*HUBG,y:(j+.15+.7*r())*HUBG,z:(k+.3+.4*r())*HUBG*.35,R:30+r()*28,name:genName(hash(i,j,k,88))}}
+  if(_hub.size>5000)_hub.clear();_hub.set(key,h);return h}
+function facAt(x,y,z){
+  const sol=Math.hypot(x,y,z);if(sol<18)return{f:'aa',hub:'Sol',core:1};
+  const i=Math.floor(x/HUBG),j=Math.floor(y/HUBG),k=Math.floor(z/(HUBG*.35));let b=null,bd=1;
+  for(let a=-1;a<=1;a++)for(let c=-1;c<=1;c++)for(let e=-1;e<=1;e++){const h=hubAt(i+a,j+c,k+e);if(!h)continue;const d=Math.hypot(h.x-x,h.y-y,(h.z-z)*1.6)/h.R;if(d<bd){bd=d;b=h}}
+  return b?{f:b.f,hub:b.name,core:bd<.35?1:0}:null}
+function facOf(st){if(!st)return null;const key=st.point?st.seed||[st.gx,st.gy,st.gz].map(v=>v.toFixed(1)).join(','):st.h;let v=_ter.get(key);if(v!==undefined)return v;
+  v=facAt(st.gx,st.gy,st.gz);if(_ter.size>40000)_ter.clear();_ter.set(key,v);return v}
+const terLab=t=>t?`${FAC[t.f].ic} ${FAC[t.f].n}${t.core?' (núcleo '+t.hub+')':''}`:'Espacio libre (sin control)';
+
+/* — Exposición: probabilidad de que la facción «obs» os relacione con cada facción — */
+function exposure(obs){
+  const x=FX(),out={};
+  for(const f of FK){let p=0;const why=[];
+    if(x.aff.includes(f)){p+=.12;const fama=Math.min(.3,(x.done[f]||0)*.04);if(fama){p+=fama;why.push('vuestra fama')}}
+    const add=(inv,who)=>{for(const[k,n]of Object.entries(inv||{})){const[ff,t]=k.split('.');if(ff!==f||!(n>0)||!ITEMS[t]||!ITEMS[t].v)continue;p+=ITEMS[t].v*.11*Math.min(n,3)**.7*(who?1.15:1);why.push(ITEMS[t].n.toLowerCase()+(who?' de '+who:''))}};
+    add(x.inv,'');for(const m of alive()){add(m.inv,m.nm);if(m.fa===f){p+=.08;why.push(m.nm)}}
+    if(obs===f&&p>0)p+=.15;if(obs&&x.wnt[obs]&&x.aff.includes(f))p+=.25;
+    p=Math.min(.95,p);if(p>.01)out[f]={p,why:[...new Set(why)].slice(0,3),aff:x.aff.includes(f)}}
+  return out}
+function detect(obs){const ex=exposure(obs);return Object.keys(ex).filter(f=>Math.random()<ex[f].p).map(f=>({f,...ex[f]}))}
+function attitude(O,K){let a=repF(O)/25;for(const k of K)a+=rel(O,k.f)*(k.aff?1:.7);if(FX().wnt[O])a-=2;if(O==='cv'&&!K.some(k=>rel(O,k.f)>0))a-=1;return a}
+const knownTxt=(O,K)=>K.length?`${cap(FAC[O].s)} os identifica${/^los /.test(FAC[O].s)?'n':''} como ${K.map(k=>(k.aff?'miembros de ':'gente relacionada con ')+FAC[k.f].n+(k.why.length?` (os delata${k.why.length>1?'n':''}: ${k.why.join(', ')})`:'')).join(' y ')}.`:'No parecen saber quiénes sois.';
+
+/* — Encuentros con facciones (eventos generados al vuelo) — */
+function facEvent(at,ctx){
+  const st=at==='leg'?ctx&&ctx.leg&&ctx.leg.to:ctx&&ctx.star,ter=facOf(st);let O=ter?ter.f:null;
+  if(!O||Math.random()<.25){if(Math.random()<.5)return null;O=pick(['cv','lc','ca','ce'])}
+  const K=detect(O),att=attitude(O,K),F=FAC[O],sp=()=>SPEC[D.ship.d],x=FX(),tone=att>=1.4?'ami':att<=-1.4?'hos':'neu';
+  const giveUp=()=>{const keys=[...new Set([x.inv,...alive().map(m=>m.inv||{})].flatMap(o=>Object.keys(o)))].filter(k=>K.some(q=>k.startsWith(q.f+'.')));let s='';for(const k of keys)s+=dropItem(k,totalOf(k),1);return s};
+  const op=[];
+  if(tone==='hos'){
+    if(hasItem(O+'.salvo'))op.push({l:'Mostrar el salvoconducto',run:()=>{giveItem(O+'.salvo',-1);return`Leen el permiso y os dejan pasar. El salvoconducto queda retenido.`+addRep(O,2)}});
+    op.push({l:'Huir a toda máquina',k:'pil',dc:12+(O==='mh'?1:0),ok:()=>'Los dejáis atrás entre el polvo de la nebulosa.',ko:()=>{const d=8+(Math.random()*14|0);D.st.hull=Math.max(1,D.st.hull-d);return`Os alcanzan sus disparos: casco −${d}%.`+addRep(O,-3)}});
+    op.push({l:'Plantar cara',k:'seg',dc:13,ok:(c,r)=>{D.st.min=Math.min(sp().cargo,D.st.min+15);x.wnt[O]=1;return`Se retiran con daños. Recogéis 15 t de chatarra, pero ahora os buscan.`+addRep(O,-10)+gainXp(r.m,15)},
+      ko:()=>{const d=12+(Math.random()*12|0);D.st.hull=Math.max(1,D.st.hull-d);x.wnt[O]=1;return`Os superan: casco −${d}%.`+hurt(pick(alive()),15)+addRep(O,-6)}});
+    op.push({l:'Pagar para que os dejen en paz (25 t)',need:()=>D.st.min>=25,run:()=>{D.st.min-=25;return'Aceptan el pago y se alejan.'+addRep(O,1)}});
+    if(K.some(k=>Object.keys(x.inv).concat(...alive().map(m=>Object.keys(m.inv||{}))).some(i=>i.startsWith(k.f+'.'))))op.push({l:'Arrojar al espacio lo que os delata',run:()=>`Los objetos flotan hacia el vacío.${giveUp()} Sin pruebas, os dejan marchar.`});
+  }else if(tone==='ami'){
+    op.push({l:'Pedir suministros',run:()=>{const s=sp(),a=Math.round(s.prov*.1),f=+(s.tank*.08).toFixed(1);D.st.prov=Math.min(s.prov,D.st.prov+a);D.st.fuel=Math.min(s.tank,D.st.fuel+f);return`Comparten ${fmtI(a)} días-persona de comida y ${f} t de astrófago.`+addRep(O,1)}});
+    op.push({l:'Aceptar un encargo',run:()=>{const m=genMission(O,shipStar(),hash(Date.now()|0,D.st.jumps,77));if(!m)return'No tienen nada para vosotros ahora.';if(x.mis.length>=5)return'Ya tenéis demasiados contratos.';acceptMission(m);return`Nuevo contrato: ${m.tx}`}});
+    op.push({l:'Intercambiar cartas estelares',k:'cie',dc:9,ok:(c,r)=>`Os pasan rutas y nombres de sistemas.`+gainXp(r.m,12)+addRep(O,2),ko:()=>'Los formatos no son compatibles.'});
+  }else{
+    if(O==='mh')op.push({l:'Aceptar la inspección (3 d)',run:()=>{passDays(3);const all=[...new Set([x.inv,...alive().map(m=>m.inv||{})].flatMap(o=>Object.keys(o)))];
+      const bad=all.filter(k=>{const[f,t]=k.split('.');return f!=='gen'&&(t==='contra'||rel('mh',f)<=-1)});
+      if(!bad.length)return'Registran la bodega y cachean a la tripulación. No encuentran nada ilegal.'+addRep('mh',3);let s='';for(const k of bad)s+=dropItem(k,totalOf(k),1);return`Registran bodega y bolsillos. Confiscan lo que no les gusta.${s}`+addRep('mh',-4)}});
+    if(O==='lc')op.push({l:'Comprar equipo (10 t)',need:()=>D.st.min>=10,run:()=>{D.st.min-=10;return'Un comerciante os vende material de calidad.'+giveItem('gen.'+pick(Object.values(GEAR)))+addRep('lc',1)}});
+    if(O==='lc'||O==='cv')op.push({l:'Comerciar: 20 t minerales → astrófago',need:()=>D.st.min>=20,run:()=>{const s=sp();D.st.min-=20;D.st.fuel=Math.min(s.tank,D.st.fuel+s.tank*.14);return'Trato hecho.'+addRep(O,2)}});
+    if(O==='cv'||O==='ce')op.push({l:'Comprar «mercancía especial» (15 t)',need:()=>D.st.min>=15,run:()=>{D.st.min-=15;return'Os entregan un paquete sin etiqueta. Vale mucho… y delata mucho.'+giveItem(O+'.contra')+addRep(O,2)}});
+    if(O==='ca')op.push({l:'Compartir vuestra bitácora',run:()=>`Los Custodios archivan ${Object.keys(D.disc).length} sistemas a vuestro nombre.`+addRep('ca',Math.min(6,1+Object.keys(D.disc).length/5|0))});
+    op.push({l:'Hacerse pasar por otra facción',k:'soc',dc:13,ok:(c,r)=>{const f=pick(FK.filter(q=>rel(O,q)>=1&&q!==O))||O;return`Os creen gente de ${FAC[f].s}. Os desean buen viaje.`+gainXp(r.m,10)},ko:()=>{x.wnt[O]=1;return'Descubren el engaño y os anotan en sus registros.'+addRep(O,-6)}});
+    op.push({l:'Saludar y seguir rumbo',run:()=>'Intercambiáis saludos y cada cual sigue su camino.'});
+  }
+  const mood=tone==='hos'?' Su actitud es hostil.':tone==='ami'?' Os reciben como amigos.':'';
+  return{id:'fac-'+O,t:`${F.ic} ${F.who}`,tx:`${F.enc} ${knownTxt(O,K)}${mood}${ter&&st&&!st.point?` (Territorio: ${FAC[ter.f].n}.)`:''}`,op,fac:O};
+}
+
+/* ═════════ Contratos aleatorios ═════════ */
+const MTY={
+ entrega:{n:'Entrega',ic:'📦',k:null,dc:0,it:'sello',tx:(m)=>`Llevar una carga sellada de ${FAC[m.g].s} hasta ${m.tn}.`},
+ contrabando:{n:'Contrabando',ic:'🕳',k:null,dc:0,it:'contra',for:['cv','ce','lc'],tx:m=>`Introducir mercancía prohibida en ${m.tn} sin que nadie lo note.`},
+ rescate:{n:'Rescate',ic:'🛟',k:'med',dc:12,tx:m=>`Una tripulación de ${FAC[m.g].s} quedó varada en ${m.tn}. Sacarla con vida.`},
+ reconocimiento:{n:'Reconocimiento',ic:'🔭',k:'cie',dc:11,tx:m=>`Escanear el sistema ${m.tn} y transmitir los datos.`},
+ diplomacia:{n:'Diplomacia',ic:'🕊',k:'soc',dc:12,tx:m=>`Llevar un mensaje de ${FAC[m.g].s} a los habitantes de ${m.tn}.`},
+ caza:{n:'Caza',ic:'🎯',k:'seg',dc:13,tx:m=>`${cap(FAC[m.e||'cv'].s)} acosan ${m.tn}. Expulsarlos.`},
+ sabotaje:{n:'Sabotaje',ic:'💣',k:'ing',dc:14,tx:m=>`Sabotear una estación de ${FAC[m.e].s} en ${m.tn} sin dejar rastro.`},
+ reliquia:{n:'Recuperación',ic:'🏺',k:'cie',dc:12,tx:m=>`Recuperar una reliquia en ${m.tn} y traerla a ${m.on}.`}};
+const MTK=Object.keys(MTY);
+function genMission(g,from,seed){
+  if(!from||from.point)return null;const r=rng(seed>>>0);let ty=MTK[r()*MTK.length|0];if(MTY[ty].for&&!MTY[ty].for.includes(g))ty='entrega';
+  const enem=FK.filter(f=>rel(g,f)<=-1);let e=null;if(ty==='caza'||ty==='sabotaje'){if(!enem.length)ty='reconocimiento';else e=enem[r()*enem.length|0]}
+  const cand=[];starsNear(from.gx,from.gy,from.gz,ty==='sabotaje'?32:22,(s,d)=>{if(d>3&&!s.point)cand.push([s,d])});
+  if(!cand.length)return null;cand.sort((a,b)=>a[1]-b[1]||a[0].h-b[0].h);
+  let pool=cand;if(ty==='sabotaje'){pool=cand.filter(([s])=>{const t=facOf(s);return t&&t.f===e});if(!pool.length){ty='caza';pool=cand}}
+  const[T,d]=pool[r()*pool.length|0],ty0=MTY[ty],L=legCalc(from,T);
+  const m={id:(seed>>>0).toString(36).slice(-6).toUpperCase(),g,ty,o:sSeed(from),on:starName(from),t:sSeed(T),tn:starName(T),d:+d.toFixed(1),e,ph:0,
+    dl:Math.round(D.st.days+L.days*(ty==='reliquia'?4:2.5)+45+r()*60),
+    rw:{min:Math.round(10+d*(1.5+r())+(ty0.dc||9)),rep:Math.round(6+r()*6+(ty==='sabotaje'?6:0)),it:r()<.45?g+'.'+pick2(r,['insignia','salvo','tec','uniforme']):r()<.5?'gen.'+pick2(r,Object.values(GEAR)):null,xp:10+(ty0.dc||8)}};
+  if(ty==='contrabando')m.rw.min=Math.round(m.rw.min*1.8);
+  m.tx=ty0.tx(m);return m}
+function boardFor(st){
+  if(!st||st.point)return[];const ter=facOf(st),ep=Math.floor(D.st.days/120),x=FX(),r=rng(hash(st.h,ep,4711)),out=[];
+  const S=genSystem(st),civs=S.planets.map((p,i)=>civInfo(S,i)).filter(c=>c&&c.tech>=4).length;
+  const n=(ter?2:1)+(ter&&ter.core?1:0)+(civs?1:0);
+  for(let i=0;i<n;i++){const g=i<2&&ter?ter.f:FK[r()*FK.length|0];const m=genMission(g,st,hash(st.h,ep,i,909));if(m&&!x.dn.includes(m.id)&&!x.mis.some(q=>q.id===m.id))out.push(m)}
+  return out}
+function acceptMission(m){const x=FX();x.mis.push(m);const it=MTY[m.ty].it;if(it)giveItem(m.g+'.'+it);addRep(m.g,1);logDM(`Contrato aceptado (${FAC[m.g].n}): ${m.tx}`,'cmd')}
+function dropItem(key,n,silent,from){const x=FX();const src=from?ownerInv(from):null;n=Math.min(n||1,src?src[key]||0:totalOf(key));if(!n)return'';
+  if(src){src[key]-=n;if(!src[key])delete src[key]}else giveItem(key,-n);let s=silent?` (${itemName(key)} perdido)`:`Arrojáis ${itemName(key)}${n>1?' ×'+n:''}.`;
+  const[f,t]=key.split('.');if(t==='sello'||t==='contra'||t==='reliquia'){for(const m of x.mis.filter(m=>m.g===f&&MTY[m.ty].it===t||m.g===f&&m.ty==='reliquia'&&m.ph===1&&t==='reliquia').slice(0,n)){failMission(m,'se perdió la carga');s+=` Contrato ${m.id} fallido.`}}return s}
+function failMission(m,why){const x=FX();x.mis=x.mis.filter(q=>q!==m);x.dn.push(m.id);if(x.dn.length>300)x.dn.splice(0,100);addRep(m.g,-Math.round(m.rw.rep*.8));
+  queueDialog({t:`Contrato fallido · ${MTY[m.ty].n}`,who:pick(alive())||null,tx:`${m.tx} El encargo de ${FAC[m.g].n} no se ha cumplido: ${why}.`,res:`Reputación con ${FAC[m.g].s} −${Math.round(m.rw.rep*.8)}`})}
+function facTick(){const x=FX();for(const m of x.mis.slice())if(D.st.days>m.dl){const it=MTY[m.ty].it;if(it&&hasItem(m.g+'.'+it))giveItem(m.g+'.'+it,-1);failMission(m,'venció el plazo')}}
+const misHere=(m,st)=>st&&!st.point&&sSeed(st)===(m.ty==='reliquia'&&m.ph===1?m.o:m.t);
+function doMission(id){
+  const x=FX(),m=x.mis.find(q=>q.id===id),st=shipStar();if(!m)return'Ese contrato ya no está activo.';if(!misHere(m,st))return'Tenéis que estar en el sistema del contrato.';
+  const ty=MTY[m.ty];let res='',line='';
+  if(m.ty==='reliquia'&&m.ph===0){passDays(5);const r=roll(ty.k,ty.dc);line=r.line;if(!r.ok){passDays(5);return'No encontráis la reliquia esta vez (podéis volver a intentarlo). '+r.line.replace(/<[^>]+>/g,'')+hurt(pick(alive()),8)}
+    m.ph=1;giveItem(m.g+'.reliquia');saveD();queueDialog({t:`${ty.ic} Reliquia recuperada`,who:r.m,tx:`La reliquia de ${FAC[m.g].s} ya está a bordo. Ahora hay que llevarla a ${m.on}.`,res:line.replace(/<[^>]+>/g,'')});return''}
+  if(ty.it||m.ty==='reliquia'){const k=m.g+'.'+(m.ty==='reliquia'?'reliquia':ty.it);if(!hasItem(k)){failMission(m,'la carga ya no está a bordo');saveD();return''}giveItem(k,-1);passDays(2)}
+  if(m.ty==='contrabando'){const ter=facOf(st);if(ter&&ter.f!==m.g&&Math.random()<.35){const r=roll('soc',13);line=r.line;if(!r.ok){addRep(ter.f,-10);x.wnt[ter.f]=1;res=` ${cap(FAC[ter.f].s)} descubre la descarga y os fichan.`}}}
+  else if(ty.k){passDays(4);const r=roll(ty.k,ty.dc);line=r.line;
+    if(!r.ok){let extra='';if(m.ty==='sabotaje'&&m.e){x.wnt[m.e]=1;extra=addRep(m.e,-20)+` ${cap(FAC[m.e].s)} sabe quién fue.`}if(m.ty==='caza'||m.ty==='rescate'){const d=8+(Math.random()*10|0);D.st.hull=Math.max(1,D.st.hull-d);extra+=` Casco −${d}%.`+hurt(pick(alive()),12)}
+      failMission(m,'la tirada salió mal');saveD();logDM(`Contrato ${m.id} fallido.${extra}`,'ev');toast(esc(`Contrato fallido.${extra}`));return''}
+    if(m.ty==='sabotaje'&&m.e)res+=addRep(m.e,-5);if(m.ty==='diplomacia')for(const f of FK)if(rel(m.g,f)>=1)res+=addRep(f,2)}
+  const s=D.st,sp=SPEC[D.ship.d];s.min=Math.min(sp.cargo,s.min+m.rw.min);res=`+${m.rw.min} t de minerales.`+addRep(m.g,m.rw.rep)+res;
+  for(const f of FK)if(f!==m.g&&rel(m.g,f)<=-2)res+=addRep(f,-2);
+  if(m.rw.it)res+=giveItem(m.rw.it);for(const p of alive())gainXp(p,m.rw.xp);res+=` +${m.rw.xp} XP a la tripulación.`;
+  x.mis=x.mis.filter(q=>q!==m);x.dn.push(m.id);x.done[m.g]=(x.done[m.g]||0)+1;saveD();
+  queueDialog({t:`${ty.ic} Contrato cumplido · ${ty.n}`,who:pick(alive())||null,tx:`${m.tx} ${FAC[m.g].n} paga lo acordado.`,res:(line?line.replace(/<[^>]+>/g,'')+' · ':'')+res});return''}
+function joinFac(f){const x=FX();if(!FAC[f])return'';if(x.aff.includes(f)){x.aff=x.aff.filter(q=>q!==f);return'Abandonáis '+FAC[f].n+'.'+addRep(f,-20)}
+  if(repF(f)<40)return`${cap(FAC[f].s)} todavía no confía en vosotros (hace falta reputación 40).`;
+  x.aff.push(f);let s=`Os unís a ${FAC[f].n}.`+giveItem(f+'.insignia');for(const q of FK)if(q!==f&&rel(f,q)<=-2)s+=addRep(q,-15);return s}
+function doFac(c){
+  const x=FX();let out='';
+  if(c.a==='take'){const st=starFromSeed(String(c.s||''));if(!st||!sameStar(st,shipStar()))return'Tenéis que estar en ese sistema.';const m=boardFor(st).find(q=>q.id===c.id);if(!m)return'Ese contrato ya no está disponible.';
+    if(x.mis.length>=5)return'Máximo 5 contratos activos.';acceptMission(m);out='Contrato aceptado: '+m.tx}
+  else if(c.a==='do')out=doMission(String(c.id));
+  else if(c.a==='drop'){const k=String(c.it);if(!okItem(k))return'';out=dropItem(k,1,0,c.from?String(c.from):'nave')}
+  else if(c.a==='move'){const k=String(c.it);if(!okItem(k))return'';out=moveItem(k,String(c.from),String(c.to))}
+  else if(c.a==='quit'){const m=x.mis.find(q=>q.id===c.id);if(!m)return'';const it=MTY[m.ty].it;if(it&&hasItem(m.g+'.'+it))giveItem(m.g+'.'+it,-1);failMission(m,'lo cancelasteis');out=''}
+  else if(c.a==='join')out=joinFac(String(c.f));
+  saveD();return out}
+function normFx(v){
+  if(!v||typeof v!=='object')return null;const o={rep:{},aff:[],inv:{},mis:[],done:{},dn:[],wnt:{}};
+  for(const f of FK){if(v.rep&&isFinite(+v.rep[f]))o.rep[f]=clamp(+v.rep[f]|0,-100,100);if(v.done&&+v.done[f]>0)o.done[f]=+v.done[f]|0;if(v.wnt&&v.wnt[f])o.wnt[f]=1}
+  o.aff=(Array.isArray(v.aff)?v.aff:[]).filter(f=>FAC[f]).slice(0,6);
+  for(const[k,n]of Object.entries(v.inv||{}).slice(0,60))if(okItem(k)&&+n>0)o.inv[k]=Math.min(99,+n|0);
+  o.mis=(Array.isArray(v.mis)?v.mis:[]).slice(0,5).filter(m=>m&&FAC[m.g]&&MTY[m.ty]).map(m=>({id:String(m.id).slice(0,8),g:m.g,ty:m.ty,o:String(m.o).slice(0,40),on:String(m.on).slice(0,40),t:String(m.t).slice(0,40),tn:String(m.tn).slice(0,40),d:+m.d||0,e:FAC[m.e]?m.e:null,ph:m.ph?1:0,dl:+m.dl||0,
+    rw:{min:clamp(+(m.rw||{}).min|0,0,2000),rep:clamp(+(m.rw||{}).rep|0,0,40),it:okItem((m.rw||{}).it)?m.rw.it:null,xp:clamp(+(m.rw||{}).xp|0,0,60)},tx:String(m.tx||'').slice(0,200)}));
+  o.dn=(Array.isArray(v.dn)?v.dn:[]).slice(-300).map(s=>String(s).slice(0,8));o.g0=1;return o}
+
+/* — Inventarios: bodega de la nave y equipo de cada tripulante — */
+function itemRow(k,n,from){const[f,t]=k.split('.'),it=ITEMS[t],cl=NET.role==='client',others=[['nave','Bodega'],...alive().map(m=>[m.id,m.nm])].filter(([o])=>o!==from);
+  ACTS.push(v=>v&&cmd({k:'fac',a:'move',it:k,from,to:v},`Mover ${itemName(k)} a ${ownerName(v)}`));const mv=ACTS.length-1;
+  return`<div class="item"><span style="color:${itemCol(k)}">${itemIc(k)}</span><div class="m"><b>${esc(itemName(k))}${n>1?' ×'+n:''}</b><i>${esc(it.d)}${it.v?` Delata ${it.v>=1.5?'mucho':it.v>=1?'bastante':'poco'}.`:''}</i></div>
+  ${others.length?`<select class="sm" data-mv="${mv}" ${cl?'disabled':''}><option value="">Dar a…</option>${others.map(([o,nm])=>`<option value="${esc(o)}">${esc(nm)}</option>`).join('')}</select>`:''}${A('Arrojar',()=>{if(confirm('¿Arrojar '+itemName(k)+' al espacio?'))cmd({k:'fac',a:'drop',it:k,from},'Arrojar '+itemName(k))},cl)}</div>`}
+const bindMv=el=>el.querySelectorAll('[data-mv]').forEach(s=>s.onchange=()=>ACTS[+s.dataset.mv](s.value));
+function holdHtml(){const inv=Object.entries(FX().inv).filter(([,n])=>n>0);
+  return`<h3>Bodega · inventario de la nave</h3><p class="note">Lo que va en la bodega no da bonificaciones; pásalo a un tripulante para que lo use. Todo lo que haya a bordo, en la bodega o encima de alguien, puede delataros.</p>
+  <div class="lst">${inv.map(([k,n])=>itemRow(k,n,'nave')).join('')||'<p class="note">Bodega vacía.</p>'}</div>`}
+function memberInvHtml(m){const inv=Object.entries(mInv(m)).filter(([,n])=>n>0),bon=STATS.map(([k,nm])=>[nm,gearB(m,k)]).filter(([,b])=>b);
+  return`<h4 class="note" style="margin:8px 0 2px">🎒 Inventario (${invCount(m.inv)}/${CAP_M})${bon.length?' · '+bon.map(([nm,b])=>`${nm} +${b}`).join(', '):''}</h4><div class="lst">${inv.map(([k,n])=>itemRow(k,n,m.id)).join('')||'<p class="note">No lleva nada.</p>'}</div>`}
+
+/* — Panel «Facciones» — */
+function renderFac(){
+  const el=$('#p-fac'),x=FX(),st=shipStar(),ter=facOf(st);ACTS=[];facTick();
+  const bar=(v,c)=>`<span class="sb"><i style="width:${(v+100)/2}%;background:${c}"></i></span>`;
+  const obs=ter?ter.f:null,ex=exposure(obs),inv=Object.entries(x.inv).filter(([,n])=>n>0);
+  let h=`<div class="kick">FACCIONES</div><h2>${x.aff.length?x.aff.map(f=>FAC[f].ic+' '+esc(FAC[f].n)).join(' · '):'Sin afiliación'}</h2>
+  <p class="note">Estáis en: <b>${esc(terLab(ter))}</b>. Quien os encuentra tira para saber si os conoce: cada objeto de una facción en la bodega aumenta la probabilidad de que os relacionen con ella, aunque no seáis de ella.</p>`;
+  if(Object.keys(ex).length)h+=`<h3>Lo que pueden saber de vosotros${obs?' aquí':''}</h3><div class="lst">${Object.entries(ex).sort((a,b)=>b[1].p-a[1].p).map(([f,e])=>`<div class="item"><span style="color:${FAC[f].c}">${FAC[f].ic}</span><div class="m"><b>${Math.round(e.p*100)}% · ${e.aff?'miembros de':'relacionados con'} ${esc(FAC[f].n)}</b><i>${e.why.length?'Os delata: '+esc(e.why.join(', ')):'Sólo la afiliación'}</i></div></div>`).join('')}</div>`;
+  h+=`<h3>Contratos activos (${x.mis.length}/5)</h3><div class="lst">${x.mis.map(m=>{const T=starFromSeed(m.ty==='reliquia'&&m.ph?m.o:m.t),left=Math.round(m.dl-D.st.days),ty=MTY[m.ty];
+    return`<div class="item col"><div class="rowi"><span style="color:${FAC[m.g].c}">${ty.ic}</span><div class="m"><b>${ty.n} · ${esc(FAC[m.g].n)}</b><i>${esc(m.tx)}${m.ty==='reliquia'&&m.ph?' <b>(reliquia a bordo)</b>':''}</i><i>Plazo: <span class="${left<60?'bad':''}">${left} d</span> · Pago: ${m.rw.min} t, rep +${m.rw.rep}${m.rw.it?', '+esc(itemName(m.rw.it)):''}${ty.k?` · prueba de ${STATN[ty.k]} ${ty.dc}`:''}</i></div></div>
+    <div class="row">${T?A('Ver destino',()=>{if(mode!=='map')exitToMap();selectStar(T,true)}):''}${misHere(m,st)?A('Cumplir aquí',()=>cmd({k:'fac',a:'do',id:m.id},'Cumplir el contrato '+m.id),NET.role==='client','pri'):''}${A('Cancelar',()=>{if(confirm('¿Cancelar el contrato? Perderéis reputación.'))cmd({k:'fac',a:'quit',id:m.id},'Cancelar el contrato '+m.id)})}</div></div>`}).join('')||'<p class="note">Ninguno. Busca el tablón de contratos en el panel de un sistema.</p>'}</div>`;
+  h+=`<p class="note">Los objetos se gestionan en <b>Nave → Bodega</b> (inventario de la nave) y en cada ficha de <b>Tripulación</b> (lo que lleva encima cada tripulante).</p>`;
+  h+=`<h3>Relaciones</h3>${FK.map(f=>{const v=repF(f),F=FAC[f],mine=x.aff.includes(f),rels=FK.filter(q=>q!==f).map(q=>[q,rel(f,q)]).filter(([,v])=>v);
+    return`<div class="card"><b style="color:${F.c}">${F.ic} ${esc(F.n)}</b>${mine?' <span class="tag hz">miembros</span>':''}${x.wnt[f]?' <span class="tag pet">os buscan</span>':''}
+    <div class="note">${esc(F.tipo)} · valora ${esc(F.val)} · contratos cumplidos: ${x.done[f]||0}</div>
+    <div class="res"><span>Reputación</span><span>${repLab(v)} (${v})</span></div>${bar(v,F.c)}
+    <div class="note">${rels.map(([q,v])=>`${FAC[q].ic} ${relLab(v)}`).join(' · ')}</div>
+    <div class="row">${A(mine?'Abandonar':'Unirse',()=>cmd({k:'fac',a:'join',f},(mine?'Abandonar ':'Unirse a ')+F.n),!mine&&v<40)}</div></div>`}).join('')}`;
+  el.innerHTML=h;bindActs(el);
+}
+function boardHtml(S){
+  const x=FX(),list=boardFor(S.star);if(!list.length)return`<h3>Tablón de contratos</h3><p class="note">Nadie ofrece trabajo aquí ahora. Las ofertas cambian cada 120 días a bordo.</p>`;
+  return`<h3>Tablón de contratos</h3><p class="note">${esc(terLab(facOf(S.star)))} · ofertas nuevas cada 120 días.</p><div class="lst">${list.map(m=>{const ty=MTY[m.ty];return`<div class="item col"><div class="rowi"><span style="color:${FAC[m.g].c}">${ty.ic}</span><div class="m"><b>${ty.n} · ${FAC[m.g].ic} ${esc(FAC[m.g].n)}</b><i>${esc(m.tx)} (${fmtLen(m.d)})</i><i>Plazo ${Math.round(m.dl-D.st.days)} d · ${m.rw.min} t, rep +${m.rw.rep}${m.rw.it?', '+esc(itemName(m.rw.it)):''}${ty.k?` · ${STATN[ty.k]} ${ty.dc} (${Math.round(chance(ty.k,ty.dc)*100)}%)`:''}${ty.it?' · <span class="bad">carga que delata</span>':''}</i></div></div>
+   <div class="row">${A('Aceptar',()=>cmd({k:'fac',a:'take',id:m.id,s:sSeed(S.star)},'Aceptar contrato: '+m.tx),x.mis.length>=5||NET.role==='client','pri')}</div></div>`}).join('')}</div>`}
+
+/* ═════════ Bases planetarias y envíos de recursos ═════════
+   · Cada planeta sólido tiene una riqueza determinista (semilla del sistema): minerales, astrófago y alimento; puede ser cero.
+   · La base produce con el tiempo de a bordo y acumula hasta su capacidad.
+   · Los envíos viajan en tiempo real: 1 año luz cada 5 segundos (mínimo 5 s), desde la base hasta donde esté la nave al pedirlos. */
+const BSPEED=5000,BMAX=8,WH={min:1000,fuel:300,prov:60000},RMAX=12;
+const BTY={
+ mina:{n:'Mina',ic:'⛏',r:'min',rate:25,cap:400,d:'Extrae minerales del subsuelo.'},
+ refineria:{n:'Refinería de astrófago',ic:'⚗',r:'fuel',rate:10,cap:120,d:'Cultiva y refina astrófago.'},
+ granja:{n:'Granja hidropónica',ic:'🌱',r:'prov',rate:1500,cap:30000,d:'Produce comida para la tripulación.'},
+ puesto:{n:'Puesto avanzado',ic:'⛺',r:null,rate:0,cap:0,d:'Un poco de todo y refugio: +2 moral al visitarlo.'}};
+const RESN={min:['Minerales','t'],fuel:['Astrófago','t'],prov:['Provisiones','días-persona']};
+function baseRes(S,i){
+  const info=planetInfo(S,i),p=info.p,r=rng(hash(S.star.h,i,1312));if(info.gas)return null;const has=n=>info.pois.includes(n);
+  let min=({lava:1.2,desert:1,barren:1,ice:.5,frozen:.6,temperate:.6,ocean:.3})[p.kind]??.5;if(has('Depósito mineral'))min+=.8;if(has('Géiser de lava'))min+=.5;min*=.4+r();if(r()<.12)min=0;
+  let fuel=(has('Cristales de astrófago')?1.2:0)+(infected(S.star)?.6:0);fuel*=.5+r();
+  let prov=(p.hz?.8:0)+(has('Flora comestible')?.8:0)+(info.breath?.3:0)+(has('Hielo puro')?.25:0);if(p.T<150||p.T>420)prov*=.25;prov*=.5+r()*.8;
+  return{min:+min.toFixed(2),fuel:+fuel.toFixed(2),prov:+prov.toFixed(2),info}}
+const richLab=v=>v<=0?'nula':v<.4?'pobre':v<.9?'media':v<1.5?'rica':'muy rica';
+function baseRate(b){const t=BTY[b.ty];if(!t)return{};if(b.ty==='puesto')return{min:3*b.lv,fuel:1*b.lv,prov:150*b.lv};return{[t.r]:t.rate*(b.rich[t.r]||0)*b.lv}} // por 100 días
+const baseCap=b=>b.ty==='puesto'?{min:60*b.lv,fuel:20*b.lv,prov:4000*b.lv}:{[BTY[b.ty].r]:BTY[b.ty].cap*b.lv};
+function baseTick(){if(!Array.isArray(D.bases))D.bases=[];const now=D.st.days;for(const b of D.bases){const dt=Math.max(0,now-b.t);if(!dt)continue;b.t=now;const rt=baseRate(b),cp=baseCap(b);
+  for(const k in rt){const v=b.stk[k]||0;b.stk[k]=Math.max(v,Math.min(cp[k]||0,v+rt[k]*dt/100))}}}
+const whCap=(b,k)=>Math.max((baseCap(b)[k]||0),WH[k]*b.lv);
+const baseStar=b=>starFromSeed(b.s);
+function shipXYZ(){const p=typeof pilot!=='undefined'&&pilot?pilot.pos:null;if(p)return p.slice();const s=shipStar();return[s.gx,s.gy,s.gz]}
+function buildBase(i,ty){
+  const st=shipStar();if(st.point)return'Aquí no hay planetas.';const S=genSystem(st),rs=baseRes(S,i);if(!rs)return'No se puede construir sobre un gigante gaseoso.';if(!BTY[ty])return'';
+  if(!Array.isArray(D.bases))D.bases=[];if(D.bases.length>=BMAX)return`Máximo ${BMAX} bases.`;const key=sSeed(st)+':'+i;if(D.bases.some(b=>b.k===key))return'Ya hay una base en ese planeta.';
+  if(D.st.min<40&&!D.cr)return'Hacen falta 40 t de minerales.';baseTick();if(!D.cr)D.st.min-=40;passDays(20);
+  let id;do id=Math.random().toString(36).slice(2,8).toUpperCase();while(D.bases.some(q=>q.id===id));const b={id,k:key,s:sSeed(st),i,n:`${BTY[ty].n} ${S.planets[i].name}`,sn:S.name,pn:S.planets[i].name,ty,lv:1,t:D.st.days,stk:{},rich:{min:rs.min,fuel:rs.fuel,prov:rs.prov}};D.bases.push(b);
+  let s=`${BTY[ty].ic} Base construida en ${b.pn}: ${b.n}.`;const rt=baseRate(b);if(ty!=='puesto'&&!Object.values(rt).some(v=>v>0))s+=' El planeta no tiene ese recurso: no producirá nada.';
+  const ter=typeof facOf==='function'?facOf(st):null;if(ter){const f=ter.f,v=FX().aff.includes(f)?3:rel(f,'aa')>=1?1:-4;s+=` ${FAC[f].ic} ${FAC[f].s} ${v>0?'lo aprueba':'no lo ve con buenos ojos'}.`+addRep(f,v)}
+  logDM(s,'cmd');saveD();return s}
+function upBase(id){const b=(D.bases||[]).find(q=>q.id===id);if(!b)return'';if(b.lv>=3)return'La base ya está al máximo.';const c=50*b.lv;if(!sameStar(baseStar(b),shipStar()))return'Tenéis que estar en ese sistema.';
+  if(D.st.min<c&&!D.cr)return`Hacen falta ${c} t de minerales.`;baseTick();if(!D.cr)D.st.min-=c;passDays(15);b.lv++;saveD();return`${b.n} pasa a nivel ${b.lv}.`}
+const baseById=id=>(D.bases||[]).find(q=>q.id===id);
+const dstName=d=>d==='nave'?(D.ship.n||SHIPS[D.ship.d].n):((baseById(d)||{}).n||'base perdida');
+/* id: base de origen · dst: 'nave' o id de base · res: 'all'|'min'|'fuel'|'prov' · q: cantidad máxima (0 = todo) */
+function sendBase(id,dst='nave',res='all',q=0){baseTick();const b=baseById(id),st=b&&baseStar(b);if(!b||!st)return'';if(dst===id)return'El origen y el destino son la misma base.';
+  const db=dst==='nave'?null:baseById(dst);if(dst!=='nave'&&!db)return'Esa base ya no existe.';const amt={};
+  for(const k of ['min','fuel','prov']){if(res!=='all'&&res!==k)continue;let v=Math.floor(b.stk[k]||0);if(q>0)v=Math.min(v,q);if(v>0){amt[k]=v;b.stk[k]-=v}}
+  if(!Object.keys(amt).length)return`${b.n} no tiene ${res==='all'?'nada':RESN[res][0].toLowerCase()} que enviar todavía.`;if(!Array.isArray(D.conv))D.conv=[];if(D.conv.length>=20)return'Demasiados envíos en camino.';
+  const ds=db&&baseStar(db),to=ds?[ds.gx,ds.gy,ds.gz]:shipXYZ(),d=Math.hypot(st.gx-to[0],st.gy-to[1],st.gz-to[2]),now=Date.now(),ms=Math.max(5000,d*BSPEED);
+  D.conv.push({id:b.id+'-'+(now%1e6).toString(36)+Math.random().toString(36).slice(2,4),b:b.id,bn:b.n,dst,f:[st.gx,st.gy,st.gz],to,d:+d.toFixed(2),t0:now,eta:now+ms,amt});saveD();
+  return`🚚 ${b.n} → ${dstName(dst)}: ${resTxt(amt)}. ${fmtLen(d)}: llega en ${fmtDur(ms)}.`}
+/* Rutas automáticas: cada N días a bordo (u) o cada N minutos reales (m) */
+function addRoute(c){const b=baseById(String(c.from));if(!b)return'';const dst=String(c.dst||'nave');if(dst!=='nave'&&!baseById(dst))return'';if(dst===b.id)return'El origen y el destino son la misma base.';
+  if(!Array.isArray(D.rutas))D.rutas=[];if(D.rutas.length>=RMAX)return`Máximo ${RMAX} rutas.`;const u=c.u==='m'?'m':'d',ev=clamp(+c.ev||(u==='m'?5:30),1,u==='m'?1440:3650),res=['all','min','fuel','prov'].includes(c.res)?c.res:'all';
+  const r={id:Date.now().toString(36).slice(-5).toUpperCase(),from:b.id,dst,res,q:Math.max(0,+c.q|0),u,ev,ld:D.st.days,lm:Date.now()};D.rutas.push(r);saveD();
+  return`🔁 Ruta creada: ${b.n} → ${dstName(dst)}, ${routeTxt(r)}.`}
+const routeTxt=r=>`${r.res==='all'?'todo':RESN[r.res][0].toLowerCase()}${r.q?' (máx. '+fmtI(r.q)+')':''} cada ${r.ev} ${r.u==='m'?'min reales':'días a bordo'}`;
+function routeTick(){if(!Array.isArray(D.rutas)||!D.rutas.length)return;const now=Date.now();let ch=0;
+  D.rutas=D.rutas.filter(r=>baseById(r.from)&&(r.dst==='nave'||baseById(r.dst)));
+  for(const r of D.rutas){const due=r.u==='m'?now-r.lm>=r.ev*60000:D.st.days-r.ld>=r.ev;if(!due)continue;r.lm=now;r.ld=D.st.days;ch=1;
+    const m=sendBase(r.from,r.dst,r.res,r.q);if(/^🚚/.test(m)){logDM('🔁 '+m,'sys');if(tab==='base')renderPanel()}}
+  if(ch)saveD()}
+const resTxt=a=>Object.entries(a).map(([k,v])=>`${fmtI(v)} ${RESN[k][1]==='t'?'t de '+RESN[k][0].toLowerCase():RESN[k][1]}`).join(', ');
+const fmtDur=ms=>{const s=Math.max(0,Math.ceil(ms/1000));return s<60?s+' s':s<3600?Math.floor(s/60)+' min '+(s%60)+' s':Math.floor(s/3600)+' h '+Math.floor(s%3600/60)+' min'};
+function convTick(){
+  if(!Array.isArray(D.conv)||!D.conv.length||(NET&&NET.role==='client'))return;const now=Date.now(),done=D.conv.filter(c=>now>=c.eta);if(!done.length)return;
+  D.conv=D.conv.filter(c=>now<c.eta);const sp=SPEC[D.ship.d],s=D.st;
+  for(const c of done){const lost=[],db=c.dst&&c.dst!=='nave'?baseById(c.dst):null;if(c.dst&&c.dst!=='nave'&&!db){logDM(`📦 El envío de ${c.bn} no encontró su base de destino.`,'sys');continue}
+    if(db)baseTick();
+    for(const k in c.amt){const cap=db?whCap(db,k):({min:sp.cargo,fuel:sp.tank,prov:sp.prov})[k],cur=db?(db.stk[k]||0):s[k],v=Math.max(0,Math.min(cap-cur,c.amt[k]));if(db)db.stk[k]=cur+v;else s[k]+=v;if(v<c.amt[k])lost.push(`${fmtI(c.amt[k]-v)} ${RESN[k][1]}`)}
+    const m=`📦 Llega a ${db?esc(db.n):'la nave'} el envío de ${c.bn}: ${resTxt(c.amt)}.${lost.length?' No cabe todo: se pierde '+lost.join(', ')+'.':''}`;toast(esc(m));if(NET&&NET.role==='host')bcast({t:'toast',h:esc(m)})}
+  saveD();refresh()}
+setInterval(()=>{if(!(NET&&NET.role==='client')){routeTick();convTick()}if(tab==='base'&&((D.conv||[]).length||(D.rutas||[]).length)&&!(document.activeElement&&document.activeElement.closest&&document.activeElement.closest('#p-base')))renderBases()},1000);
+function doBase(c){if(c.a==='build')return buildBase(c.i|0,String(c.ty));if(c.a==='up')return upBase(String(c.id));
+  if(c.a==='send')return sendBase(String(c.id),String(c.dst||'nave'),['all','min','fuel','prov'].includes(c.res)?c.res:'all',Math.max(0,+c.q|0));
+  if(c.a==='route')return addRoute(c);if(c.a==='unroute'){D.rutas=(D.rutas||[]).filter(r=>r.id!==c.id);saveD();return'Ruta eliminada.'}
+  if(c.a==='drop'){const b=baseById(c.id);if(!b)return'';D.bases=D.bases.filter(q=>q!==b);D.rutas=(D.rutas||[]).filter(r=>r.from!==b.id&&r.dst!==b.id);saveD();return`Abandonáis ${b.n}.`}return''}
+function normRutas(a){return(Array.isArray(a)?a:[]).slice(0,RMAX).filter(r=>r&&r.from).map(r=>({id:String(r.id).slice(0,8),from:String(r.from).slice(0,8),dst:String(r.dst||'nave').slice(0,8),res:['all','min','fuel','prov'].includes(r.res)?r.res:'all',q:Math.max(0,+r.q|0),u:r.u==='m'?'m':'d',ev:clamp(+r.ev||30,1,3650),ld:+r.ld||0,lm:+r.lm||0}))}
+/* Diálogo de envío: destino, recurso, cantidad y repetición */
+function openSend(id){const b=baseById(id);if(!b)return;baseTick();modalOpen=true;const others=(D.bases||[]).filter(q=>q.id!==id);
+  showModal(`<div class="kick">ENVIAR RECURSOS</div><h2>${BTY[b.ty].ic} ${esc(b.n)}</h2><p class="note">En almacén: ${['min','fuel','prov'].map(k=>`${RESN[k][0]} ${fmtI(b.stk[k]||0)}`).join(' · ')}. Viajan a 1 año luz cada 5 segundos reales.</p>
+  <div class="field"><label>Destino</label><select id="sdD"><option value="nave">🚀 La nave (donde esté al salir el envío)</option>${others.map(q=>{const a=baseStar(b),z=baseStar(q),d=a&&z?gd(a,z):0;return`<option value="${q.id}">${BTY[q.ty].ic} ${esc(q.n)} · ${fmtLen(d)} · ${fmtDur(Math.max(5000,d*BSPEED))}</option>`}).join('')}</select></div>
+  <div class="field"><label>Recurso</label><select id="sdR"><option value="all">Todo lo almacenado</option><option value="min">Minerales</option><option value="fuel">Astrófago</option><option value="prov">Provisiones</option></select></div>
+  <div class="field"><label>Cantidad máx.</label><input id="sdQ" type="number" min="0" step="1" value="0" title="0 = todo"></div>
+  <label class="chk"><input type="checkbox" id="sdRep"> Repetir automáticamente</label>
+  <div class="field"><label>Cada</label><input id="sdE" type="number" min="1" value="30" style="width:80px"> <select id="sdU"><option value="d">días a bordo</option><option value="m">minutos reales</option></select></div>
+  <div class="row"><button class="pri" id="sdGo">Enviar</button><button id="no">Cancelar</button></div>`);
+  const sync=()=>{$('#sdGo').textContent=$('#sdRep').checked?'Crear ruta y enviar ya':'Enviar'};$('#sdRep').onchange=sync;
+  $('#sdGo').onclick=()=>{const c={from:id,id,dst:$('#sdD').value,res:$('#sdR').value,q:+$('#sdQ').value||0,u:$('#sdU').value,ev:+$('#sdE').value||1};modalOpen=false;closeModal();
+    if(rep)cmd({k:'base',a:'route',...c},`Ruta ${b.n} → ${dstName(c.dst)}`);cmd({k:'base',a:'send',...c},`Envío ${b.n} → ${dstName(c.dst)}`)};
+  let rep=false;$('#sdRep').addEventListener('change',e=>rep=e.target.checked);$('#no').onclick=()=>{modalOpen=false;closeModal()}}
+function normBases(a){return(Array.isArray(a)?a:[]).slice(0,BMAX).filter(b=>b&&BTY[b.ty]&&starFromSeed(String(b.s))).map(b=>({id:String(b.id).slice(0,8),k:String(b.k).slice(0,50),s:String(b.s).slice(0,40),i:b.i|0,n:String(b.n).slice(0,60),sn:String(b.sn||'').slice(0,40),pn:String(b.pn||'').slice(0,40),ty:b.ty,lv:clamp(b.lv|0,1,3),t:+b.t||0,
+  stk:Object.fromEntries(['min','fuel','prov'].filter(k=>b.stk&&+b.stk[k]>0).map(k=>[k,Math.min(1e6,+b.stk[k])])),rich:Object.fromEntries(['min','fuel','prov'].map(k=>[k,clamp(+(b.rich||{})[k]||0,0,5)]))}))}
+function normConv(a){const v3=x=>Array.isArray(x)&&x.length===3&&x.every(isFinite)?x.map(Number):null;return(Array.isArray(a)?a:[]).slice(0,20).filter(c=>c&&v3(c.f)&&v3(c.to)&&isFinite(c.eta)).map(c=>({id:String(c.id).slice(0,24),dst:String(c.dst||'nave').slice(0,8),b:String(c.b).slice(0,8),bn:String(c.bn).slice(0,60),f:v3(c.f),to:v3(c.to),d:+c.d||0,t0:+c.t0,eta:+c.eta,
+  amt:Object.fromEntries(['min','fuel','prov'].filter(k=>c.amt&&+c.amt[k]>0).map(k=>[k,Math.min(1e6,+c.amt[k]|0)]))}))}
+
+/* — Carta: bases y envíos en camino — */
+function drawBases(now){
+  if(!Array.isArray(D.bases))return;const R=cam.R;ctx.save();ctx.font='9px ui-monospace,Menlo,monospace';ctx.textAlign='left';ctx.textBaseline='middle';
+  for(const b of D.bases){const st=baseStar(b);if(!st||!proj(st.gx,st.gy,st.gz))continue;const x=_p[0],y=_p[1];ctx.strokeStyle='#7ee787';ctx.lineWidth=1.2;ctx.strokeRect(x-4,y-4,8,8);
+    if(R<120){ctx.fillStyle='rgba(126,231,135,.9)';ctx.fillText(spaced(BTY[b.ty].ic+' '+b.pn.toUpperCase()),x+8,y+10)}}
+  for(const c of D.conv||[]){const p=clamp((Date.now()-c.t0)/(c.eta-c.t0),0,1),pts=[];
+    for(let k=0;k<=24;k++){const t=k/24;pts.push(proj(lerp(c.f[0],c.to[0],t),lerp(c.f[1],c.to[1],t),lerp(c.f[2],c.to[2],t))?[_p[0],_p[1]]:null)}
+    ctx.setLineDash([2,5]);ctx.strokeStyle='rgba(126,231,135,.45)';ctx.lineWidth=1;ctx.beginPath();let on=false;for(const q of pts){if(!q){on=false;continue}on?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]);on=true}ctx.stroke();ctx.setLineDash([]);
+    if(proj(lerp(c.f[0],c.to[0],p),lerp(c.f[1],c.to[1],p),lerp(c.f[2],c.to[2],p))){const x=_p[0],y=_p[1],pu=1+.3*Math.sin(now/200);ctx.fillStyle='#7ee787';ctx.beginPath();ctx.arc(x,y,3*pu,0,7);ctx.fill();
+      ctx.fillStyle='rgba(126,231,135,.95)';ctx.fillText(spaced('📦 '+fmtDur(c.eta-Date.now())),x+7,y-8)}}
+  ctx.restore()}
+
+/* — Paneles — */
+function baseCardHtml(S,i,here){
+  const key=sSeed(S.star)+':'+i,b=(D.bases||[]).find(q=>q.k===key),rs=baseRes(S,i);if(!rs)return'';const cl=NET.role==='client';
+  if(b){baseTick();const rt=baseRate(b),cp=baseCap(b);return`<div class="card"><div class="kick">BASE · NIVEL ${b.lv}</div><b>${BTY[b.ty].ic} ${esc(b.n)}</b>
+    <div class="note">${Object.keys(cp).map(k=>`${RESN[k][0]}: ${fmtI(b.stk[k]||0)}/${fmtI(cp[k])} ${RESN[k][1]} (+${fmtI(rt[k]||0)} cada 100 d)`).join(' · ')}</div>
+    <div class="row">${A('🚚 Enviar…',()=>openSend(b.id),cl)}${here&&b.lv<3?A(`Mejorar (${50*b.lv} t · 15 d)`,()=>cmd({k:'base',a:'up',id:b.id},'Mejorar '+b.n),cl||D.st.min<50*b.lv&&!D.cr):''}</div></div>`}
+  return`<div class="note">Recursos del suelo: minerales ${richLab(rs.min)} · astrófago ${richLab(rs.fuel)} · alimento ${richLab(rs.prov)}</div>${here?`<div class="row">${A('🏗 Construir base (40 t · 20 d)',()=>openBuild(S,i),cl||D.st.min<40&&!D.cr||(D.bases||[]).length>=BMAX)}</div>`:''}`}
+function openBuild(S,i){
+  const rs=baseRes(S,i);modalOpen=true;
+  showModal(`<div class="kick">CONSTRUIR BASE</div><h2>${esc(S.planets[i].name)}</h2><p class="note">Coste: 40 t de minerales y 20 días. Producción por cada 100 días a bordo (nivel 1). Los envíos viajan a 1 año luz cada 5 segundos.</p>
+  <div class="opts">${Object.entries(BTY).map(([k,t])=>{const b={ty:k,lv:1,rich:rs},rt=baseRate(b),v=Object.entries(rt);return`<button data-b="${k}">${t.ic} ${esc(t.n)}<span class="dim"> · ${v.map(([r,x])=>x>0?`+${fmtI(x)} ${RESN[r][1]==='t'?'t '+RESN[r][0].toLowerCase():RESN[r][1]}`:'sin '+RESN[r][0].toLowerCase()).join(', ')} · ${esc(t.d)}</span></button>`}).join('')}</div>
+  <div class="row"><button id="no">Cancelar</button></div>`);
+  $('#modalBox').querySelectorAll('[data-b]').forEach(x=>x.onclick=()=>{modalOpen=false;closeModal();cmd({k:'base',a:'build',i,ty:x.dataset.b},`Construir ${BTY[x.dataset.b].n} en ${S.planets[i].name}`)});
+  $('#no').onclick=()=>{modalOpen=false;closeModal()}}
+function renderBases(){
+  const el=$('#p-base'),cl=NET.role==='client';ACTS=[];baseTick();const bs=D.bases||[],to=shipXYZ();
+  let h=`<div class="kick">BASES, COLONIAS Y LOGÍSTICA</div><h2>${bs.length} base${bs.length===1?'':'s'} de ${BMAX}</h2><p class="note">Construye bases desde el panel de un sistema (abre un planeta en órbita). Producen con el tiempo de a bordo según los recursos del planeta, que pueden ser nulos. Los envíos tardan 5 segundos reales por año luz.</p>`;
+  if((D.conv||[]).length)h+=`<h3>Envíos en camino</h3><div class="lst">${D.conv.map(c=>{const p=clamp((Date.now()-c.t0)/(c.eta-c.t0),0,1);return`<div class="item col"><div><b>📦 ${esc(c.bn)}</b> <span class="dim">· → ${esc(c.dst&&c.dst!=='nave'?dstName(c.dst):'nave')} · ${fmtLen(c.d)} · llega en ${fmtDur(c.eta-Date.now())}</span></div><div class="note">${esc(resTxt(c.amt))}</div>${meter(p,1,'#7ee787')}</div>`}).join('')}</div>`;
+  h+=`<h3>Rutas automáticas</h3><div class="lst">${(D.rutas||[]).map(r=>{const b=baseById(r.from),left=r.u==='m'?fmtDur(r.ev*60000-(Date.now()-r.lm)):Math.max(0,Math.ceil(r.ev-(D.st.days-r.ld)))+' d a bordo';
+    return`<div class="item"><span>🔁</span><div class="m"><b>${esc(b?b.n:'?')} → ${esc(dstName(r.dst))}</b><i>${esc(routeTxt(r))} · próximo en ${left}</i></div>${A('Quitar',()=>cmd({k:'base',a:'unroute',id:r.id},'Quitar ruta '+r.id),cl)}</div>`}).join('')||'<p class="note">Ninguna. Crea una con «Enviar…» y marca «Repetir automáticamente». Las de días a bordo avanzan con el juego; las de minutos reales, con el reloj.</p>'}</div>`;
+  h+=`<h3>Bases</h3><div class="lst">${bs.map(b=>{const st=baseStar(b),rt=baseRate(b),cp=baseCap(b),d=st?Math.hypot(st.gx-to[0],st.gy-to[1],st.gz-to[2]):0,has=Object.values(b.stk).some(v=>v>=1);
+    return`<div class="item col"><div class="rowi"><span>${BTY[b.ty].ic}</span><div class="m"><b>${esc(b.n)} · nivel ${b.lv}</b><i>${esc(b.sn)} · ${fmtLen(d)} de la nave · envío en ${fmtDur(Math.max(5000,d*BSPEED))}</i></div></div>
+    ${Object.keys(cp).map(k=>`<div class="res"><span>${RESN[k][0]} (+${fmtI(rt[k]||0)}/100 d)</span><span>${fmtI(b.stk[k]||0)} / ${fmtI(cp[k])}</span></div>${meter(b.stk[k]||0,cp[k],k==='fuel'?'#e0aa46':k==='prov'?'#7ee787':'#9b9186')}`).join('')}
+    ${b.ty!=='puesto'&&!(rt[BTY[b.ty].r]>0)?'<p class="bad">Este planeta no tiene ese recurso: la base no produce.</p>':''}
+    <div class="row">${A('🚚 Pedir a la nave',()=>cmd({k:'base',a:'send',id:b.id},'Pedir envío desde '+b.n),cl||!has)}${A('Enviar…',()=>openSend(b.id),cl)}${st?A('Ver',()=>{if(mode!=='map')exitToMap();selectStar(st,true)}):''}${A('Abandonar',()=>{if(confirm('¿Abandonar '+b.n+'? Se pierde lo almacenado.'))cmd({k:'base',a:'drop',id:b.id},'Abandonar '+b.n)},cl)}</div></div>`}).join('')||'<p class="note">Todavía no hay bases.</p>'}</div>`;
+  el.innerHTML=h;bindActs(el)}
+
 /* ═════════ Avisos y diálogos ═════════ */
 let toastT;
 function toast(h,bl,fn){logDM(h);const t=$('#toast');t.innerHTML=h+(bl?` <button class="sm pri" id="tbtn">${esc(bl)}</button>`:'');t.classList.remove('show');void t.offsetWidth;t.classList.add('show');
   if(bl)$('#tbtn').onclick=()=>{t.classList.remove('show');fn()};clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),bl?10000:5200)}
 function showModal(html){$('#modalBox').innerHTML=html;$('#modal').style.display='flex'}
 function closeModal(){$('#modal').style.display='none'}
+/* Dado de fortuna: cada jugador tira 1d6 en los eventos con prueba (1→−2, 2→−1, 3-4→0, 5→+1, 6→+2; total entre −3 y +3) */
+const DIEM=[0,-2,-1,0,0,1,2],DIEF=['','⚀','⚁','⚂','⚃','⚄','⚅'];
+const luckOf=rolls=>clamp(Object.values(rolls||{}).reduce((a,d)=>a+(DIEM[d]||0),0),-3,3);
+function luckTxt(rolls,anon){const e=Object.entries(rolls||{});if(!e.length)return'Nadie ha tirado el dado de fortuna todavía.';const l=luckOf(rolls);
+  return`Fortuna ${l>0?'+':''}${l} (≈ ${l>0?'+':''}${l*10}% en las pruebas) · `+e.map(([p,d])=>`${anon?'':esc(((NET.players||{})[p]||{}).name||'Tú')+' '}${DIEF[d]}`).join(' ')}
+function dieAnim(btn,cb){const d=1+(Math.random()*6|0);if(RM){cb(d);return}let n=0;btn.disabled=true;const t=setInterval(()=>{btn.textContent='🎲 '+DIEF[1+(Math.random()*6|0)];if(++n>9){clearInterval(t);btn.textContent='🎲 Sacaste '+DIEF[d]+' '+d+' ('+(DIEM[d]>0?'+':'')+DIEM[d]+')';cb(d)}},70)}
 const dq=[];
 function queueDialog(d){
   if(!d.ev)logDM(`${d.t}: ${d.tx||''} ${d.res||''}`,'dlg');
@@ -3284,13 +3665,15 @@ function nextDialog(){
     <p class="story">${esc(d.tx)}</p>${d.res?`<p class="ok">${esc(d.res)}</p>`:''}${d.next?`<p class="note">${esc(d.next)}</p>`:''}<div class="row"><button class="pri" id="dOk">Continuar</button></div>`);
     $('#dOk').onclick=()=>{d.done&&d.done();nextDialog()};return}
   const ev=d.ev,who=pick(alive())||null,tx=typeof ev.tx==='function'?ev.tx(d.ctx):ev.tx;
-  const optLab=o=>o.l+(o.k?` · ${STATN[o.k]} ${o.dc} · ${Math.round(chance(o.k,o.dc)*100)}%`:'');
+  const optLab=o=>o.l+(o.k?` · ${STATN[o.k]} ${o.dc}`:'');const local={},hasK=ev.op.some(o=>o.k);
+  const getRolls=()=>vid?((NET.votes.find(x=>x.id===vid)||{}).dice||{}):local;
+  const paint=()=>{const l=luckOf(getRolls());$('#modalBox').querySelectorAll('[data-o]').forEach(b=>{const o=ev.op[+b.dataset.o],s=b.querySelector('.dim');if(o&&o.k&&s)s.textContent=` · ${STATN[o.k]} ${o.dc} · ${Math.round(chance(o.k,o.dc,null,l)*100)}%`});const L=$('#luck');if(L)L.innerHTML=luckTxt(getRolls(),NET.anon)};
   const voting=NET&&NET.role==='host'&&NET.conns.size>0&&NET.decide!=='yo';let vid=null;logDM('Evento: '+ev.t+' — '+tx,'ev');
   const k0=(ev.op.find(o=>o.k)||{}).k,resp=voting&&NET.decide!=='todos'&&k0?respFor(k0):null;
   const resolveOpt=i=>{
     let o=ev.op[i];if(o.need&&!o.need()){const j=ev.op.findIndex(x=>!x.need||x.need());o=ev.op[j]}
     let res,line='';
-    if(o.k){const r=roll(o.k,o.dc);line=r.line;res=(r.ok?o.ok(d.ctx,r):o.ko(d.ctx,r))||'';if(r.ok)res+=gainXp(r.m,10)}else res=o.run(d.ctx)||'';
+    NET.luckPaint=null;if(o.k){const r=roll(o.k,o.dc,null,luckOf(getRolls()));line=r.line;res=(r.ok?o.ok(d.ctx,r):o.ko(d.ctx,r))||'';if(r.ok)res+=gainXp(r.m,10)}else res=o.run(d.ctx)||'';
     if(D.st.hull<=0)res+=' El casco no resiste.';saveD();
     logDM(`→ ${o.l}. ${line.replace(/<[^>]+>/g,'')} ${res}`,'ev');
     if(voting)bcast({t:'dialog',d:{t:ev.t+' · '+o.l,tx:res,res:line.replace(/<[^>]+>/g,''),who:null}});
@@ -3298,9 +3681,10 @@ function nextDialog(){
     $('#dOk').onclick=()=>{if(D.st.hull<=0)rescue('El casco cedió.');d.done&&d.done();nextDialog()};
   };
   showModal(`<div class="dh">${portrait(who)}<div><div class="kick">EVENTO${voting?' · VOTACIÓN DE LA TRIPULACIÓN':''}</div><b>${esc(ev.t)}</b><div class="note">${who?esc(who.nm)+' informa':'IA de a bordo informa'}</div></div></div>
-    <p class="story">${esc(tx)}</p><div class="opts">${ev.op.map((o,i)=>`<button data-o="${i}" ${o.need&&!o.need()?'disabled':''}>${esc(o.l)}${o.k?`<span class="dim"> · ${STATN[o.k]} ${o.dc} · ${Math.round(chance(o.k,o.dc)*100)}%</span>`:''}</button>`).join('')}</div><div id="vstat" class="note"></div>`);
+    <p class="story">${esc(tx)}</p>${hasK?`<div class="row"><button id="dice">🎲 Tirar dado de fortuna</button></div><div id="luck" class="note"></div>`:''}<div class="opts">${ev.op.map((o,i)=>`<button data-o="${i}" ${o.need&&!o.need()?'disabled':''}>${esc(o.l)}${o.k?`<span class="dim"> · ${STATN[o.k]} ${o.dc} · ${Math.round(chance(o.k,o.dc)*100)}%</span>`:''}</button>`).join('')}</div><div id="vstat" class="note"></div>`);
   if(voting){vid=createVote({kind:'ev',title:ev.t,tx,opts:ev.op.map(optLab),by:NET.me,voters:resp?[resp.pid]:null,who:resp?`${resp.m.nm} (${resp.pl}, ${ROLES[resp.m.role]})`:''});NET.vcb[vid]=resolveOpt;
     $('#vstat').textContent=resp&&resp.pid!==NET.me?`Decide ${resp.m.nm} (${resp.pl}, ${ROLES[resp.m.role]}). Como director puedes imponer una opción.`:resp?'Te toca decidir por tu rol.':'Vota tu opción; se decide por mayoría (60 s).'}
+  if(hasK){paint();NET.luckPaint=paint;$('#dice').onclick=e=>dieAnim(e.currentTarget,d=>{if(vid)castDice(vid,NET.me,d);else local[NET.me||'yo']=d;logDM(`🎲 Dado de fortuna: ${d} (${DIEM[d]>0?'+':''}${DIEM[d]})`,'ev');paint()})}
   $('#modalBox').querySelectorAll('[data-o]').forEach(b=>b.onclick=()=>{
     if(vid&&resp&&resp.pid!==NET.me){forceVote(vid,+b.dataset.o);return}
     if(vid){castVote(vid,NET.me,+b.dataset.o);$('#modalBox').querySelectorAll('[data-o]').forEach(x=>x.classList.toggle('pri',x===b));$('#vstat').textContent='Voto registrado. Esperando al resto de la tripulación…';return}
@@ -3394,7 +3778,7 @@ function arrive(L){
   if(!hib)morAll(-Math.min(18,L.days/80));
   else{const risk=.025+(alive().some(m=>m.tr==='Insomne')?.03:0)-best('med').v*.002;if(Math.random()<risk){const w=loseRandom();if(w)queueDialog({t:'Despertar',who:pick(alive())||null,tx:`Al abrir las cápsulas, ${w} no despierta del coma inducido. La tripulación despide a su compañero en silencio.`,res:''})}}
   D.sp=seedOf(L.to);ping=performance.now();travel.pos=null;record('j',D.sp,true);travel.i++;travel.t0=0;
-  questEvent({type:'arrive',star:L.to});
+  questEvent({type:'arrive',star:L.to});facTick();
   if(travel.i>=travel.legs.length){
     const st=L.to;endTravel();selStar=st;
     if(st.point)toast(`Llegada al espacio profundo · ${fmtT(L.tau)} a bordo`);else toast(`Llegada a <b>${esc(starName(st))}</b> · ${fmtT(L.tau)} a bordo`,'Entrar al sistema',()=>enterSystem(st));
@@ -3662,6 +4046,8 @@ function execCmd(c){
   if(c.k==='plan'){startPlanNow(c.plan);return'Plan de viaje en marcha.'}
   if(c.k==='rescue'){rescue('');return''}
   if(c.k==='ship'){return changeShip(String(c.d))}
+  if(c.k==='fac')return doFac(c);
+  if(c.k==='base')return doBase(c);
   return'';
 }
 function changeShip(k){
@@ -3748,9 +4134,12 @@ async function exportLink(m){
 
 /* ═════════ Sesión compartida (WebRTC con PeerJS; el anfitrión manda la partida) ═════════ */
 const PEER_OPTS=(()=>{const u=new URLSearchParams(location.search).get('peer');if(u&&/^[\w.-]+:\d+$/.test(u)){const [h,p]=u.split(':');return{host:h,port:+p,path:'/',secure:location.protocol==='https:'}}return{}})();
-var NET={decide:'rol',crewLock:null,role:null,peer:null,conns:new Map(),host:null,code:'',me:'',players:{},votes:[],chat:[],demo:true,vcb:{},myPlan:null,shownVote:null,syncT:0,wantJoin:''};
+var NET={anon:false,myVotes:{},luckPaint:null,decide:'rol',crewLock:null,role:null,peer:null,conns:new Map(),host:null,code:'',me:'',players:{},votes:[],chat:[],demo:true,vcb:{},myPlan:null,shownVote:null,syncT:0,wantJoin:''};
+/* En votaciones anónimas los demás sólo reciben el recuento, nunca quién votó qué */
+function voteCnt(v){return v.cnt&&!v.ballots?v.cnt:v.opts.map((_,i)=>Object.values(v.ballots||{}).filter(b=>b===i).length)}
+function pubVote(v){const o={...v,cnt:voteCnt(v),nv:Object.keys(v.ballots||{}).length};if(v.anon){delete o.ballots;o.dice=Object.fromEntries(Object.values(v.dice||{}).map((d,i)=>['a'+i,d]))}return o}
 function bcast(m){if(NET.role!=='host')return;for(const c of NET.conns.values())try{c.open&&c.send(m)}catch(e){}}
-function netSync(){if(NET.role!=='host')return;clearTimeout(NET.syncT);NET.syncT=setTimeout(async()=>{const tok=await encodeState(300);bcast({t:'state',tok,logo:D.crewLogo||null,players:NET.players,votes:NET.votes.map(v=>({...v})),chat:NET.chat.slice(-60),demo:NET.demo})},250)}
+function netSync(){if(NET.role!=='host')return;clearTimeout(NET.syncT);NET.syncT=setTimeout(async()=>{const tok=await encodeState(300);bcast({t:'state',tok,logo:D.crewLogo||null,anon:NET.anon,players:NET.players,votes:NET.votes.map(pubVote),chat:NET.chat.slice(-60),demo:NET.demo})},250)}
 const sysMsg=tx=>{logDM(tx,'sys');NET.chat.push({f:'',tx,t:Date.now()});if(NET.chat.length>120)NET.chat.shift();renderSessDyn();netSync()};
 const randCode=()=>Array.from(crypto.getRandomValues(new Uint8Array(5)),b=>MABC[b%32]).join('');
 function hostSession(){
@@ -3760,14 +4149,14 @@ function hostSession(){
   peer.on('error',e=>{if(e.type==='unavailable-id'){peer.destroy();hostSession();return}toast('Red: '+esc(e.type||e.message));renderSess()});
   peer.on('disconnected',()=>{try{peer.reconnect()}catch(e){}});
 }
-function joinSession(code){
+function joinSession(code,card0){
   if(typeof Peer==='undefined'){toast('No se pudo cargar el módulo de red.');return}code=String(code||'').trim().toUpperCase();if(!/^[A-Z2-9]{5}$/.test(code)){toast('Código de sala no válido.');return}
-  openCardUpload(card=>{
+  const go=card=>{
     const peer=new Peer(undefined,PEER_OPTS);peer.on('open',id=>{const c=peer.connect('adastra-'+code,{reliable:true});
       c.on('open',()=>{Object.assign(NET,{role:'client',peer,host:c,code,me:id});c.send({t:'hello',name:D.n||card.n,card:{...card,rol:card.rol}});toast('Conectado a la sala '+code+'. Esperando la partida…');renderSess()});
       c.on('data',clientRecv);c.on('close',()=>{toast('Se perdió la conexión con el anfitrión.');leaveSession(true)})});
     peer.on('error',e=>{toast(e.type==='peer-unavailable'?'No existe la sala '+esc(code)+' (o el anfitrión se desconectó).':'Red: '+esc(e.type||e.message));renderSess()});
-  },'Únete con tu ficha de personaje');
+  };if(card0&&card0.n)go(card0);else openCardUpload(go,'Únete con tu ficha de personaje');
 }
 function leaveSession(reload){try{NET.peer&&NET.peer.destroy()}catch(e){}const wasClient=NET.role==='client';Object.assign(NET,{role:null,peer:null,conns:new Map(),host:null,players:{},votes:[],chat:[]});if(wasClient||reload)location.reload();else refresh()}
 function hostRecv(c,m){
@@ -3781,11 +4170,12 @@ function hostRecv(c,m){
   if(m.t==='chat'){logDM(`💬 ${pl.name}: ${String(m.tx||'').slice(0,300)}`,'chat');NET.chat.push({f:pl.name,tx:String(m.tx||'').slice(0,300),t:Date.now()});renderSessDyn();netSync()}
   else if(m.t==='propose'&&m.v){propose({...m.v,by:c.peer,title:String(m.v.title||'').slice(0,140),opts:(m.v.opts||[]).slice(0,6).map(o=>String(o).slice(0,80))})}
   else if(m.t==='vote')castVote(String(m.id),c.peer,m.o|0);
+  else if(m.t==='dice')castDice(String(m.id),c.peer,m.d|0);
   else if(m.t==='editchar'){const x=D.crew.find(q=>q.pid===c.peer&&q.id===m.id);if(x){x.nm=String(m.nm||x.nm).slice(0,40);x.bio=String(m.bio||x.bio).slice(0,200);saveD()}}
 }
 async function clientRecv(m){
   if(!m||typeof m!=='object')return;
-  if(m.t==='state'){try{const st=await decodeState(m.tok);applyRemote(st)}catch(e){}if(m.logo&&typeof m.logo.src==='string'&&/^(data:image\/(webp|jpeg);base64,|https:\/\/)/.test(m.logo.src)&&(!D.crewLogo||D.crewLogo.src!==m.logo.src)){D.crewLogo={src:m.logo.src,name:String(m.logo.name||'').slice(0,30),id:String(m.logo.id||'')};updateCrewLogo()}NET.players=m.players||{};NET.votes=m.votes||[];NET.chat=m.chat||[];NET.demo=!!m.demo;renderSessDyn();showEvVote();refresh()}
+  if(m.t==='state'){try{const st=await decodeState(m.tok);applyRemote(st)}catch(e){}if(m.logo&&typeof m.logo.src==='string'&&/^(data:image\/(webp|jpeg);base64,|https:\/\/)/.test(m.logo.src)&&(!D.crewLogo||D.crewLogo.src!==m.logo.src)){D.crewLogo={src:m.logo.src,name:String(m.logo.name||'').slice(0,30),id:String(m.logo.id||'')};updateCrewLogo()}NET.players=m.players||{};NET.votes=m.votes||[];NET.anon=!!m.anon;NET.chat=m.chat||[];NET.demo=!!m.demo;renderSessDyn();showEvVote();const v=NET.votes.find(x=>x.id===NET.shownVote);if(v&&$('#luck'))$('#luck').innerHTML=luckTxt(v.dice,v.anon);refresh()}
   else if(m.t==='travel'&&!travel){const stars=(m.seeds||[]).map(s=>starFromSeed(s)||pointFromSeed(s)).filter(Boolean);if(stars.length>1){route=null;travel={legs:stars.slice(1).map((s,i)=>({from:stars[i],to:s})),i:0,t0:0,pos:null,int:0,ghost:1};$('#travel').classList.add('show')}}
   else if(m.t==='dialog'&&m.d)queueDialog({...m.d,local:1});
   else if(m.t==='toast')toast(String(m.h||''));
@@ -3793,7 +4183,7 @@ async function clientRecv(m){
 }
 function applyRemote(st){
   const g=st.game;if(!g)return;D.st=g;D.crew=st.crew;D.hib=st.flags.hib;D.cr=st.flags.cr;D.q=st.flags.q;D.ex=st.ex;D.scan=st.scan;D.disc=st.disc;D.h=st.h;
-  if(st.ship)D.ship=st.ship;if(st.sp&&!travel){D.sp=st.sp;_sp=''}if(st.n)D.n=D.n||st.n;D.plan=st.plan||D.plan;D.rep=st.rep||D.rep;
+  if(st.ship)D.ship=st.ship;if(st.sp&&!travel){D.sp=st.sp;_sp=''}if(st.n)D.n=D.n||st.n;D.plan=st.plan||D.plan;D.rep=st.rep||D.rep;if(st.fx)D.fx=st.fx;D.bases=st.bases||[];D.conv=st.conv||[];D.rutas=st.rutas||[];
 }
 function propose(v){
   if(NET.role==='client'){NET.host.send({t:'propose',v:{kind:v.kind,title:v.title,opts:v.opts,cmd:v.cmd}});return}
@@ -3801,16 +4191,18 @@ function propose(v){
 }
 function createVote(v){
   const id=Date.now().toString(36)+Math.random().toString(36).slice(2,6);
-  NET.votes.push({id,by:v.by,byName:(NET.players[v.by]||{}).name||'?',kind:v.kind||'free',title:v.title,tx:v.tx||'',opts:v.opts&&v.opts.length?v.opts:['Sí','No'],cmd:v.cmd||null,ballots:{},open:true,ends:Date.now()+(v.kind==='ev'?60000:90000),voters:v.voters||null,who:v.who||''});
+  NET.votes.push({id,by:v.by,byName:(NET.players[v.by]||{}).name||'?',kind:v.kind||'free',title:v.title,tx:v.tx||'',opts:v.opts&&v.opts.length?v.opts:['Sí','No'],cmd:v.cmd||null,ballots:{},dice:{},anon:!!NET.anon,open:true,ends:Date.now()+(v.kind==='ev'?60000:90000),voters:v.voters||null,who:v.who||''});
   sysMsg(v.voters?`🎭 Decide ${v.who}: ${v.title}`:`🗳 Nueva votación: ${v.title}`);bcast({t:'toast',h:'🗳 Nueva votación: <b>'+esc(v.title)+'</b>'});checkVotes();return id;
 }
-function castVote(id,pid,o){if(NET.role==='client'){NET.host.send({t:'vote',id,o});return}const v=NET.votes.find(x=>x.id===id&&x.open);if(!v||o<0||o>=v.opts.length)return;if(v.voters&&!v.voters.includes(pid)&&pid!==NET.me)return;v.ballots[pid]=o;checkVotes();netSync();renderSessDyn()}
+function castDice(id,pid,d){if(!(d>=1&&d<=6))return;if(NET.role==='client'){NET.host.send({t:'dice',id,d});return}const v=NET.votes.find(x=>x.id===id&&x.open);if(!v||!v.dice||pid in v.dice)return;v.dice[pid]=d;
+  sysMsg(`🎲 ${v.anon?'Alguien':((NET.players[pid]||{}).name||'?')} tira el dado de fortuna en «${v.title}»: ${d} (${DIEM[d]>0?'+':''}${DIEM[d]}).`);if(NET.luckPaint)NET.luckPaint();netSync()}
+function castVote(id,pid,o){if(NET.role==='client'){NET.myVotes[id]=o;NET.host.send({t:'vote',id,o});return}const v=NET.votes.find(x=>x.id===id&&x.open);if(!v||o<0||o>=v.opts.length)return;if(v.voters&&!v.voters.includes(pid)&&pid!==NET.me)return;v.ballots[pid]=o;checkVotes();netSync();renderSessDyn()}
 function checkVotes(){
   if(NET.role!=='host')return;const everyone=[NET.me,...NET.conns.keys()];
   for(const v of NET.votes){if(!v.open)continue;let voters=v.voters&&v.voters.some(p=>everyone.includes(p))?v.voters.filter(p=>everyone.includes(p)):everyone;const all=voters.every(p=>p in v.ballots);if(!all&&Date.now()<v.ends)continue;
     const cnt=v.opts.map((_,i)=>Object.values(v.ballots).filter(b=>b===i).length),max=Math.max(...cnt);let w=cnt.indexOf(max);
     if(v.kind==='cmd'&&cnt[0]===cnt[1])w=1;if(!Object.keys(v.ballots).length&&v.kind==='ev')w=0;v.open=false;v.result=w;
-    sysMsg(`Resultado de «${v.title}»: ${v.opts[w]} (${cnt.join(' / ')})`);
+    sysMsg(`Resultado de «${v.title}»: ${v.opts[w]} (${v.anon?cnt.join(' / ')+' · voto anónimo':v.opts.map((o,i)=>`${o}: ${Object.entries(v.ballots).filter(([,b])=>b===i).map(([p])=>(NET.players[p]||{}).name||'?').join(', ')||'—'}`).join(' · ')})`);
     if(v.kind==='cmd'&&w===0){const msg=execCmd(v.cmd);if(msg){toast(esc(msg));bcast({t:'toast',h:esc(msg)})}}
     if(v.kind==='ev'&&NET.vcb[v.id]){const f=NET.vcb[v.id];delete NET.vcb[v.id];f(w)}}
   const closed=NET.votes.filter(v=>!v.open);if(closed.length>12)NET.votes=NET.votes.filter(v=>v.open).concat(closed.slice(-12));refresh();
@@ -3820,9 +4212,12 @@ function showEvVote(){
   const v=NET.votes.find(x=>x.open&&x.kind==='ev');
   if(NET.shownVote&&!NET.votes.some(x=>x.id===NET.shownVote&&x.open)){if(NET.shownVote&&modalOpen&&$('#evv')){modalOpen=false;closeModal()}NET.shownVote=null}
   if(!v||NET.shownVote===v.id||modalOpen)return;NET.shownVote=v.id;
-  if(v.voters&&!v.voters.includes(NET.me)){toast(`🎭 ${esc(v.title)}: decide ${esc(v.who)}…`);return}
+  const spect=v.voters&&!v.voters.includes(NET.me),hasK=/·\s*(Pilotaje|Ingeniería|Ciencia|Medicina|Seguridad|Diplomacia)\s\d+/.test(v.opts.join('|'))||Object.values(STATN).some(n=>v.opts.some(o=>o.includes('· '+n+' ')));
   modalOpen=true;
-  showModal(`<div id="evv" class="kick">EVENTO · ${v.voters?'TE TOCA DECIDIR POR TU ROL':'VOTACIÓN DE LA TRIPULACIÓN'}</div><h2>${esc(v.title)}</h2><p class="story">${esc(v.tx)}</p><div class="opts">${v.opts.map((o,i)=>`<button data-o="${i}">${esc(o)}</button>`).join('')}</div><div class="note" id="vstat">Tu voto cuenta: se decide por mayoría.</div>`);
+  showModal(`<div id="evv" class="kick">EVENTO · ${spect?'DECIDE '+esc(v.who).toUpperCase():v.voters?'TE TOCA DECIDIR POR TU ROL':'VOTACIÓN DE LA TRIPULACIÓN'}${v.anon?' · VOTO ANÓNIMO':''}</div><h2>${esc(v.title)}</h2><p class="story">${esc(v.tx)}</p>
+  ${hasK?`<div class="row"><button id="dice">🎲 Tirar dado de fortuna</button></div><div id="luck" class="note">${luckTxt(v.dice,v.anon)}</div>`:''}
+  ${spect?`<p class="note">Decide ${esc(v.who)}. Tu dado de fortuna también cuenta para la prueba.</p><div class="row"><button id="evHide">Ocultar</button></div>`:`<div class="opts">${v.opts.map((o,i)=>`<button data-o="${i}">${esc(o)}</button>`).join('')}</div><div class="note" id="vstat">${v.anon?'Voto secreto: nadie sabrá qué elegiste.':'Voto público: la tripulación verá qué elegiste.'}</div>`}`);
+  if($('#dice'))$('#dice').onclick=e=>dieAnim(e.currentTarget,d=>castDice(v.id,NET.me,d));if($('#evHide'))$('#evHide').onclick=()=>{modalOpen=false;closeModal()};
   $('#modalBox').querySelectorAll('[data-o]').forEach(b=>b.onclick=()=>{castVote(v.id,NET.me,+b.dataset.o);$('#modalBox').querySelectorAll('[data-o]').forEach(x=>x.classList.toggle('pri',x===b));$('#vstat').textContent='Voto registrado. Esperando al resto…'});
 }
 /* Pestaña Sesión */
@@ -3843,13 +4238,14 @@ function renderSess(){
   <div class="row"><button id="sCopy">Copiar ${link?'enlace':'código'}</button><button id="sLeave">Salir</button></div>
   ${NET.role==='host'?`<div class="card"><div class="kick">DIRECTOR DE PARTIDA</div>${NET.crewLock?`<p class="note">Sólo tripulación «${esc(NET.crewLock.name)}» (${esc(NET.crewLock.id)}).</p>`:'<p class="note">Abierta a cualquier tripulación.</p>'}
     <div class="field"><label>Eventos</label><select id="sDec"><option value="rol" ${NET.decide==='rol'?'selected':''}>Decide el rol responsable</option><option value="todos" ${NET.decide==='todos'?'selected':''}>Vota toda la tripulación</option><option value="yo" ${NET.decide==='yo'?'selected':''}>Decido yo</option></select></div>
-    <label class="chk"><input type="checkbox" id="sDemo" ${NET.demo?'checked':''}> Las acciones de los sistemas también se votan</label><p class="note">Los rumbos siempre te preguntan si decides tú o se vota.</p>
+    <label class="chk"><input type="checkbox" id="sDemo" ${NET.demo?'checked':''}> Las acciones de los sistemas también se votan</label>
+    <label class="chk"><input type="checkbox" id="sAnon" ${NET.anon?'checked':''}> Votos anónimos (sólo se ve el recuento)</label><p class="note">Los rumbos siempre te preguntan si decides tú o se vota.</p>
     <div class="row"><button id="sLog">📜 Registro de la partida</button></div></div>`:''}
   <div id="sessDyn"></div>
   <h3>Proponer votación</h3><input id="vT" placeholder="¿Qué se vota?" style="width:100%" maxlength="140"><input id="vO" placeholder="Opciones separadas por comas (Sí, No)" style="width:100%;margin-top:4px" maxlength="200"><div class="row"><button id="vGo">🗳 Proponer</button></div>
   <h3>Chat</h3><div id="chatL" class="lst" style="max-height:220px;overflow:auto"></div><div class="row"><input id="chT" style="flex:1" maxlength="300" placeholder="Mensaje a la tripulación"><button id="chGo">Enviar</button></div>`;
   $('#sCopy').onclick=()=>copy(link||NET.code,'Copiado');$('#sLeave').onclick=()=>{if(confirm(NET.role==='host'?'¿Cerrar la sala? Los demás se desconectarán.':'¿Salir de la sala? Se recargará tu partida local.'))leaveSession()};
-  if($('#sDemo'))$('#sDemo').onchange=e=>{NET.demo=e.target.checked;netSync()};if($('#sDec'))$('#sDec').onchange=e=>{NET.decide=e.target.value;logDM('Eventos: '+e.target.selectedOptions[0].text,'sys')};if($('#sLog'))$('#sLog').onclick=()=>showDM(true);
+  if($('#sDemo'))$('#sDemo').onchange=e=>{NET.demo=e.target.checked;netSync()};if($('#sAnon'))$('#sAnon').onchange=e=>{NET.anon=e.target.checked;sysMsg(NET.anon?'🕶 Las votaciones nuevas serán anónimas.':'👁 Las votaciones nuevas serán públicas.')};if($('#sDec'))$('#sDec').onchange=e=>{NET.decide=e.target.value;logDM('Eventos: '+e.target.selectedOptions[0].text,'sys')};if($('#sLog'))$('#sLog').onclick=()=>showDM(true);
   $('#vGo').onclick=()=>{const t=$('#vT').value.trim();if(!t)return;const o=$('#vO').value.split(',').map(s=>s.trim()).filter(Boolean);propose({kind:'free',title:t,opts:o.length>1?o:['Sí','No']});$('#vT').value='';$('#vO').value=''};
   const send=()=>{const tx=$('#chT').value.trim();if(!tx)return;if(NET.role==='client')NET.host.send({t:'chat',tx});else{NET.chat.push({f:(NET.players[NET.me]||{}).name||'Anfitrión',tx,t:Date.now()});renderSessDyn();netSync()}$('#chT').value=''};
   $('#chGo').onclick=send;$('#chT').onkeydown=e=>{if(e.key==='Enter')send()};renderSessDyn();
@@ -3859,8 +4255,9 @@ function renderSessDyn(){
   const mine=D.crew.find(m=>m.pid===NET.me&&m.st!=='perdido');
   el.innerHTML=`<h3>Jugadores</h3><div class="lst">${Object.entries(NET.players).map(([id,p])=>{const ch=D.crew.find(m=>m.pid===id&&m.st!=='perdido');return`<div class="item">${portrait(ch)}<div class="m"><b>${esc(p.name)}${p.host?' · anfitrión':''}${id===NET.me?' (tú)':''}</b><i>${ch?esc(ch.nm)+' · '+ROLES[ch.role]+' · nivel '+ch.lv:'sin personaje'}</i></div></div>`}).join('')}</div>
   ${mine?'':`<div class="row"><button class="pri" id="myCard">Subir mi ficha de Members</button></div>`}
-  <h3>Votaciones</h3><div class="lst">${NET.votes.slice().reverse().map(v=>{const my=v.ballots&&v.ballots[NET.me],cnt=v.opts.map((_,i)=>Object.values(v.ballots||{}).filter(b=>b===i).length);
-    return`<div class="item col"><div><b>${esc(v.title)}</b> <span class="dim">· ${esc(v.byName||'')} · ${v.open?Math.max(0,Math.round((v.ends-Date.now())/1000))+' s':'cerrada'}</span></div><div class="row">${v.opts.map((o,i)=>`<button class="sm ${my===i?'pri':''} ${!v.open&&v.result===i?'pri':''}" data-v="${v.id}" data-o="${i}" ${v.open?'':'disabled'}>${esc(o)} · ${cnt[i]}</button>`).join('')}</div></div>`}).join('')||'<p class="note">Sin votaciones.</p>'}</div>`;
+  <h3>Votaciones ${NET.anon?'<span class="tag">🕶 anónimas</span>':'<span class="tag">👁 públicas</span>'}</h3><div class="lst">${NET.votes.slice().reverse().map(v=>{const my=v.ballots&&NET.me in v.ballots?v.ballots[NET.me]:NET.myVotes[v.id],cnt=voteCnt(v);
+    const who=i=>v.anon||!v.ballots?'':Object.entries(v.ballots).filter(([,b])=>b===i).map(([p])=>(NET.players[p]||{}).name||'?').join(', ');
+    return`<div class="item col"><div><b>${esc(v.title)}</b> <span class="dim">· ${esc(v.byName||'')} · ${v.anon?'🕶 ':''}${v.open?Math.max(0,Math.round((v.ends-Date.now())/1000))+' s':'cerrada'}</span></div><div class="row">${v.opts.map((o,i)=>`<button class="sm ${my===i?'pri':''} ${!v.open&&v.result===i?'pri':''}" data-v="${v.id}" data-o="${i}" ${v.open?'':'disabled'} title="${esc(who(i))}">${esc(o)} · ${cnt[i]}</button>`).join('')}</div>${!v.anon&&v.ballots&&Object.keys(v.ballots).length?`<div class="note">${v.opts.map((o,i)=>who(i)?`${esc(o)}: ${esc(who(i))}`:'').filter(Boolean).join(' · ')}</div>`:''}${v.dice&&Object.keys(v.dice).length?`<div class="note">${luckTxt(v.dice,v.anon)}</div>`:''}</div>`}).join('')||'<p class="note">Sin votaciones.</p>'}</div>`;
   el.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>castVote(b.dataset.v,NET.me,+b.dataset.o));
   if($('#myCard'))$('#myCard').onclick=()=>openCardUpload(card=>{if(NET.role==='client')NET.host.send({t:'hello',name:D.n||card.n,card});else{toast(esc(addCardLocally(card,NET.me,D.n||'Anfitrión')));netSync();refresh()}});
   const cl=$('#chatL');if(cl){cl.innerHTML=NET.chat.map(c=>`<div class="note" style="margin:0">${c.f?`<b style="color:var(--tx)">${esc(c.f)}:</b> `:'· '}${esc(c.tx)}</div>`).join('');cl.scrollTop=cl.scrollHeight}
@@ -3956,7 +4353,7 @@ function frame(now){
   if(!idleDone&&now-lastInput>2200){idleDone=true;saveView()}
   requestAnimationFrame(frame);
 }
-function saveView(){if(pilot){D.sp=pointAt(...pilot.pos).seed;_sp='';}D.cm=[cam.fx,cam.fy,cam.fz,cam.R,cam.yaw,cam.pitch].map(v=>+v.toFixed(4));D.op=[opt.color?1:0,opt.spin?1:0,opt.nav?1:0,opt.pet?1:0];D.c=seedStr(focusLoc(14));saveD();
+function saveView(){if(pilot){D.sp=pointAt(...pilot.pos).seed;_sp='';}D.cm=[cam.fx,cam.fy,cam.fz,cam.R,cam.yaw,cam.pitch].map(v=>+v.toFixed(4));D.op=[opt.color?1:0,opt.spin?1:0,opt.nav?1:0,opt.pet?1:0,opt.fac?1:0];D.c=seedStr(focusLoc(14));saveD();
   if(mode==='map'&&!travel)record('m',focusLoc())}
 
 /* ═════════ Entrada: ratón, táctil y teclado ═════════ */
@@ -4069,11 +4466,11 @@ function refresh(){renderPanel();updateHud();syncToggles();$('#backBtn').style.d
 function setTab(t){tab=t;document.querySelectorAll('.tabs button[data-t]').forEach(b=>b.classList.toggle('on',b.dataset.t===t));document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('on',p.id==='p-'+t));if(t!=='ship')prevCv=null;renderPanel()}
 document.querySelectorAll('.tabs button[data-t]').forEach(b=>b.onclick=()=>setTab(b.dataset.t));
 $('#drawerX').onclick=()=>toggleDrawer(false);
-function renderPanel(){if(tab==='sess'&&$('#sessDyn')){renderSessDyn();return}({carta:renderCarta,plan:renderPlan,ship:renderShip,crew:renderCrew,sess:renderSess,hist:renderHist,nav:renderNav,share:renderShare})[tab]()}
+function renderPanel(){if(tab==='sess'&&$('#sessDyn')){renderSessDyn();return}({carta:renderCarta,plan:renderPlan,ship:renderShip,crew:renderCrew,fac:renderFac,base:renderBases,sess:renderSess,hist:renderHist,nav:renderNav,share:renderShare})[tab]()}
 let ACTS=[];const A=(label,fn,dis,cls)=>{ACTS.push(fn);return`<button class="sm ${cls||''}" data-a="${ACTS.length-1}" ${dis?'disabled':''}>${label}</button>`};
 const bindActs=el=>el.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>ACTS[+b.dataset.a]());
 function starKV(st){const P=st.P,ship=shipStar();return`<div class="kv"><span>Clase</span><span>${P.k} · ${esc(P.lab)}</span><span>Temperatura</span><span>${fmtI(P.T)} K</span><span>Luminosidad</span><span>${P.lum<.01?P.lum.toExponential(1):P.lum.toFixed(2)} L☉</span>
-  <span>Masa · radio</span><span>${P.mass.toFixed(2)} M☉ · ${P.rad.toFixed(2)} R☉</span><span>Desde tu nave</span><span>${fmtLen(gd(ship,st))}</span><span>Desde el Sol</span><span>${fmtLen(Math.hypot(st.gx,st.gy,st.gz))}</span><span>Semilla</span><span class="seed">${esc(sSeed(st))}</span></div>`}
+  <span>Masa · radio</span><span>${P.mass.toFixed(2)} M☉ · ${P.rad.toFixed(2)} R☉</span><span>Desde tu nave</span><span>${fmtLen(gd(ship,st))}</span><span>Desde el Sol</span><span>${fmtLen(Math.hypot(st.gx,st.gy,st.gz))}</span><span>Semilla</span><span class="seed">${esc(sSeed(st))}</span><span>Territorio</span><span>${esc(terLab(facOf(st)))}</span></div>`}
 function renderCarta(){
   const el=$('#p-carta');ACTS=[];
   if(mode==='system')return systemPanel(el);if(mode==='surface')return surfacePanel(el);
@@ -4134,6 +4531,8 @@ function systemPanel(el){
     h+=A('Escanear todo',()=>orbitAct('scanall',0,'Escanear todos los planetas de '+S.name));
     if(S.star.anchor&&S.star.anchor.id==='sol')h+=A('Reabastecer en la Tierra · 60 d',()=>orbitAct('earth',0,'Reabastecer en la Tierra (60 días)'),0,'pri');
     h+=`</div>`;
+    const due=FX().mis.filter(m=>misHere(m,S.star));if(due.length)h+=`<h3>Contratos aquí</h3><div class="row">${due.map(m=>A(`${MTY[m.ty].ic} Cumplir: ${esc(MTY[m.ty].n)} (${esc(FAC[m.g].s)})`,()=>cmd({k:'fac',a:'do',id:m.id},'Cumplir el contrato '+m.id),NET.role==='client','pri')).join('')}</div>`;
+    h+=boardHtml(S);
   }else h+=`<p class="note">Datos de sondeo remoto. Viaja hasta aquí para escanear, aterrizar y recolectar.</p>`;
   h+=`<div class="row">${A('+ Añadir este sistema al plan',()=>addToPlan(S.star))}</div>`;
   h+=`<h3>Planetas</h3><div class="lst">`;
@@ -4155,6 +4554,7 @@ function systemPanel(el){
         <p class="note">${civ.tech?`${esc(civ.sp)} · ~${fmtNum(civ.pop)} habitantes. `:''}${civ.hist.map(esc).join(' ')}</p>
         ${here&&civ.tech&&!civ.home?`<div class="row">${A('Contactar · 5 d',()=>cmd({k:'civ',i,a:'contact'},'Contactar a los '+civ.name),!!D.ex[civ.key+':contact'])}${A('Comerciar (15 t)',()=>cmd({k:'civ',i,a:'trade'},'Comerciar con los '+civ.name),rp<20)}${A('Aprender',()=>cmd({k:'civ',i,a:'learn'},'Aprender de los '+civ.name),rp<20||!!D.ex[civ.key+':learn'])}${A('Reclutar',()=>cmd({k:'civ',i,a:'recruit'},'Reclutar a un voluntario '+civ.name),rp<40||!!D.ex[civ.key+':rec'])}</div>`:''}</div>`}
       else if(here&&!sc)h+=`<p class="note">Escanea el planeta para saber si está habitado.</p>`;
+      if(!info.gas&&(sc||!here))h+=baseCardHtml(S,i,here);
       if(!info.gas)h+=`<div class="row">${A('+ Al plan: explorar '+esc(p.name),()=>addToPlan(S.star,'explore:'+i))}${civ&&civ.tech&&!civ.home?A('+ Al plan: contactar',()=>addToPlan(S.star,'civ:'+i)):''}</div>`;
     }
     h+=`</div>`;
@@ -4189,11 +4589,12 @@ function renderShip(){
   ${sp.hib?`<label class="chk"><input type="checkbox" id="hib" ${D.hib?'checked':''}> Hibernar a la tripulación durante los saltos</label>`:''}
   <label class="chk"><input type="checkbox" id="cre" ${D.cr?'checked':''}> Modo creativo (sin consumo de recursos)</label>
   <div class="row">${A('Reparar casco (10 t → +12%)',()=>orbitAct('rep',0,'Reparar el casco'),st.min<10||st.hull>=100||shipStar().point)}${A('📡 Pedir rescate',()=>{if(confirm('Una nave de Ad Astra remolcará la tuya hasta la Tierra. Pierdes la carga y pasan 10 años. ¿Continuar?'))cmd({k:'rescue'},'Pedir rescate a la Tierra')},!!travel)}</div>
+  ${holdHtml()}
   <h3>Astillero ${atSol||D.cr?'':'<span class="dim">(sólo en el Sistema Solar o en modo creativo)</span>'}</h3>
   <div class="ships">${Object.entries(SHIPS).map(([k,v])=>`<button data-k="${k}" class="${k===s.d?'on':''}" ${atSol||D.cr||k===s.d?'':'disabled'}>${shipImg(k,s.c1,s.c2,52)}<span>${v.n}</span><span class="dim">${fmtI(SPEC[k].len)} m</span></button>`).join('')}</div>
   <h3>Personalizar</h3><div class="field"><label>Nombre</label><input id="sn" maxlength="24" placeholder="${esc(S.n)}" value="${esc(s.n)}"></div>
   <div class="field"><label>Color 1</label><input id="sc1" type="color" value="${esc(s.c1)}"></div><div class="field"><label>Color 2</label><input id="sc2" type="color" value="${esc(s.c2)}"></div>`;
-  bindActs(el);prevCv=$('#shipPrev');const pc=prevCv,r=pc.getBoundingClientRect(),d=Math.min(2,window.devicePixelRatio||1);pc.width=Math.max(10,r.width*d);pc.height=Math.max(10,r.height*d);
+  bindActs(el);bindMv(el);prevCv=$('#shipPrev');const pc=prevCv,r=pc.getBoundingClientRect(),d=Math.min(2,window.devicePixelRatio||1);pc.width=Math.max(10,r.width*d);pc.height=Math.max(10,r.height*d);
   pc.onpointerdown=e=>{pc.setPointerCapture(e.pointerId);prevSt.drag={x:e.clientX,y:e.clientY,yaw:prevSt.yaw,pitch:prevSt.pitch}};
   pc.onpointermove=e=>{if(!prevSt.drag)return;prevSt.yaw=prevSt.drag.yaw-(e.clientX-prevSt.drag.x)*.012;prevSt.pitch=clamp(prevSt.drag.pitch+(e.clientY-prevSt.drag.y)*.01,-1.2,1.3);prevSt.last=performance.now()};
   pc.onpointerup=()=>{prevSt.drag=null;prevSt.last=performance.now()};
@@ -4222,16 +4623,16 @@ function renderCrew(){
     <div class="res"><span>Moral</span><span>${Math.round(m.mor)}%</span></div>${meter(m.mor,100,m.mor<30?'#ff6b6b':'#78dcff')}
     <div class="res"><span>Experiencia</span><span>${m.xp} / ${30*m.lv}</span></div>${meter(m.xp,30*m.lv,'#e0aa46')}
     <div class="stats">${STATS.map(([k,n])=>`<span>${n}</span><span class="sb"><i style="width:${eff(m,k)*8.3}%"></i></span><b>${eff(m,k)}</b>`).join('')}</div>
-    <p class="note"><b>${esc(m.tr)}</b>: ${esc((TRAITS[m.tr]||{d:''}).d)}</p><p class="note">${esc(m.bio)}</p>${up?`<p class="ok">Mejoras en esta partida: ${esc(up)}</p>`:''}
+    <p class="note"><b>${esc(m.tr)}</b>: ${esc((TRAITS[m.tr]||{d:''}).d)}</p><p class="note">${esc(m.bio)}</p>${up?`<p class="ok">Mejoras en esta partida: ${esc(up)}</p>`:''}${memberInvHtml(m)}
     ${m.mid?`<div class="row">${A('Actualizar su tarjeta en Members',async()=>{const u=await exportLink(m);window.open(u,'_blank','noopener')})}${A('Copiar enlace',async()=>copy(await exportLink(m),'Enlace de actualización copiado'))}</div>`:''}</div>`}).join('')||'<p class="note">Nave no tripulada: la IA de a bordo se encarga de todo.</p>'}
-  ${lost.length?`<h3>En memoria</h3><p class="note">${lost.map(m=>esc(m.nm)).join(' · ')}</p>`:''}`;bindActs(el);
+  ${lost.length?`<h3>En memoria</h3><p class="note">${lost.map(m=>esc(m.nm)).join(' · ')}</p>`:''}`;bindActs(el);bindMv(el);
 }
 async function endGame(){
   const s=D.st,ms=D.crew.filter(m=>m.mid),L=await missionLink();modalOpen=true;
   const rows=ms.map(m=>{const up=m.s0?KS.filter(k=>m.s[k]!==m.s0[k]).map(k=>`${STATN[k]} ${m.s0[k]}→${m.s[k]}`).join(', '):'',dv=Math.max(0,Math.round(s.days-(m.d0||0)));
     return`<div class="item"><span>${portrait(m)}</span><div class="m"><b>${esc(m.nm)}${m.pl?` <span class="dim">· ${esc(m.pl)}</span>`:''}</b><i>${m.st==='perdido'?'<span class="bad">Perdido en la misión</span>':`Nivel ${m.lv0||1}→${m.lv} · ${fmtT(dv/365.25)} de vuelo · salud ${Math.round(m.hp)}%`}${up?' · '+esc(up):''}</i></div></div>`}).join('');
   showModal(`<div class="kick">FIN DE LA MISIÓN${L?' · '+L.id:''}</div><h2>Informe de misión</h2>
-  <div class="kv"><span>Saltos</span><span>${s.jumps} · ${fmtLen(s.ly)}</span><span>Sistemas</span><span>${Object.keys(D.disc).length}</span><span>Tiempo a bordo</span><span>${fmtT(s.days/365.25)}</span><span>Año en la Tierra</span><span>${(2026+s.yrs).toFixed(1)}</span><span>Misiones de historia</span><span>${D.q} de ${QUESTS.length}</span></div>
+  <div class="kv"><span>Saltos</span><span>${s.jumps} · ${fmtLen(s.ly)}</span><span>Sistemas</span><span>${Object.keys(D.disc).length}</span><span>Tiempo a bordo</span><span>${fmtT(s.days/365.25)}</span><span>Año en la Tierra</span><span>${(2026+s.yrs).toFixed(1)}</span><span>Misiones de historia</span><span>${D.q} de ${QUESTS.length}</span><span>Contratos cumplidos</span><span>${Object.values(FX().done).reduce((a,b)=>a+b,0)}</span></div>
   ${L?`<h3>QR de la misión</h3><p class="note">Cada jugador lo escanea desde la app de Members («Actualizar → Escanear QR de la misión») y luego su credencial: su ficha se renueva con estadísticas, nivel, tiempo de vuelo y misiones. Cada misión sólo se aplica una vez por credencial.</p>
     <div style="text-align:center"><div id="qrBox"><canvas id="mqr"></canvas></div></div>
     <div class="row"><button class="pri" id="mDl">Descargar QR</button><button id="mCp">Copiar enlace</button><a class="btn" href="${esc(L.url)}" target="_blank" rel="noopener">Abrir en Members</a></div>`:''}
@@ -4246,7 +4647,8 @@ async function endGame(){
 function entryLabel(e){const st=starFromSeed(e.s);if(e.k==='j')return'🚀 '+(st?starName(st):e.s);if(e.k==='s')return'★ '+(st?starName(st):'Sistema');const p=parseSeed(e.s);return p.loc?regionName(p.loc):e.s}
 function renderHist(){
   const el=$('#p-hist'),favOnly=el.dataset.fav==='1',list=D.h.map((e,i)=>({e,i})).filter(x=>!favOnly||x.e.f).reverse(),s=D.st;
-  el.innerHTML=`<div class="kick">MISIONES</div>${QUESTS.map((q,i)=>`<div class="item ${i<D.q?'done':i===D.q?'cur':'lock'}"><span>${i<D.q?'✓':i===D.q?'▶':'·'}</span><div class="m"><b>${esc(q.t)}</b><i>${i<=D.q?esc(q.d):'???'}</i></div></div>`).join('')}
+  el.innerHTML=`<div class="kick">HISTORIA</div>${QUESTS.map((q,i)=>`<div class="item ${i<D.q?'done':i===D.q?'cur':'lock'}"><span>${i<D.q?'✓':i===D.q?'▶':'·'}</span><div class="m"><b>${esc(q.t)}</b><i>${i<=D.q?esc(q.d):'???'}</i></div></div>`).join('')}
+  <p class="note">Contratos activos: ${FX().mis.length} · cumplidos: ${Object.values(FX().done).reduce((a,b)=>a+b,0)} (ver pestaña Facciones).</p>
   <h3>Registro de la misión</h3><div class="kv"><span>Saltos</span><span>${s.jumps}</span><span>Distancia</span><span>${fmtLen(s.ly)}</span><span>Sistemas registrados</span><span>${Object.keys(D.disc).length}</span><span>Tiempo a bordo</span><span>${fmtT(s.days/365.25)}</span><span>Año en la Tierra</span><span>${(2026+s.yrs).toFixed(1)}</span></div>
   <h3>Bitácora</h3><div class="row"><label class="chk"><input type="checkbox" id="anon" ${D.anon?'checked':''}> No registrar</label><button class="sm" id="favF">${favOnly?'Ver todo':'Solo ★'}</button><button class="sm" id="clr">Borrar</button><span class="dim">${D.h.length}</span></div>
   <div class="lst">${list.slice(0,250).map(({e,i})=>`<div class="item"><button class="fav ${e.f?'on':''}" data-f="${i}">${e.f?'★':'☆'}</button><div class="m"><b>${esc(entryLabel(e))}</b><i>${esc(e.s)} · ${new Date(e.t).toLocaleString('es',{dateStyle:'short',timeStyle:'short'})}</i>${e.n?`<i style="color:var(--tx)">“${esc(e.n)}”</i>`:''}</div><button class="sm" data-n="${i}">✎</button><button class="sm" data-g="${i}">Ir</button><button class="sm" data-x="${i}">✕</button></div>`).join('')||'<p class="note">Aún no hay registros.</p>'}</div>`;
@@ -4287,7 +4689,7 @@ function snapshot(maxN){
   const sh=D.ship,s=D.st;
   return{v:3,n:D.n||'',c:seedStr(focusLoc(14)),sh:[sh.d,sh.n||'',sh.c1,sh.c2],sp:D.sp,
     st:[+s.fuel.toFixed(2),Math.round(s.prov),s.extra|0,Math.round(s.hull),Math.round(s.min),+s.days.toFixed(1),+s.yrs.toFixed(3),s.jumps,+s.ly.toFixed(2)],
-    cw:D.crew.map(m=>[m.nm,m.sp,m.role,KS.map(k=>m.s[k]),m.tr,Math.round(m.hp),Math.round(m.mor),m.xp,m.lv,m.st==='perdido'?1:0,m.bio,m.mid||'',m.pid||'',m.pl||'',m.e0??'',m.s0?KS.map(k=>m.s0[k]):0,m.lv0||0,m.t||'',m.n0||'',m.id,m.fv0||0,m.ms0||0,m.mi0||'',m.d0||0,m.ph||'']),lg:D.crewLogo||null,pl:D.plan||null,rp:D.rep||{},
+    cw:D.crew.map(m=>[m.nm,m.sp,m.role,KS.map(k=>m.s[k]),m.tr,Math.round(m.hp),Math.round(m.mor),m.xp,m.lv,m.st==='perdido'?1:0,m.bio,m.mid||'',m.pid||'',m.pl||'',m.e0??'',m.s0?KS.map(k=>m.s0[k]):0,m.lv0||0,m.t||'',m.n0||'',m.id,m.fv0||0,m.ms0||0,m.mi0||'',m.d0||0,m.ph||'',m.inv&&invCount(m.inv)?m.inv:0]),lg:D.crewLogo||null,pl:D.plan||null,rp:D.rep||{},fx:D.fx||null,bs:D.bases||[],cv:D.conv||[],rt:D.rutas||[],
     f:[D.hib?1:0,D.cr?1:0,D.q|0,D.anon?1:0],ex:D.ex,sc:Object.keys(D.scan),ds:Object.keys(D.disc),
     cm:[cam.fx,cam.fy,cam.fz,cam.R,cam.yaw,cam.pitch].map(v=>+v.toFixed(3)),op:[opt.color?1:0,opt.spin?1:0,opt.nav?1:0,opt.pet?1:0],b:D.base||'',
     h:D.h.slice(-maxN).map(e=>[e.s,Math.round(e.t/1000).toString(36),e.k,e.f?1:0,e.n||''])};
@@ -4302,10 +4704,11 @@ function normState(st){
     st.crew=(st.cw||[]).slice(0,12).map(c=>({id:Math.random().toString(36).slice(2),nm:String(c[0]).slice(0,40),sp:SPEMO[c[1]]?c[1]:'Zorro',role:ROLES[c[2]]?c[2]:'pil',s:Object.fromEntries(KS.map((k,i)=>[k,clamp(+((c[3]||[])[i])||3,1,12)])),
       tr:TRAITS[c[4]]?c[4]:'Curioso',hp:clamp(+c[5]||100,0,100),mor:clamp(+c[6]||70,0,100),xp:+c[7]||0,lv:clamp(+c[8]||1,1,20),st:c[9]?'perdido':'ok',bio:String(c[10]||'').slice(0,200),
       ...(c[11]?{mid:String(c[11]).slice(0,8)}:{}),...(c[12]?{pid:String(c[12]).slice(0,60)}:{}),...(c[13]?{pl:String(c[13]).slice(0,24)}:{}),...(c[14]!==undefined&&c[14]!==''?{e0:String(c[14]).slice(0,40)}:{}),
-      ...(Array.isArray(c[15])?{s0:Object.fromEntries(KS.map((k,i)=>[k,clamp(+c[15][i]||3,1,12)]))}:{}),...(c[16]?{lv0:+c[16]|0}:{}),...(c[17]?{t:String(c[17]).slice(0,30)}:{}),...(c[18]?{n0:String(c[18]).slice(0,40)}:{}),...(c[19]?{id:String(c[19]).slice(0,40)}:{}),...(c[20]?{fv0:+c[20]|0}:{}),...(c[21]?{ms0:+c[21]|0}:{}),...(c[22]?{mi0:String(c[22]).slice(0,8)}:{}),...(c[23]?{d0:+c[23]||0}:{}),...(okImg(c[24])?{ph:c[24]}:{})}));
+      ...(Array.isArray(c[15])?{s0:Object.fromEntries(KS.map((k,i)=>[k,clamp(+c[15][i]||3,1,12)]))}:{}),...(c[16]?{lv0:+c[16]|0}:{}),...(c[17]?{t:String(c[17]).slice(0,30)}:{}),...(c[18]?{n0:String(c[18]).slice(0,40)}:{}),...(c[19]?{id:String(c[19]).slice(0,40)}:{}),...(c[20]?{fv0:+c[20]|0}:{}),...(c[21]?{ms0:+c[21]|0}:{}),...(c[22]?{mi0:String(c[22]).slice(0,8)}:{}),...(c[23]?{d0:+c[23]||0}:{}),...(okImg(c[24])?{ph:c[24]}:{}),...(c[25]&&typeof c[25]==='object'?{inv:Object.fromEntries(Object.entries(c[25]).filter(([k,n])=>okItem(k)&&+n>0).slice(0,CAP_M).map(([k,n])=>[k,Math.min(CAP_M,+n|0)]))}:{})}));
     st.logo=st.lg&&okImg(st.lg.src)?{src:st.lg.src,name:String(st.lg.name||'').slice(0,30),id:String(st.lg.id||'').slice(0,10)}:null;
     st.plan=st.pl&&Array.isArray(st.pl.stops)?{stops:st.pl.stops.slice(0,40).map(s=>({s:String(s.s).slice(0,40),a:(s.a||[]).slice(0,12).map(x=>String(x).slice(0,20))}))}:null;
     st.rep=st.rp&&typeof st.rp==='object'?Object.fromEntries(Object.entries(st.rp).slice(0,500).map(([k,v])=>[String(k).slice(0,60),clamp(+v||0,-100,100)])):{};
+    st.fx=normFx(st.fx);st.bases=normBases(st.bs);st.conv=normConv(st.cv);st.rutas=normRutas(st.rt);
     const f=st.f||[];st.flags={hib:f[0]?1:0,cr:f[1]?1:0,q:clamp(f[2]|0,0,QUESTS.length),anon:!!f[3]};
     st.ex=st.ex&&typeof st.ex==='object'?Object.fromEntries(Object.entries(st.ex).slice(0,5000).map(([k,v])=>[String(k).slice(0,80),+v|0])):{};
     st.scan=Object.fromEntries((st.sc||[]).slice(0,5000).map(k=>[String(k).slice(0,80),1]));st.disc=Object.fromEntries((st.ds||[]).slice(0,5000).map(k=>[String(k).slice(0,40),1]));}
@@ -4358,7 +4761,7 @@ function offerImport(st){
   const done=()=>{modalOpen=false;closeModal();_sp='';const p=shipStar();if(!(Array.isArray(st.cm)&&st.v===3))flyTo(p.gx,p.gy,p.gz,20);selStar=null;route=null;mode='map';SYS=null;surf=null;refresh();toast('Partida cargada.')};
   $('#mFull').onclick=()=>{if(D.h.length&&!confirm('Esto sustituye tu partida local. ¿Seguro?'))return;
     D.h=st.h.sort((a,b)=>a.t-b.t);if(st.n)D.n=st.n;if(st.ship)D.ship=st.ship;if(st.sp)D.sp=st.sp;if(st.b)D.base=st.b;
-    if(g){D.st=g;D.crew=st.crew;D.hib=st.flags.hib;D.cr=st.flags.cr;D.q=st.flags.q;D.anon=st.flags.anon;D.ex=st.ex;D.scan=st.scan;D.disc=st.disc;if(st.plan)D.plan=st.plan;D.rep=st.rep||{};D.crewLogo=st.logo||null;updateCrewLogo()}
+    if(g){D.st=g;D.crew=st.crew;D.hib=st.flags.hib;D.cr=st.flags.cr;D.q=st.flags.q;D.anon=st.flags.anon;D.ex=st.ex;D.scan=st.scan;D.disc=st.disc;if(st.plan)D.plan=st.plan;D.rep=st.rep||{};if(st.fx)D.fx=st.fx;D.bases=st.bases||[];D.conv=st.conv||[];D.rutas=st.rutas||[];D.crewLogo=st.logo||null;updateCrewLogo()}
     if(Array.isArray(st.cm)&&st.cm.length===6&&st.cm.every(v=>isFinite(v))){[tg.fx,tg.fy,tg.fz,tg.R,tg.yaw,tg.pitch]=st.cm.map(Number);Object.assign(cam,tg)}
     if(Array.isArray(st.op)&&st.v===3){opt.color=!!st.op[0];opt.spin=!!st.op[1]&&!RM;opt.nav=!!st.op[2];opt.pet=!!st.op[3]}
     saveD();done()};
@@ -4382,7 +4785,7 @@ resize();toggleDrawer(innerWidth>1100);setTab('carta');refresh();requestAnimatio
 setTimeout(()=>{const b=$('#boot');if(b){b.classList.add('out');setTimeout(()=>b.remove(),700)}
   if(!D.intro){D.intro=1;saveD();queueDialog({t:'Corporación Ad Astra · Orden de misión',who:alive()[0]||null,tx:`Capitán: el Sol pierde brillo y nadie sabe por qué, salvo que hay algo —lo llaman astrófago— alimentándose de su luz. Tau Ceti, a 11,9 años luz, parece inmune. Tu nave y tu tripulación están listas. Cada salto cuesta astrófago, provisiones y años. Elige bien.`,res:'Primera misión: '+QUESTS[0].t,next:'Consejo: selecciona una estrella en la carta para calcular el salto.'})}
 },RM?0:1400);
-window.__adastra={EV,queueDialog,missionLink,endGame,NET,starsNearPub:starsNear,seedOf,starFromSeed,genSystem,starName,membersDecode,addCardLocally,exportLink,memberFromCard,doCiv,civInfo,getPlan,addToPlan,simulatePlan,startPlanNow,get planRun(){return planRun},cmd,execCmd,hostSession,joinSession,createVote,castVote,D:()=>D,cam,tg,selectStar,startTravel,get travel(){return travel},get route(){return route},ANCHSTARS,enterSystem,land,planetInfo,get SYS(){return SYS},openExpedition,packFile,unpackFile,gotoSeed,shipStar,A_BY,questEvent,crewCount,get mode(){return mode},setTab,exitToMap,centerOnShip};
+window.__adastra={baseRes,buildBase,sendBase,addRoute,doBase,convTick,routeTick,baseTick,FX,facOf,boardFor,doFac,facEvent,exposure,genMission,EV,queueDialog,missionLink,endGame,NET,starsNearPub:starsNear,seedOf,starFromSeed,genSystem,starName,membersDecode,addCardLocally,exportLink,memberFromCard,doCiv,civInfo,getPlan,addToPlan,simulatePlan,startPlanNow,get planRun(){return planRun},cmd,execCmd,hostSession,joinSession,createVote,castVote,D:()=>D,cam,tg,selectStar,startTravel,get travel(){return travel},get route(){return route},ANCHSTARS,enterSystem,land,planetInfo,get SYS(){return SYS},openExpedition,packFile,unpackFile,gotoSeed,shipStar,A_BY,questEvent,crewCount,get mode(){return mode},setTab,exitToMap,centerOnShip};
 })();
 </script>
 </body>

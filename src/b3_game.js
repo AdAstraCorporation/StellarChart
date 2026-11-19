@@ -5,6 +5,12 @@ function toast(h,bl,fn){logDM(h);const t=$('#toast');t.innerHTML=h+(bl?` <button
   if(bl)$('#tbtn').onclick=()=>{t.classList.remove('show');fn()};clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),bl?10000:5200)}
 function showModal(html){$('#modalBox').innerHTML=html;$('#modal').style.display='flex'}
 function closeModal(){$('#modal').style.display='none'}
+/* Dado de fortuna: cada jugador tira 1d6 en los eventos con prueba (1→−2, 2→−1, 3-4→0, 5→+1, 6→+2; total entre −3 y +3) */
+const DIEM=[0,-2,-1,0,0,1,2],DIEF=['','⚀','⚁','⚂','⚃','⚄','⚅'];
+const luckOf=rolls=>clamp(Object.values(rolls||{}).reduce((a,d)=>a+(DIEM[d]||0),0),-3,3);
+function luckTxt(rolls,anon){const e=Object.entries(rolls||{});if(!e.length)return'Nadie ha tirado el dado de fortuna todavía.';const l=luckOf(rolls);
+  return`Fortuna ${l>0?'+':''}${l} (≈ ${l>0?'+':''}${l*10}% en las pruebas) · `+e.map(([p,d])=>`${anon?'':esc(((NET.players||{})[p]||{}).name||'Tú')+' '}${DIEF[d]}`).join(' ')}
+function dieAnim(btn,cb){const d=1+(Math.random()*6|0);if(RM){cb(d);return}let n=0;btn.disabled=true;const t=setInterval(()=>{btn.textContent='🎲 '+DIEF[1+(Math.random()*6|0)];if(++n>9){clearInterval(t);btn.textContent='🎲 Sacaste '+DIEF[d]+' '+d+' ('+(DIEM[d]>0?'+':'')+DIEM[d]+')';cb(d)}},70)}
 const dq=[];
 function queueDialog(d){
   if(!d.ev)logDM(`${d.t}: ${d.tx||''} ${d.res||''}`,'dlg');
@@ -17,13 +23,15 @@ function nextDialog(){
     <p class="story">${esc(d.tx)}</p>${d.res?`<p class="ok">${esc(d.res)}</p>`:''}${d.next?`<p class="note">${esc(d.next)}</p>`:''}<div class="row"><button class="pri" id="dOk">Continuar</button></div>`);
     $('#dOk').onclick=()=>{d.done&&d.done();nextDialog()};return}
   const ev=d.ev,who=pick(alive())||null,tx=typeof ev.tx==='function'?ev.tx(d.ctx):ev.tx;
-  const optLab=o=>o.l+(o.k?` · ${STATN[o.k]} ${o.dc} · ${Math.round(chance(o.k,o.dc)*100)}%`:'');
+  const optLab=o=>o.l+(o.k?` · ${STATN[o.k]} ${o.dc}`:'');const local={},hasK=ev.op.some(o=>o.k);
+  const getRolls=()=>vid?((NET.votes.find(x=>x.id===vid)||{}).dice||{}):local;
+  const paint=()=>{const l=luckOf(getRolls());$('#modalBox').querySelectorAll('[data-o]').forEach(b=>{const o=ev.op[+b.dataset.o],s=b.querySelector('.dim');if(o&&o.k&&s)s.textContent=` · ${STATN[o.k]} ${o.dc} · ${Math.round(chance(o.k,o.dc,null,l)*100)}%`});const L=$('#luck');if(L)L.innerHTML=luckTxt(getRolls(),NET.anon)};
   const voting=NET&&NET.role==='host'&&NET.conns.size>0&&NET.decide!=='yo';let vid=null;logDM('Evento: '+ev.t+' — '+tx,'ev');
   const k0=(ev.op.find(o=>o.k)||{}).k,resp=voting&&NET.decide!=='todos'&&k0?respFor(k0):null;
   const resolveOpt=i=>{
     let o=ev.op[i];if(o.need&&!o.need()){const j=ev.op.findIndex(x=>!x.need||x.need());o=ev.op[j]}
     let res,line='';
-    if(o.k){const r=roll(o.k,o.dc);line=r.line;res=(r.ok?o.ok(d.ctx,r):o.ko(d.ctx,r))||'';if(r.ok)res+=gainXp(r.m,10)}else res=o.run(d.ctx)||'';
+    NET.luckPaint=null;if(o.k){const r=roll(o.k,o.dc,null,luckOf(getRolls()));line=r.line;res=(r.ok?o.ok(d.ctx,r):o.ko(d.ctx,r))||'';if(r.ok)res+=gainXp(r.m,10)}else res=o.run(d.ctx)||'';
     if(D.st.hull<=0)res+=' El casco no resiste.';saveD();
     logDM(`→ ${o.l}. ${line.replace(/<[^>]+>/g,'')} ${res}`,'ev');
     if(voting)bcast({t:'dialog',d:{t:ev.t+' · '+o.l,tx:res,res:line.replace(/<[^>]+>/g,''),who:null}});
@@ -31,9 +39,10 @@ function nextDialog(){
     $('#dOk').onclick=()=>{if(D.st.hull<=0)rescue('El casco cedió.');d.done&&d.done();nextDialog()};
   };
   showModal(`<div class="dh">${portrait(who)}<div><div class="kick">EVENTO${voting?' · VOTACIÓN DE LA TRIPULACIÓN':''}</div><b>${esc(ev.t)}</b><div class="note">${who?esc(who.nm)+' informa':'IA de a bordo informa'}</div></div></div>
-    <p class="story">${esc(tx)}</p><div class="opts">${ev.op.map((o,i)=>`<button data-o="${i}" ${o.need&&!o.need()?'disabled':''}>${esc(o.l)}${o.k?`<span class="dim"> · ${STATN[o.k]} ${o.dc} · ${Math.round(chance(o.k,o.dc)*100)}%</span>`:''}</button>`).join('')}</div><div id="vstat" class="note"></div>`);
+    <p class="story">${esc(tx)}</p>${hasK?`<div class="row"><button id="dice">🎲 Tirar dado de fortuna</button></div><div id="luck" class="note"></div>`:''}<div class="opts">${ev.op.map((o,i)=>`<button data-o="${i}" ${o.need&&!o.need()?'disabled':''}>${esc(o.l)}${o.k?`<span class="dim"> · ${STATN[o.k]} ${o.dc} · ${Math.round(chance(o.k,o.dc)*100)}%</span>`:''}</button>`).join('')}</div><div id="vstat" class="note"></div>`);
   if(voting){vid=createVote({kind:'ev',title:ev.t,tx,opts:ev.op.map(optLab),by:NET.me,voters:resp?[resp.pid]:null,who:resp?`${resp.m.nm} (${resp.pl}, ${ROLES[resp.m.role]})`:''});NET.vcb[vid]=resolveOpt;
     $('#vstat').textContent=resp&&resp.pid!==NET.me?`Decide ${resp.m.nm} (${resp.pl}, ${ROLES[resp.m.role]}). Como director puedes imponer una opción.`:resp?'Te toca decidir por tu rol.':'Vota tu opción; se decide por mayoría (60 s).'}
+  if(hasK){paint();NET.luckPaint=paint;$('#dice').onclick=e=>dieAnim(e.currentTarget,d=>{if(vid)castDice(vid,NET.me,d);else local[NET.me||'yo']=d;logDM(`🎲 Dado de fortuna: ${d} (${DIEM[d]>0?'+':''}${DIEM[d]})`,'ev');paint()})}
   $('#modalBox').querySelectorAll('[data-o]').forEach(b=>b.onclick=()=>{
     if(vid&&resp&&resp.pid!==NET.me){forceVote(vid,+b.dataset.o);return}
     if(vid){castVote(vid,NET.me,+b.dataset.o);$('#modalBox').querySelectorAll('[data-o]').forEach(x=>x.classList.toggle('pri',x===b));$('#vstat').textContent='Voto registrado. Esperando al resto de la tripulación…';return}
@@ -127,7 +136,7 @@ function arrive(L){
   if(!hib)morAll(-Math.min(18,L.days/80));
   else{const risk=.025+(alive().some(m=>m.tr==='Insomne')?.03:0)-best('med').v*.002;if(Math.random()<risk){const w=loseRandom();if(w)queueDialog({t:'Despertar',who:pick(alive())||null,tx:`Al abrir las cápsulas, ${w} no despierta del coma inducido. La tripulación despide a su compañero en silencio.`,res:''})}}
   D.sp=seedOf(L.to);ping=performance.now();travel.pos=null;record('j',D.sp,true);travel.i++;travel.t0=0;
-  questEvent({type:'arrive',star:L.to});
+  questEvent({type:'arrive',star:L.to});facTick();
   if(travel.i>=travel.legs.length){
     const st=L.to;endTravel();selStar=st;
     if(st.point)toast(`Llegada al espacio profundo · ${fmtT(L.tau)} a bordo`);else toast(`Llegada a <b>${esc(starName(st))}</b> · ${fmtT(L.tau)} a bordo`,'Entrar al sistema',()=>enterSystem(st));

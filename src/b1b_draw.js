@@ -1,7 +1,7 @@
 
 /* ═════════ Estilo de carta de navegación (tipo «Hail Mary – Stellar Navigation Chart») ═════════ */
 const spaced=s=>String(s);
-opt.nav=true;opt.pet=true;if(!Array.isArray(D.op))opt.color=false;if(Array.isArray(D.op)){opt.nav=D.op[2]!==0;opt.pet=D.op[3]!==0}
+opt.nav=true;opt.pet=true;opt.fac=Array.isArray(D.op)&&D.op[4]===1;if(!Array.isArray(D.op))opt.color=false;if(Array.isArray(D.op)){opt.nav=D.op[2]!==0;opt.pet=D.op[3]!==0}
 /* — Fondo de todo el cielo con la banda de la Vía Láctea (sólo rota con la cámara) — */
 const SKYP=(()=>{
   const n=NGP,a=Math.abs(n[0])<.9?[1,0,0]:[0,1,0],e1=[n[1]*a[2]-n[2]*a[1],n[2]*a[0]-n[0]*a[2],n[0]*a[1]-n[1]*a[0]],l1=Math.hypot(...e1);e1.forEach((v,i)=>e1[i]=v/l1);
@@ -51,9 +51,11 @@ function drawMap(now){
         ctx.strokeStyle=`rgba(225,232,245,${.16*a})`;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(px,py);ctx.stroke();ctx.fillStyle=`rgba(225,232,245,${.3*a})`;ctx.fillRect(px-1.5,py-.5,3,1)}}
       ctx.globalAlpha=a;ctx.fillStyle=inf?PET:opt.color?s.P.col:'#f2f5fb';
       if(r<2.2)ctx.fillRect(x-r/2,y-r/2,r,r);else{ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();ctx.globalAlpha=a*.1;ctx.beginPath();ctx.arc(x,y,r*2.4,0,7);ctx.fill()}
+      if(opt.fac&&R<220){const t=facOf(s);if(t){ctx.globalAlpha=a*(t.core?.75:.45);ctx.strokeStyle=FAC[t.f].c;ctx.lineWidth=1;ctx.beginPath();ctx.arc(x,y,r+2.5,0,7);ctx.stroke()}}
       if(R<45&&!s.anchor&&df<R*.8){const sc=Math.log10(lum+.001)-df/R*2;if(labels.length<9||sc>labels[labels.length-1][0]){labels.push([sc,s,x,y,inf]);labels.sort((p,q)=>q[0]-p[0]);if(labels.length>9)labels.pop()}}
     }
     ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
+    if(opt.fac&&R<400){const i0=Math.floor(fx/HUBG),j0=Math.floor(fy/HUBG),k0=Math.floor(fz/(HUBG*.35)),n=Math.ceil(R/HUBG)+1;for(let i=i0-n;i<=i0+n;i++)for(let j=j0-n;j<=j0+n;j++)for(let k=k0-1;k<=k0+1;k++){const h=hubAt(i,j,k);if(!h||!proj(h.x,h.y,h.z))continue;labelAt(_p[0],_p[1],FAC[h.f].ic+' '+h.name.toUpperCase(),FAC[h.f].c,9)}}
     for(const [,s,x,y,inf] of labels)labelAt(x,y,starName(s),inf?'rgba(255,59,92,.85)':'rgba(220,228,240,.62)',9);
   }
   // líneas de navegación (visuales desde la nave)
@@ -106,6 +108,7 @@ function drawMap(now){
     ctx.save();ctx.translate(ex,ey);ctx.rotate(Math.atan2(vy,vx));ctx.fillStyle='rgba(120,220,255,.9)';ctx.beginPath();ctx.moveTo(14*pu,0);ctx.lineTo(-7,8);ctx.lineTo(-3,0);ctx.lineTo(-7,-8);ctx.closePath();ctx.fill();ctx.restore();
     ctx.fillStyle='rgba(120,220,255,.95)';ctx.font='9px ui-monospace,Menlo,monospace';ctx.textAlign=vx>.3?'right':vx<-.3?'left':'center';ctx.fillText(spaced(`${lab} · ${fmtLen(Math.hypot(dx,dy,dz))}`.toUpperCase()),ex-vx*22,ey-vy*22);shipHit={x:ex,y:ey,r:26};
   }
+  drawBases(now);
   if(travel)drawStreaks(travel.int*.8,now/1600);
   ctx.letterSpacing='0px';
 }
