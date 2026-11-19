@@ -59,8 +59,8 @@ const ownerName=o=>o==='nave'?'la bodega':((D.crew.find(q=>q.id===o)||{}).nm||'?
 function moveItem(key,from,to){const a=ownerInv(from),b=ownerInv(to);if(!a||!b||from===to||!okItem(key)||!(a[key]>0))return'';
   if(to!=='nave'&&invCount(b)>=CAP_M)return`${ownerName(to)} ya lleva ${CAP_M} objetos.`;a[key]--;if(!a[key])delete a[key];b[key]=(b[key]||0)+1;return`${itemName(key)}: de ${ownerName(from)} a ${ownerName(to)}.`}
 /* Busca un objeto en la nave o en cualquier tripulante; quita una unidad */
-function takeAny(key){const x=FX();if(x.inv[key]>0){x.inv[key]--;if(!x.inv[key])delete x.inv[key];return true}for(const m of alive()){const v=mInv(m);if(v[key]>0){v[key]--;if(!v[key])delete v[key];return true}}return false}
-const totalOf=key=>(FX().inv[key]||0)+alive().reduce((a,m)=>a+((m.inv||{})[key]||0),0);
+function takeAny(key){const x=FX();if(x.inv[key]>0){x.inv[key]--;if(!x.inv[key])delete x.inv[key];return true}for(const m of aboard()){const v=mInv(m);if(v[key]>0){v[key]--;if(!v[key])delete v[key];return true}}return false}
+const totalOf=key=>(FX().inv[key]||0)+aboard().reduce((a,m)=>a+((m.inv||{})[key]||0),0);
 const REP0={aa:40,lc:5,mh:0,ce:-30,cv:-10,ca:15};
 
 function FX(){
@@ -95,7 +95,7 @@ function exposure(obs){
   for(const f of FK){let p=0;const why=[];
     if(x.aff.includes(f)){p+=.12;const fama=Math.min(.3,(x.done[f]||0)*.04);if(fama){p+=fama;why.push('vuestra fama')}}
     const add=(inv,who)=>{for(const[k,n]of Object.entries(inv||{})){const[ff,t]=k.split('.');if(ff!==f||!(n>0)||!ITEMS[t]||!ITEMS[t].v)continue;p+=ITEMS[t].v*.11*Math.min(n,3)**.7*(who?1.15:1);why.push(ITEMS[t].n.toLowerCase()+(who?' de '+who:''))}};
-    add(x.inv,'');for(const m of alive()){add(m.inv,m.nm);if(memberFa(m).includes(f)){p+=.08;why.push(m.nm+' (miembro)')}}
+    add(x.inv,'');for(const m of aboard()){add(m.inv,m.nm);if(memberFa(m).includes(f)){p+=.08;why.push(m.nm+' (miembro)')}}
     if(obs===f&&p>0)p+=.15;if(obs&&x.wnt[obs]&&x.aff.includes(f))p+=.25;
     p=Math.min(.95,p);if(p>.01)out[f]={p,why:[...new Set(why)].slice(0,3),aff:x.aff.includes(f)}}
   return out}
@@ -108,7 +108,7 @@ function facEvent(at,ctx){
   const st=at==='leg'?ctx&&ctx.leg&&ctx.leg.to:ctx&&ctx.star,ter=facOf(st);let O=ter?ter.f:null;
   if(!O||Math.random()<.25){if(Math.random()<.5)return null;O=pick(['cv','lc','ca','ce'])}
   const K=detect(O),att=attitude(O,K),F=FAC[O],sp=()=>SPEC[D.ship.d],x=FX(),tone=att>=1.4?'ami':att<=-1.4?'hos':'neu';
-  const giveUp=()=>{const keys=[...new Set([x.inv,...alive().map(m=>m.inv||{})].flatMap(o=>Object.keys(o)))].filter(k=>K.some(q=>k.startsWith(q.f+'.')));let s='';for(const k of keys)s+=dropItem(k,totalOf(k),1);return s};
+  const giveUp=()=>{const keys=[...new Set([x.inv,...aboard().map(m=>m.inv||{})].flatMap(o=>Object.keys(o)))].filter(k=>K.some(q=>k.startsWith(q.f+'.')));let s='';for(const k of keys)s+=dropItem(k,totalOf(k),1);return s};
   const op=[];
   if(tone==='hos'){
     if(hasItem(O+'.salvo'))op.push({l:'Mostrar el salvoconducto',run:()=>{giveItem(O+'.salvo',-1);return`Leen el permiso y os dejan pasar. El salvoconducto queda retenido.`+addRep(O,2)}});
@@ -116,13 +116,13 @@ function facEvent(at,ctx){
     op.push({l:'Plantar cara',k:'seg',dc:13,ok:(c,r)=>{D.st.min=Math.min(sp().cargo,D.st.min+15);x.wnt[O]=1;return`Se retiran con daños. Recogéis 15 t de chatarra, pero ahora os buscan.`+addRep(O,-10)+gainXp(r.m,15)},
       ko:()=>{const d=12+(Math.random()*12|0);D.st.hull=Math.max(1,D.st.hull-d);x.wnt[O]=1;return`Os superan: casco −${d}%.`+hurt(pick(alive()),15)+addRep(O,-6)}});
     op.push({l:'Pagar para que os dejen en paz (25 t)',need:()=>D.st.min>=25,run:()=>{D.st.min-=25;return'Aceptan el pago y se alejan.'+addRep(O,1)}});
-    if(K.some(k=>Object.keys(x.inv).concat(...alive().map(m=>Object.keys(m.inv||{}))).some(i=>i.startsWith(k.f+'.'))))op.push({l:'Arrojar al espacio lo que os delata',run:()=>`Los objetos flotan hacia el vacío.${giveUp()} Sin pruebas, os dejan marchar.`});
+    if(K.some(k=>Object.keys(x.inv).concat(...aboard().map(m=>Object.keys(m.inv||{}))).some(i=>i.startsWith(k.f+'.'))))op.push({l:'Arrojar al espacio lo que os delata',run:()=>`Los objetos flotan hacia el vacío.${giveUp()} Sin pruebas, os dejan marchar.`});
   }else if(tone==='ami'){
     op.push({l:'Pedir suministros',run:()=>{const s=sp(),a=Math.round(s.prov*.1),f=+(s.tank*.08).toFixed(1);D.st.prov=Math.min(s.prov,D.st.prov+a);D.st.fuel=Math.min(s.tank,D.st.fuel+f);return`Comparten ${fmtI(a)} días-persona de comida y ${f} t de astrófago.`+addRep(O,1)}});
     op.push({l:'Aceptar un encargo',run:()=>{const m=genMission(O,shipStar(),hash(Date.now()|0,D.st.jumps,77));if(!m)return'No tienen nada para vosotros ahora.';if(x.mis.length>=5)return'Ya tenéis demasiados contratos.';acceptMission(m);return`Nuevo contrato: ${m.tx}`}});
     op.push({l:'Intercambiar cartas estelares',k:'cie',dc:9,ok:(c,r)=>`Os pasan rutas y nombres de sistemas.`+gainXp(r.m,12)+addRep(O,2),ko:()=>'Los formatos no son compatibles.'});
   }else{
-    if(O==='mh')op.push({l:'Aceptar la inspección (3 d)',run:()=>{passDays(3);const all=[...new Set([x.inv,...alive().map(m=>m.inv||{})].flatMap(o=>Object.keys(o)))];
+    if(O==='mh')op.push({l:'Aceptar la inspección (3 d)',run:()=>{passDays(3);const all=[...new Set([x.inv,...aboard().map(m=>m.inv||{})].flatMap(o=>Object.keys(o)))];
       const bad=all.filter(k=>{const[f,t]=k.split('.');return f!=='gen'&&(t==='contra'||rel('mh',f)<=-1)});
       if(!bad.length)return'Registran la bodega y cachean a la tripulación. No encuentran nada ilegal.'+addRep('mh',3);let s='';for(const k of bad)s+=dropItem(k,totalOf(k),1);return`Registran bodega y bolsillos. Confiscan lo que no les gusta.${s}`+addRep('mh',-4)}});
     if(O==='lc')op.push({l:'Comprar equipo (10 t)',need:()=>D.st.min>=10,run:()=>{D.st.min-=10;return'Un comerciante os vende material de calidad.'+giveItem('gen.'+pick(Object.values(GEAR)))+addRep('lc',1)}});

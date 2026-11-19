@@ -86,7 +86,7 @@ document.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));addEventL
 /* ═════════ Pilotaje libre: la nave va a cualquier punto del espacio ═════════ */
 function pilotConsume(d){
   if(!d)return true;if(D.cr){D.st.ly+=d;return true}const sp=SPEC[D.ship.d],s=D.st,need=d*sp.burn;if(s.fuel<need)return false;
-  s.fuel-=need;const days=d*365.25*.32;s.days+=days;s.yrs+=d*1.05;s.ly+=d;if(sp.prov)s.prov=Math.max(0,s.prov-crewCount()*days*(D.hib&&sp.hib?.15:1)*(1-(sp.farm||0)));return true;
+  s.fuel-=need;const days=d*365.25*.32;s.days+=days;s.yrs+=d*1.05;s.ly+=d;if(sp.prov)s.prov=Math.max(0,s.prov-eaters()*days*(D.hib&&sp.hib?.15:1)*(1-(sp.farm||0)));return true;
 }
 function togglePilot(){
   if(travel)return;if(NET.role==='client'){toast('En la sesión compartida sólo el anfitrión pilota a mano. Propón un destino.');return}if(pilot){stopPilot();return}if(mode!=='map')exitToMap();
@@ -289,8 +289,8 @@ function drawPreview(now){
   drawShip3D(g,w/2,h*.48+Math.sin(now/700)*3,Math.min(w,h)*.9,prevSt.yaw,prevSt.pitch,D.ship,now/1000);
 }
 function renderCrew(){
-  const el=$('#p-crew'),sp=SPEC[D.ship.d],a=alive(),lost=D.crew.filter(m=>m.st==='perdido');ACTS=[];
-  el.innerHTML=`<div class="kick">FICHAS DE TRIPULACIÓN</div><h2>${crewCount()} a bordo</h2><p class="note">Mínimo para operar: ${sp.crew[0]} · capacidad ${sp.crew[1]}${D.st.extra?` · ${fmtI(D.st.extra)} en la tripulación general`:''}.</p>
+  const el=$('#p-crew'),sp=SPEC[D.ship.d],a=alive(),lost=D.crew.filter(m=>m.st==='perdido'),zz=suspended();ACTS=[];
+  el.innerHTML=`<div class="kick">FICHAS DE TRIPULACIÓN</div><h2>${crewCount()} en activo${zz.length?` · ${zz.length} ❄`:''}</h2><p class="note">Mínimo para operar: ${sp.crew[0]} · capacidad ${sp.crew[1]}${D.st.extra?` · ${fmtI(D.st.extra)} en la tripulación general`:''}.</p>
   <div class="row">${A('⬆ Subir ficha de Members',()=>openCardUpload(card=>{if(NET.role==='client')NET.host.send({t:'hello',name:D.n||card.n,card});else{toast(esc(addCardLocally(card,NET.me||'local',D.n||card.n)));refresh()}}),0,'pri')}${A('🏁 Fin de misión: QR para actualizar fichas',endGame,NET.role==='client')}</div>
   ${a.map(m=>{const up=m.s0?KS.filter(k=>m.s[k]!==m.s0[k]).map(k=>`${STATN[k]} ${m.s0[k]}→${m.s[k]}`).join(', '):'';return`<div class="card"><div class="dh">${portrait(m)}<div><b>${esc(m.nm)}</b><div class="note">${esc(m.sp)} · ${ROLES[m.role]} · nivel ${m.lv}${m.pl?' · 👤 '+esc(m.pl):''}${m.mid?' · '+esc(m.mid):''}</div>${memberFa(m).length?`<div class="note">${memberFa(m).map(f=>`<span style="color:${FAC[f].c}">${FAC[f].ic} ${esc(FAC[f].n)}</span>`).join(' · ')}</div>`:''}</div></div>
     <div class="res"><span>Salud</span><span>${Math.round(m.hp)}%</span></div>${meter(m.hp,100,m.hp<50?'#ff6b6b':'#7ee787')}
@@ -298,7 +298,9 @@ function renderCrew(){
     <div class="res"><span>Experiencia</span><span>${m.xp} / ${30*m.lv}</span></div>${meter(m.xp,30*m.lv,'#e0aa46')}
     <div class="stats">${STATS.map(([k,n])=>`<span>${n}</span><span class="sb"><i style="width:${eff(m,k)*8.3}%"></i></span><b>${eff(m,k)}</b>`).join('')}</div>
     <p class="note"><b>${esc(m.tr)}</b>: ${esc((TRAITS[m.tr]||{d:''}).d)}</p><p class="note">${esc(m.bio)}</p>${up?`<p class="ok">Mejoras en esta partida: ${esc(up)}</p>`:''}${memberInvHtml(m)}
+    <div class="row">${A('❄ Animación suspendida',()=>cmd({k:'crew',a:'susp',id:m.id},'Dejar a '+m.nm+' en animación suspendida'),NET.role==='client')}</div>
     ${m.mid?`<div class="row">${A('Actualizar su tarjeta en Members',async()=>{const u=await exportLink(m);window.open(u,'_blank','noopener')})}${A('Copiar enlace',async()=>copy(await exportLink(m),'Enlace de actualización copiado'))}</div>`:''}</div>`}).join('')||'<p class="note">Nave no tripulada: la IA de a bordo se encarga de todo.</p>'}
+  ${zz.length?`<h3>❄ En animación suspendida</h3><p class="note">Siguen a bordo y su equipo cuenta, pero no participan en la ronda: no tiran, no deciden por su rol, no reciben daño ni XP y comen un 15 %. Al volver a subir su credencial a la sala despiertan solos.</p><div class="lst">${zz.map(m=>`<div class="item"><span>${portrait(m)}</span><div class="m"><b>${esc(m.nm)}${m.pl?` <span class="dim">· ${esc(m.pl)}</span>`:''}</b><i>${esc(m.sp)} · ${ROLES[m.role]} · nivel ${m.lv}</i></div>${A('☀ Despertar',()=>cmd({k:'crew',a:'wake',id:m.id},'Despertar a '+m.nm),NET.role==='client')}</div>`).join('')}</div>`:''}
   ${lost.length?`<h3>En memoria</h3><p class="note">${lost.map(m=>esc(m.nm)).join(' · ')}</p>`:''}`;bindActs(el);bindMv(el);
 }
 async function endGame(){

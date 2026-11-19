@@ -49,7 +49,7 @@ function nextDialog(){
     resolveOpt(+b.dataset.o)});
 }
 function passDays(n){
-  const s=D.st,c=crewCount();if(!D.cr)s.prov=Math.max(0,s.prov-c*n);s.days+=n;s.yrs+=n/365.25;const med=best('med').v;
+  const s=D.st,c=crewCount();if(!D.cr)s.prov=Math.max(0,s.prov-eaters()*n);s.days+=n;s.yrs+=n/365.25;const med=best('med').v;
   for(const m of alive()){m.hp=Math.min(100,m.hp+n*(.3+med*.08));if(s.prov<=0&&c){m.hp=Math.max(5,m.hp-n*.8);m.mor=Math.max(0,m.mor-n*.6)}}
 }
 
@@ -60,7 +60,7 @@ const infected=s=>s.point?false:s.anchor?INF.has(s.anchor.id):PETROVA.has(s.P.k)
 /* ═════════ Cálculo de viaje (relativista, aceleración constante con volteo a mitad de camino) ═════════ */
 function legCalc(a,b){
   const sp=SPEC[D.ship.d],d=gd(a,b),acc=sp.acc*1.0323,x=d/2,tE=2*Math.sqrt(x*x+2*x/acc),ph=Math.acosh(1+acc*x),tau=2*ph/acc,days=tau*365.25;
-  const prov=sp.prov?crewCount()*days*(D.hib&&sp.hib?.15:1)*(1-(sp.farm||0)):0;
+  const prov=sp.prov?eaters()*days*(D.hib&&sp.hib?.15:1)*(1-(sp.farm||0)):0;
   return{from:a,to:b,d,tE,tau,v:Math.tanh(ph),g:Math.cosh(ph),days,fuel:d*sp.burn,prov};
 }
 function legErr(L,s){

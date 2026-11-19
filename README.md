@@ -98,6 +98,12 @@ comerciar, aprender y reclutar según la reputación. Cada sistema tiene además
 - El capitán elige en la pestaña Sesión si los votos son **públicos** (se ve quién votó qué) o **anónimos** (solo el recuento). Cada jugador vota desde su dispositivo.
 - **Dado de fortuna:** en los eventos con prueba de habilidad, cada jugador puede tirar 1d6 una vez: 1 → −2, 2 → −1, 3-4 → 0, 5 → +1, 6 → +2. La suma, de −3 a +3, se aplica a la tirada.
 
+## Animación suspendida
+- Si un jugador no puede estar en la ronda, su personaje pasa a **animación suspendida**. Se hace desde su ficha en Tripulación o, como director, desde la lista de jugadores en Sesión. Si un jugador se desconecta, el director recibe un aviso con el botón **❄ Suspender**.
+- Mientras duerme sigue a bordo y su equipo cuenta para que os reconozcan. No tira, no decide por su rol (la decisión pasa a otro), no recibe daño ni XP y gasta un 15 % de provisiones. Sigue ocupando su litera.
+- No se puede suspender a nadie si la nave se queda sin la tripulación mínima.
+- Despierta con **☀ Despertar** o solo, cuando su jugador vuelve a subir su credencial a la sala. Al cerrar la misión su ficha se actualiza igual, con el tiempo de vuelo incluido.
+
 ## Sesión compartida
 Pestaña «Sesión»: el anfitrión crea una sala con código (o enlace `#sala=CÓDIGO`) y su navegador guarda la partida. Cada jugador
 se une **subiendo su ficha de Members** (PNG del reverso con el QR, o el enlace `#C…`) y maneja su propio personaje. Viajes,

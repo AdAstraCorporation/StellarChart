@@ -9,7 +9,7 @@ function snapshot(maxN){
   const sh=D.ship,s=D.st;
   return{v:3,n:D.n||'',c:seedStr(focusLoc(14)),sh:[sh.d,sh.n||'',sh.c1,sh.c2],sp:D.sp,
     st:[+s.fuel.toFixed(2),Math.round(s.prov),s.extra|0,Math.round(s.hull),Math.round(s.min),+s.days.toFixed(1),+s.yrs.toFixed(3),s.jumps,+s.ly.toFixed(2)],
-    cw:D.crew.map(m=>[m.nm,m.sp,m.role,KS.map(k=>m.s[k]),m.tr,Math.round(m.hp),Math.round(m.mor),m.xp,m.lv,m.st==='perdido'?1:0,m.bio,m.mid||'',m.pid||'',m.pl||'',m.e0??'',m.s0?KS.map(k=>m.s0[k]):0,m.lv0||0,m.t||'',m.n0||'',m.id,m.fv0||0,m.ms0||0,m.mi0||'',m.d0||0,m.ph||'',m.inv&&invCount(m.inv)?m.inv:0,memberFa(m).length?memberFa(m):0]),lg:D.crewLogo||null,pl:D.plan||null,rp:D.rep||{},fx:D.fx||null,bs:D.bases||[],cv:D.conv||[],rt:D.rutas||[],
+    cw:D.crew.map(m=>[m.nm,m.sp,m.role,KS.map(k=>m.s[k]),m.tr,Math.round(m.hp),Math.round(m.mor),m.xp,m.lv,m.st==='perdido'?1:m.st==='susp'?2:0,m.bio,m.mid||'',m.pid||'',m.pl||'',m.e0??'',m.s0?KS.map(k=>m.s0[k]):0,m.lv0||0,m.t||'',m.n0||'',m.id,m.fv0||0,m.ms0||0,m.mi0||'',m.d0||0,m.ph||'',m.inv&&invCount(m.inv)?m.inv:0,memberFa(m).length?memberFa(m):0]),lg:D.crewLogo||null,pl:D.plan||null,rp:D.rep||{},fx:D.fx||null,bs:D.bases||[],cv:D.conv||[],rt:D.rutas||[],
     f:[D.hib?1:0,D.cr?1:0,D.q|0,D.anon?1:0],ex:D.ex,sc:Object.keys(D.scan),ds:Object.keys(D.disc),
     cm:[cam.fx,cam.fy,cam.fz,cam.R,cam.yaw,cam.pitch].map(v=>+v.toFixed(3)),op:[opt.color?1:0,opt.spin?1:0,opt.nav?1:0,opt.pet?1:0],b:D.base||'',
     h:D.h.slice(-maxN).map(e=>[e.s,Math.round(e.t/1000).toString(36),e.k,e.f?1:0,e.n||''])};
@@ -22,7 +22,7 @@ function normState(st){
   if(st.v===3){const a=st.st,num=(v,d)=>isFinite(+v)?+v:d;
     st.game={fuel:Math.max(0,num(a[0],0)),prov:Math.max(0,num(a[1],0)),extra:Math.max(0,num(a[2],0)|0),hull:clamp(num(a[3],100),0,100),min:Math.max(0,num(a[4],0)),days:num(a[5],0),yrs:num(a[6],0),jumps:num(a[7],0)|0,ly:num(a[8],0)};
     st.crew=(st.cw||[]).slice(0,12).map(c=>({id:Math.random().toString(36).slice(2),nm:String(c[0]).slice(0,40),sp:SPEMO[c[1]]?c[1]:'Zorro',role:ROLES[c[2]]?c[2]:'pil',s:Object.fromEntries(KS.map((k,i)=>[k,clamp(+((c[3]||[])[i])||3,1,12)])),
-      tr:TRAITS[c[4]]?c[4]:'Curioso',hp:clamp(+c[5]||100,0,100),mor:clamp(+c[6]||70,0,100),xp:+c[7]||0,lv:clamp(+c[8]||1,1,20),st:c[9]?'perdido':'ok',bio:String(c[10]||'').slice(0,200),
+      tr:TRAITS[c[4]]?c[4]:'Curioso',hp:clamp(+c[5]||100,0,100),mor:clamp(+c[6]||70,0,100),xp:+c[7]||0,lv:clamp(+c[8]||1,1,20),st:c[9]===2?'susp':c[9]?'perdido':'ok',bio:String(c[10]||'').slice(0,200),
       ...(c[11]?{mid:String(c[11]).slice(0,8)}:{}),...(c[12]?{pid:String(c[12]).slice(0,60)}:{}),...(c[13]?{pl:String(c[13]).slice(0,24)}:{}),...(c[14]!==undefined&&c[14]!==''?{e0:String(c[14]).slice(0,40)}:{}),
       ...(Array.isArray(c[15])?{s0:Object.fromEntries(KS.map((k,i)=>[k,clamp(+c[15][i]||3,1,12)]))}:{}),...(c[16]?{lv0:+c[16]|0}:{}),...(c[17]?{t:String(c[17]).slice(0,30)}:{}),...(c[18]?{n0:String(c[18]).slice(0,40)}:{}),...(c[19]?{id:String(c[19]).slice(0,40)}:{}),...(c[20]?{fv0:+c[20]|0}:{}),...(c[21]?{ms0:+c[21]|0}:{}),...(c[22]?{mi0:String(c[22]).slice(0,8)}:{}),...(c[23]?{d0:+c[23]||0}:{}),...(okImg(c[24])?{ph:c[24]}:{}),...(c[25]&&typeof c[25]==='object'?{inv:Object.fromEntries(Object.entries(c[25]).filter(([k,n])=>okItem(k)&&+n>0).slice(0,CAP_M).map(([k,n])=>[k,Math.min(CAP_M,+n|0)]))}:{}),...(Array.isArray(c[26])&&c[26].length?{fa:c[26].filter(f=>FAC[f]).slice(0,6)}:{})}));
     st.logo=st.lg&&okImg(st.lg.src)?{src:st.lg.src,name:String(st.lg.name||'').slice(0,30),id:String(st.lg.id||'').slice(0,10)}:null;

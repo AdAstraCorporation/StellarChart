@@ -28,8 +28,12 @@ function newCrew(d){const sp=SPEC[d],r=rng((Math.random()*4e9)>>>0),n=Math.min(6
   const c=[];for(let i=0;i<n;i++)c.push(genMember(r,order[i]));return{c,extra:Math.max(0,sp.c0-n)}}
 if(!D.st)D.st=freshState(D.ship.d);
 if(!Array.isArray(D.crew)){const n=newCrew(D.ship.d);D.crew=n.c;D.st.extra=n.extra}
-const alive=()=>D.crew.filter(m=>m.st!=='perdido');
+/* Estados: ok · susp (animación suspendida: fuera de la ronda, a bordo) · perdido */
+const alive=()=>D.crew.filter(m=>m.st!=='perdido'&&m.st!=='susp');
+const aboard=()=>D.crew.filter(m=>m.st!=='perdido');
+const suspended=()=>D.crew.filter(m=>m.st==='susp');
 const crewCount=()=>alive().length+(D.st.extra|0);
+const eaters=()=>crewCount()+suspended().length*.15; // en criosueño comen un 15 %
 const eff=(m,k)=>m.s[k]+((TRAITS[m.tr]||{m:{}}).m[k]||0)+Math.floor((m.lv-1)/2)+(m.hp<50?-2:0)+(m.mor<30?-1:0)+(typeof gearB==='function'?gearB(m,k):0);
 const okImg=s=>typeof s==='string'&&/^(data:image\/(webp|jpeg);base64,[A-Za-z0-9+/=]+|https:\/\/[^\s"'<>]+)$/.test(s);
 const portrait=m=>m?(okImg(m.ph)?`<span class="pt"><img src="${esc(m.ph)}" alt="${esc(m.nm)}"></span>`:`<span class="pt" title="${esc(m.sp)}">${SPEMO[m.sp]||'🐾'}</span>`):'<span class="pt">🤖</span>';
@@ -40,7 +44,7 @@ function roll(k,dc,team,luck){
   luck=luck|0;const b=best(k,team),bonus=(team&&team.length>1)?team.length-1:0,d=1+(Math.random()*10|0),tot=b.v+d+bonus+luck,ok=tot>=dc;
   return{ok,crit:d===10,fumble:d===1,m:b.m,line:`🎲 ${d} + ${b.v} (${esc(b.m.nm)}, ${STATN[k]})${bonus?` + ${bonus} equipo`:''}${luck?` ${luck>0?'+':'−'} ${Math.abs(luck)} fortuna`:''} = ${tot} vs ${dc} ${ok?'✓':'✗'}`};
 }
-function gainXp(m,n){if(!m||m===AI||m.st==='perdido')return'';m.xp+=n;let out='';while(m.xp>=30*m.lv){m.xp-=30*m.lv;m.lv++;m.s[m.role]=Math.min(12,m.s[m.role]+1);out+=` ${m.nm} sube a nivel ${m.lv}.`}return out}
+function gainXp(m,n){if(!m||m===AI||m.st==='perdido'||m.st==='susp')return'';m.xp+=n;let out='';while(m.xp>=30*m.lv){m.xp-=30*m.lv;m.lv++;m.s[m.role]=Math.min(12,m.s[m.role]+1);out+=` ${m.nm} sube a nivel ${m.lv}.`}return out}
 function hurt(m,n){if(!m||m===AI)return'';if(m.tr==='Cauteloso')n=Math.round(n/2);m.hp=Math.max(5,m.hp-n);return` ${m.nm} resulta herido (−${n} salud).`}
 function morAll(n){for(const m of alive()){let v=n;if(n<0&&m.tr==='Optimista')v=Math.round(n/2);if(n<0&&m.tr==='Valiente'&&n>-8)v=0;m.mor=clamp(m.mor+v,0,100)}}
 const pick=a=>a[Math.random()*a.length|0];
