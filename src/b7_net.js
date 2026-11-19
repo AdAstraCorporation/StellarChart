@@ -54,15 +54,19 @@ function parseX(x){
 const buildX=(m,mis,crewFa)=>{const fv=Math.round((m.fv0||0)+(mis?mis.dv:0)),ms=(m.ms0||0)+(mis?1:0),mi=mis?mis.id:(m.mi0||''),fa=[...new Set([...memberFa(m),...(crewFa||[])])].filter(f=>FAC[f]),iv=ivEncode(m.inv);
   const mk=n=>`R1;rol=${m.role};ras=${m.tr};s=${KS.map(k=>clamp(m.s[k],1,12)).join(',')};lv=${m.lv};xp=${Math.round(m.xp)};hp=${Math.round(m.hp)};mo=${Math.round(m.mor)}${fa.length?';fa='+fa.join('.'):''}${n?';iv='+iv.slice(0,n).join(','):''}${fv?';fv='+fv:''}${ms?';ms='+ms:''}${mi?';mi='+mi:''}${m.t?';t='+m.t:''}`;
   let n=iv.length,x=mk(n);while(x.length>160&&n>0)x=mk(--n);return x};
+/* Diccionario de las credenciales v5: copia exacta del de Members (app.js, DICCIONARIO). No cambiar el orden. */
+const MDIC=["https://","lh3.googleusercontent.com/","drive.google.com/","i.imgur.com/","pbs.twimg.com/media/","cdn.bsky.app/img/","i.pinimg.com/","d.furaffinity.net/art/",".media.tumblr.com/","i.redd.it/",".png",".jpg",".webp","R1;rol=",";ras=",";s=",";lv=",";xp=",";hp=100;mo=",";hp=",";mo=",";fa=",";iv=",";fv=",";ms=",";mi=",";t=","Corporación","Tripulante","Capitán"];
 async function membersDecode(text){
   const mm=/#C([0-9A-Z$*+\-./:]+)/.exec(String(text||'').trim());if(!mm)throw new Error('No es un enlace ni un QR de una credencial de Members.');
-  const b=deB43(mm[1]),v=b[0];if(v!==3&&v!==4)throw new Error('Versión de credencial desconocida.');const cab=v===3?11:13;if(b.length<cab+18)throw new Error('Credencial incompleta.');
-  const fl=b[1],len=(b[cab+16]<<8)|b[cab+17];let t=b.slice(cab+18,cab+18+len);if(fl&8)t=await pipe(t,DecompressionStream);
-  const imgs={};for(let o=cab+18+len;o+3<=b.length;){const tipo=b[o]>>4,fm=b[o]&15,ln=(b[o+1]<<8)|b[o+2],by=b.slice(o+3,o+3+ln);o+=3+ln;if(by.length!==ln)continue;let src=null;
+  const b=deB43(mm[1]),v=b[0];if(v<3||v>5)throw new Error('Versión de credencial desconocida.');const cab=v===3?11:13;if(b.length<cab+18)throw new Error('Credencial incompleta.');
+  const fl=b[1],dic=v>=5&&(b[cab+16]&0x80),len=((b[cab+16]&(v>=5?0x7f:0xff))<<8)|b[cab+17];let t=b.slice(cab+18,cab+18+len);if(fl&8)t=await pipe(t,DecompressionStream);
+  let plano=new TextDecoder().decode(t);if(dic)plano=plano.replace(/[\x01-\x1e]/g,ch=>MDIC[ch.charCodeAt(0)-1]||'');
+  const imgs={},campos=plano.split('\x1f'),okU=u=>/^https:\/\/[^\s"'<>]+$/.test(u||'');if(okU(campos[6]))imgs.foto=campos[6];if(okU(campos[7]))imgs.logo=campos[7];
+  for(let o=cab+18+len;v<5&&o+3<=b.length;){const tipo=b[o]>>4,fm=b[o]&15,ln=(b[o+1]<<8)|b[o+2],by=b.slice(o+3,o+3+ln);o+=3+ln;if(by.length!==ln)continue;let src=null;
     if(fm===1&&by.length>12&&String.fromCharCode(...by.slice(0,4))==='RIFF')src='data:image/webp;base64,'+b64std(by);else if(fm===2&&by[0]===0xff&&by[1]===0xd8)src='data:image/jpeg;base64,'+b64std(by);
     else if(fm===4){const u=new TextDecoder().decode(by).trim();if(/^https:\/\/[^\s"'<>]+$/.test(u))src=u}
     if(src&&tipo===1)imgs.foto=src;if(src&&tipo===2)imgs.logo=src}
-  const [n,e,p,c,r,x]=new TextDecoder().decode(t).split('\x1f');let iv=((b[2]<<24)|(b[3]<<16)|(b[4]<<8)|b[5])>>>0,cid='';for(let k=0;k<6;k++,iv=Math.floor(iv/32))cid=MABC[iv%32]+cid;
+  const [n,e,p,c,r,x]=campos;let iv=((b[2]<<24)|(b[3]<<16)|(b[4]<<8)|b[5])>>>0,cid='';for(let k=0;k<6;k++,iv=Math.floor(iv/32))cid=MABC[iv%32]+cid;
   const dias=(b[9]<<8)|b[10],emision=new Date(Date.UTC(2020,0,1)+dias*864e5),lider=!!(fl&1),venc=!lider&&Date.now()>emision.getTime()+365.25*864e5;
   if(!n)throw new Error('La credencial no tiene nombre.');
   return{foto:imgs.foto||'',logo:imgs.logo||'',n,e:e||'',p:p||'',c:c||'',r:r||'',x:x||'',crew:'CR-'+cid,lider,vencida:venc,id:await membersId(n,e||'',('CR-'+cid)),rol:parseX(x)};
