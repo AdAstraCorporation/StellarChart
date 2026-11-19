@@ -1,4 +1,29 @@
-# Ad Astra · Carta de Navegación Estelar
+# Corporación Ad Astra · App
+
+Una sola app web (instalable, responsive, sin servidor) con un menú inicial para elegir:
+
+- **Credenciales** (`/credenciales/`): fichas de tripulante de la Corporación. El código vive en
+  [AdAstraCorporation/Membership](https://github.com/AdAstraCorporation/Membership) y se incorpora al publicar.
+- **Carta Estelar** (`/carta/`): simulador de rol espacial. El código vive en este repo.
+
+Publicada en **https://adastracorporation.github.io/StellarChart/** con GitHub Actions (`.github/workflows/pages.yml`):
+en cada push a `main`, a mano o cada 6 horas, construye la Carta (`tools/build.py`), trae Membership (la rama
+`feat/estadisticas-rol` mientras exista; si no, `main`) y publica `/`, `/carta/` y `/credenciales/`.
+En *Settings → Pages* la fuente debe ser **GitHub Actions**.
+
+## Estructura
+- `index.html`, `manifest.webmanifest`, `sw.js`, `icons/`: menú inicial y app instalable.
+- `src/`: código fuente de la Carta (`head.html` + módulos JS) · `vendor/`: qrcode-generator, jsQR, PeerJS.
+- `tools/build.py`: genera `carta/index.html` (archivo único). Ejecuta `python3 tools/build.py` tras editar `src/`.
+
+## Fin de misión → Credenciales
+Al cerrar una misión, la Carta muestra **un QR general** (enlace `credenciales/#X…`, versión 2). Cada jugador lo escanea
+desde Credenciales («Actualizar → Escanear QR de la misión») y después su credencial: se renueva con estadísticas, nivel,
+tiempo de vuelo (`fv`) y misiones (`ms`); cada misión (`mi`) sólo se aplica una vez.
+
+---
+
+## Carta de Navegación Estelar
 
 Simulador de rol espacial en un único `index.html` estático, sin servidor ni cuenta. La estética sigue la carta
 «Hail Mary – Stellar Navigation Chart» (valhovey.github.io/gaia-mary): fondo de cielo completo con la Vía Láctea,

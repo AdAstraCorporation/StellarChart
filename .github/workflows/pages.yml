@@ -1,9 +1,17 @@
-name: Publicar en GitHub Pages
+name: Publicar Ad Astra en GitHub Pages
 
+# Junta el menú, la Carta Estelar (este repo) y las Credenciales (AdAstraCorporation/Membership)
+# en un solo sitio:  /  ·  /carta/  ·  /credenciales/
 on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      members_ref:
+        description: "Rama o etiqueta de Membership a publicar (vacío = feat/estadisticas-rol si existe, si no main)"
+        required: false
+  schedule:
+    - cron: "17 */6 * * *" # recoge cambios de Membership cada 6 horas
 
 permissions:
   contents: read
@@ -25,12 +33,30 @@ jobs:
       - uses: actions/configure-pages@v5
         with:
           enablement: true
+      - name: Construir la Carta Estelar
+        run: python3 tools/build.py
+      - name: Traer las Credenciales (Membership)
+        env:
+          REF: ${{ github.event.inputs.members_ref }}
+        run: |
+          URL=https://github.com/AdAstraCorporation/Membership.git
+          if [ -n "$REF" ]; then git clone --depth 1 --branch "$REF" "$URL" _members
+          elif git ls-remote --exit-code --heads "$URL" feat/estadisticas-rol >/dev/null; then git clone --depth 1 --branch feat/estadisticas-rol "$URL" _members
+          else git clone --depth 1 "$URL" _members; fi
+          echo "MEMBERS_SHA=$(git -C _members rev-parse --short HEAD)" >> "$GITHUB_ENV"
       - name: Preparar sitio
         run: |
-          mkdir -p _site
-          cp index.html _site/
-          [ -f README.md ] && cp README.md _site/ || true
+          mkdir -p _site/credenciales
+          cp index.html manifest.webmanifest sw.js _site/
+          cp -r carta icons _site/
+          (cd _members && git ls-files | grep -v '^\.github\|^README.md$' | xargs -I{} cp --parents {} ../_site/credenciales/)
+          # El logo de las credenciales vuelve al menú principal
+          sed -i 's#<a class="marca" href="./">#<a class="marca" href="../">#' _site/credenciales/index.html
+          # Versiones de los service workers: cambian en cada publicación para avisar de versiones nuevas
+          V="${GITHUB_SHA::7}-${MEMBERS_SHA}"
+          sed -i "s/^const VERSION = \"dev\";/const VERSION = \"$V\";/" _site/sw.js _site/credenciales/sw.js
           touch _site/.nojekyll
+          find _site -maxdepth 2 | sort
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
