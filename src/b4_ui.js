@@ -88,7 +88,7 @@ function pilotConsume(d){
   if(!d)return true;if(D.cr){D.st.ly+=d;return true}const sp=SPEC[D.ship.d],s=D.st,need=d*sp.burn;if(s.fuel<need)return false;
   s.fuel-=need;const days=d*365.25*.32;s.days+=days;s.yrs+=d*1.05;s.ly+=d;if(sp.prov)s.prov=Math.max(0,s.prov-eaters()*days*(D.hib&&sp.hib?.15:1)*(1-(sp.farm||0)));return true;
 }
-function togglePilot(){
+function togglePilot(){if(!pilot&&rondaBloquea({k:'travel'})){toast(esc(MSG_RONDA));return}
   if(travel)return;if(NET.role==='client'){toast('En la sesión compartida sólo el anfitrión pilota a mano. Propón un destino.');return}if(pilot){stopPilot();return}if(mode!=='map')exitToMap();
   if(crewCount()<SPEC[D.ship.d].crew[0]){toast('Tripulación insuficiente para pilotar.');return}
   const p=shipPos();pilot={pos:[p[0],p[1],p[2]],dir:null,moved:0};selStar=null;route=null;flyTo(p[0],p[1],p[2],Math.min(Math.max(tg.R,4),40));

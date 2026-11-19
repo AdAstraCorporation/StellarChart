@@ -10,7 +10,7 @@ function snapshot(maxN){
   return{v:3,n:D.n||'',c:seedStr(focusLoc(14)),sh:[sh.d,sh.n||'',sh.c1,sh.c2],sp:D.sp,
     st:[+s.fuel.toFixed(2),Math.round(s.prov),s.extra|0,Math.round(s.hull),Math.round(s.min),+s.days.toFixed(1),+s.yrs.toFixed(3),s.jumps,+s.ly.toFixed(2)],
     cw:D.crew.map(m=>[m.nm,m.sp,m.role,KS.map(k=>m.s[k]),m.tr,Math.round(m.hp),Math.round(m.mor),m.xp,m.lv,m.st==='perdido'?1:m.st==='susp'?2:0,m.bio,m.mid||'',m.pid||'',m.pl||'',m.e0??'',m.s0?KS.map(k=>m.s0[k]):0,m.lv0||0,m.t||'',m.n0||'',m.id,m.fv0||0,m.ms0||0,m.mi0||'',m.d0||0,m.ph||'',m.inv&&invCount(m.inv)?m.inv:0,memberFa(m).length?memberFa(m):0]),lg:D.crewLogo||null,pl:D.plan||null,rp:D.rep||{},fx:D.fx||null,bs:D.bases||[],cv:D.conv||[],rt:D.rutas||[],
-    f:[D.hib?1:0,D.cr?1:0,D.q|0,D.anon?1:0],ex:D.ex,sc:Object.keys(D.scan),ds:Object.keys(D.disc),
+    f:[D.hib?1:0,D.cr?1:0,D.q|0,D.anon?1:0,typeof RONDA!=='undefined'&&RONDA?1:0],ex:D.ex,sc:Object.keys(D.scan),ds:Object.keys(D.disc),
     cm:[cam.fx,cam.fy,cam.fz,cam.R,cam.yaw,cam.pitch].map(v=>+v.toFixed(3)),op:[opt.color?1:0,opt.spin?1:0,opt.nav?1:0,opt.pet?1:0],b:D.base||'',
     h:D.h.slice(-maxN).map(e=>[e.s,Math.round(e.t/1000).toString(36),e.k,e.f?1:0,e.n||''])};
 }
@@ -29,7 +29,7 @@ function normState(st){
     st.plan=st.pl&&Array.isArray(st.pl.stops)?{stops:st.pl.stops.slice(0,40).map(s=>({s:String(s.s).slice(0,40),a:(s.a||[]).slice(0,12).map(x=>String(x).slice(0,20))}))}:null;
     st.rep=st.rp&&typeof st.rp==='object'?Object.fromEntries(Object.entries(st.rp).slice(0,500).map(([k,v])=>[String(k).slice(0,60),clamp(+v||0,-100,100)])):{};
     st.fx=normFx(st.fx);st.bases=normBases(st.bs);st.conv=normConv(st.cv);st.rutas=normRutas(st.rt);
-    const f=st.f||[];st.flags={hib:f[0]?1:0,cr:f[1]?1:0,q:clamp(f[2]|0,0,QUESTS.length),anon:!!f[3]};
+    const f=st.f||[];st.flags={hib:f[0]?1:0,cr:f[1]?1:0,q:clamp(f[2]|0,0,QUESTS.length),anon:!!f[3],ronda:!!f[4]};
     st.ex=st.ex&&typeof st.ex==='object'?Object.fromEntries(Object.entries(st.ex).slice(0,5000).map(([k,v])=>[String(k).slice(0,80),+v|0])):{};
     st.scan=Object.fromEntries((st.sc||[]).slice(0,5000).map(k=>[String(k).slice(0,80),1]));st.disc=Object.fromEntries((st.ds||[]).slice(0,5000).map(k=>[String(k).slice(0,40),1]));}
   return st;
@@ -103,7 +103,6 @@ addEventListener('drop',e=>{const f=e.dataTransfer&&e.dataTransfer.files[0];if(f
 updateCrewLogo();$('#logBtn').onclick=()=>showDM(!document.getElementById('dmBox').classList.contains('show'));$('#dualBtn').onclick=()=>{if(POP&&!POP.closed){const w=POP;closeDual();w.close()}else openDual()};
 resize();toggleDrawer(innerWidth>1100);setTab('carta');refresh();requestAnimationFrame(frame);handleHash();
 setTimeout(()=>{const b=$('#boot');if(b){b.classList.add('out');setTimeout(()=>b.remove(),700)}
-  if(!D.intro){D.intro=1;saveD();queueDialog({t:'Corporación Ad Astra · Orden de misión',who:alive()[0]||null,tx:`Capitán: el Sol pierde brillo y nadie sabe por qué, salvo que hay algo —lo llaman astrófago— alimentándose de su luz. Tau Ceti, a 11,9 años luz, parece inmune. Tu nave y tu tripulación están listas. Cada salto cuesta astrófago, provisiones y años. Elige bien.`,res:'Primera misión: '+QUESTS[0].t,next:'Consejo: selecciona una estrella en la carta para calcular el salto.'})}
 },RM?0:1400);
-window.__adastra={parseX,buildX,baseRes,buildBase,sendBase,addRoute,doBase,convTick,routeTick,baseTick,FX,facOf,boardFor,doFac,facEvent,exposure,genMission,EV,queueDialog,missionLink,endGame,NET,starsNearPub:starsNear,seedOf,starFromSeed,genSystem,starName,membersDecode,addCardLocally,exportLink,memberFromCard,doCiv,civInfo,getPlan,addToPlan,simulatePlan,startPlanNow,get planRun(){return planRun},cmd,execCmd,hostSession,joinSession,createVote,castVote,D:()=>D,cam,tg,selectStar,startTravel,get travel(){return travel},get route(){return route},ANCHSTARS,enterSystem,land,planetInfo,get SYS(){return SYS},openExpedition,packFile,unpackFile,gotoSeed,shipStar,A_BY,questEvent,crewCount,get mode(){return mode},setTab,exitToMap,centerOnShip};
+window.__adastra={empezarRonda,nuevaPartida,get RONDA(){return RONDA},miembrosActivos,parseX,buildX,baseRes,buildBase,sendBase,addRoute,doBase,convTick,routeTick,baseTick,FX,facOf,boardFor,doFac,facEvent,exposure,genMission,EV,queueDialog,missionLink,endGame,NET,starsNearPub:starsNear,seedOf,starFromSeed,genSystem,starName,membersDecode,addCardLocally,exportLink,memberFromCard,doCiv,civInfo,getPlan,addToPlan,simulatePlan,startPlanNow,get planRun(){return planRun},cmd,execCmd,hostSession,joinSession,createVote,castVote,D:()=>D,cam,tg,selectStar,startTravel,get travel(){return travel},get route(){return route},ANCHSTARS,enterSystem,land,planetInfo,get SYS(){return SYS},openExpedition,packFile,unpackFile,gotoSeed,shipStar,A_BY,questEvent,crewCount,get mode(){return mode},setTab,exitToMap,centerOnShip};
 })();

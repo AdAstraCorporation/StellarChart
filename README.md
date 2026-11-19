@@ -77,6 +77,16 @@ la semilla: especie, nivel tecnológico (de ruinas extintas a interestelar), gob
 historia generada con datos del entorno (planetas vecinos, estrellas cercanas). Se puede contactar (tirada de Diplomacia),
 comerciar, aprender y reclutar según la reputación. Cada sistema tiene además su propio lore.
 
+## Inicio y espera de tripulación
+- Al abrir la Carta aparece una **pantalla de inicio** antes del mapa:
+  - **Continuar** la partida guardada en el dispositivo (con su resumen), empezar una **nueva** (con o sin PNJ generados) o **cargar un archivo** `.partida`.
+  - Elegir si se juega **en este dispositivo** o se **crea una sala como director**, o **unirse a una sala** con código.
+  - Los enlaces `#d=` (partida) y `#s=` (semilla) saltan esta pantalla, y `#sala=` la abre con el código ya puesto.
+- **Espera de tripulación:** la ronda no empieza hasta que hay al menos **1 tripulante con credencial activo**.
+  - Hasta entonces se puede mirar la carta, pero no viajar, pilotar, aterrizar ni hacer acciones en sistemas, bases o contratos.
+  - Un aviso permite subir credenciales y, cuando hay alguien, pulsar **▶ Empezar la ronda**. Lo hace el director, o el propio jugador si juega solo; los jugadores de la sala ven «Esperando al director».
+  - La ronda se vuelve a pedir cada vez que se abre la Carta.
+
 ## Facciones y contratos
 - **Seis facciones** con territorio propio: Corporación Ad Astra, Liga de Comerciantes Libres, Manada de Hierro, Círculo de la Estrella Oscura, Corsarios del Vacío y Custodios del Archivo. El mapa político sale de la semilla, y el botón **⬡ Facciones** colorea las estrellas y marca sus núcleos.
 - **Afiliación y reputación:** la tripulación puede ser miembro de varias facciones. Para unirse hace falta reputación 40, y sus enemigas lo notan.

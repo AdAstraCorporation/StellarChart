@@ -196,7 +196,7 @@ function drawSystem(now){
 /* ═════════ Superficie (aterrizaje) ═════════ */
 const SKY={lava:['#3a0d05','#a0300a'],desert:['#3b2a14','#c9965a'],ocean:['#071a33','#3f8fe0'],temperate:['#0b2238','#6fb0d8'],ice:['#0d1f2c','#9fd0e6'],frozen:['#0a0f18','#7d8ea3'],barren:['#050608','#3a3a40']};
 const GROUND={lava:'#1a0804',desert:'#5a3d1d',ocean:'#0b2b4a',temperate:'#183a22',ice:'#a8c8d8',frozen:'#5d6a7a',barren:'#2a2826'};
-function land(i){
+function land(i){if(rondaBloquea({k:'exp'})){toast(esc(MSG_RONDA));return}
   const info=planetInfo(SYS,i),sp=SPEC[D.ship.d];if(info.gas){toast('No hay superficie sólida.');return}
   if(!D.scan[info.key]){D.scan[info.key]=1}if(!(NET&&NET.role==='client'))passDays(sp.land?1:2);mode='surface';surf={i,info,t0:performance.now()};if(!RM)warp={t0:performance.now(),dur:600};saveD();refresh();
 }

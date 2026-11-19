@@ -135,7 +135,7 @@ select{background:rgba(0,0,0,.5);border:1px solid var(--line);color:inherit;padd
 @media(max-width:860px){
   #brand{left:10px;top:10px;max-width:58%}#brand .t2,#brand .t3{display:none}#seedIn{width:120px}
   .info{flex-direction:row;flex-wrap:wrap;gap:4px 12px}.info div:nth-child(n+3){display:none}
-  #toggles{left:10px;top:112px;transform:none}#toggles button{padding:3px 7px;letter-spacing:.08em;font-size:9px}
+  #toggles{left:10px;top:112px;transform:none;max-width:calc(100% - 150px);flex-wrap:wrap}#toggles button{padding:3px 7px;letter-spacing:.08em;font-size:9px}
   #hud{right:10px;top:10px;width:140px;gap:4px}#hud div:nth-child(n+4){display:none}
   #views{left:0;right:0;transform:none;bottom:max(8px,env(safe-area-inset-bottom));padding:0 10px;flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;scrollbar-width:none}
   #views::-webkit-scrollbar{display:none}#views button{flex:none;padding:7px 9px;letter-spacing:.06em;font-size:9px}#foot{display:none}
@@ -148,6 +148,17 @@ select{background:rgba(0,0,0,.5);border:1px solid var(--line);color:inherit;padd
   #modal{padding:8px}#modal .box{padding:14px;max-height:94dvh}
   #drawer{top:auto;height:64dvh;width:100%;border-left:0;border-top:1px solid var(--line);transform:translateY(100%)}
 }
+
+/* Inicio y espera de tripulación */
+#inicio{position:fixed;inset:0;z-index:15;background:rgba(5,7,10,.88);backdrop-filter:blur(6px);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:5vh 14px;transition:opacity .35s}
+#inicio.out{opacity:0}
+#inicio .ini-box{width:min(480px,100%);background:rgba(10,12,16,.97);border:1px solid rgba(205,215,235,.3);padding:18px;animation:boxIn .3s ease}
+#inicio .ini-h{display:flex;gap:12px;align-items:center;margin-bottom:10px}#inicio .ini-h img{width:46px;height:46px;object-fit:contain}
+#inicio .ini-h h2{margin:2px 0 0}#inicio .card{margin:8px 0}#inicio .chk{display:flex;gap:8px;align-items:flex-start;margin:6px 0}
+#inicio .ini-sel{border-color:rgba(224,170,70,.55)}#inicio a{color:#78dcff}
+#espera{left:50%;bottom:128px;transform:translateX(-50%);width:min(540px,92%);background:rgba(8,10,14,.94);border:1px solid rgba(224,170,70,.6);padding:10px 14px;display:flex;flex-direction:column;gap:4px;text-align:center;z-index:6}
+#espera .row{justify-content:center}#espera[hidden]{display:none}
+@media(max-width:860px){#espera{bottom:150px}}
 </style>
 </head>
 <body>
@@ -2849,6 +2860,7 @@ try{const raw=localStorage.getItem(LS_KEY);if(raw)Object.assign(D,JSON.parse(raw
 const saveD=()=>{if(NET&&NET.role==='client')return;try{localStorage.setItem(LS_KEY,JSON.stringify(D))}catch(e){}if(NET&&NET.role==='host')netSync()};
 D.ship=cleanShip(Object.assign({...DEF_SHIP},D.ship||{}));
 const SOL=A_BY('sol');
+const HASH0=location.hash; // se lee antes de que handleHash lo borre
 if(!D.sp||!parseSeed(D.sp).loc)D.sp=sSeed(SOL);
 if(!Array.isArray(D.h))D.h=[];
 for(const k of['ex','scan','disc','qf'])if(!D[k]||typeof D[k]!=='object')D[k]={};
@@ -3848,7 +3860,7 @@ function drawSystem(now){
 /* ═════════ Superficie (aterrizaje) ═════════ */
 const SKY={lava:['#3a0d05','#a0300a'],desert:['#3b2a14','#c9965a'],ocean:['#071a33','#3f8fe0'],temperate:['#0b2238','#6fb0d8'],ice:['#0d1f2c','#9fd0e6'],frozen:['#0a0f18','#7d8ea3'],barren:['#050608','#3a3a40']};
 const GROUND={lava:'#1a0804',desert:'#5a3d1d',ocean:'#0b2b4a',temperate:'#183a22',ice:'#a8c8d8',frozen:'#5d6a7a',barren:'#2a2826'};
-function land(i){
+function land(i){if(rondaBloquea({k:'exp'})){toast(esc(MSG_RONDA));return}
   const info=planetInfo(SYS,i),sp=SPEC[D.ship.d];if(info.gas){toast('No hay superficie sólida.');return}
   if(!D.scan[info.key]){D.scan[info.key]=1}if(!(NET&&NET.role==='client'))passDays(sp.land?1:2);mode='surface';surf={i,info,t0:performance.now()};if(!RM)warp={t0:performance.now(),dur:600};saveD();refresh();
 }
@@ -4032,6 +4044,7 @@ function renderPlan(){
 /* ═════════ Comandos: lo que cambia la partida pasa por aquí (votación en sesión compartida) ═════════ */
 function needVote(){return NET.role==='client'||(NET.role==='host'&&NET.demo&&NET.conns.size>0)}
 function cmd(c,label){
+  if(rondaBloquea(c)){toast(esc(MSG_RONDA));return}
   if(NET.role==='host'&&NET.conns.size>0&&(c.k==='travel'||c.k==='plan')){askRoute(c,label);return}
   logDM('Acción: '+(label||c.k),'cmd');
   if(needVote()){propose({kind:'cmd',title:label||'Acción',opts:['A favor','En contra'],cmd:c});toast('🗳 Propuesta enviada a votación: '+esc(label||''));return}
@@ -4047,7 +4060,7 @@ function askRoute(c,label){
 function respFor(k){const on=new Set([NET.me,...NET.conns.keys()]);let b=null;for(const m of alive())if(m.pid&&on.has(m.pid)&&m.role===k&&(!b||eff(m,k)>eff(b,k)))b=m;return b?{pid:b.pid,m:b,pl:b.pl||((NET.players[b.pid]||{}).name)||'?'}:null}
 function forceVote(id,o){const v=NET.votes.find(x=>x.id===id&&x.open);if(!v)return;v.ballots={[NET.me]:o};v.voters=[NET.me];v.forced=1;sysMsg(`El director impone «${v.opts[o]}» en «${v.title}».`);checkVotes()}
 function execCmd(c){
-  if(!c||typeof c!=='object')return'';
+  if(!c||typeof c!=='object')return'';if(rondaBloquea(c))return MSG_RONDA;
   if(c.k==='orbit')return doOrbit(String(c.act),c.i|0);
   if(c.k==='civ')return doCiv(c.i|0,String(c.a));
   if(c.k==='travel'){if(travel)return'Ya hay un viaje en curso.';const stars=(c.seeds||[]).map(s=>starFromSeed(s)||pointFromSeed(s)).filter(Boolean);if(stars.length<2)return'';stars[0]=shipStar();
@@ -4205,7 +4218,7 @@ async function clientRecv(m){
 }
 function applyRemote(st){
   const g=st.game;if(!g)return;D.st=g;D.crew=st.crew;D.hib=st.flags.hib;D.cr=st.flags.cr;D.q=st.flags.q;D.ex=st.ex;D.scan=st.scan;D.disc=st.disc;D.h=st.h;
-  if(st.ship)D.ship=st.ship;if(st.sp&&!travel){D.sp=st.sp;_sp=''}if(st.n)D.n=D.n||st.n;D.plan=st.plan||D.plan;D.rep=st.rep||D.rep;if(st.fx)D.fx=st.fx;D.bases=st.bases||[];D.conv=st.conv||[];D.rutas=st.rutas||[];
+  if(st.ship)D.ship=st.ship;if(st.sp&&!travel){D.sp=st.sp;_sp=''}if(st.n)D.n=D.n||st.n;D.plan=st.plan||D.plan;D.rep=st.rep||D.rep;if(st.fx)D.fx=st.fx;RONDA=!!st.flags.ronda;D.bases=st.bases||[];D.conv=st.conv||[];D.rutas=st.rutas||[];
 }
 function propose(v){
   if(NET.role==='client'){NET.host.send({t:'propose',v:{kind:v.kind,title:v.title,opts:v.opts,cmd:v.cmd}});return}
@@ -4437,7 +4450,7 @@ function pilotConsume(d){
   if(!d)return true;if(D.cr){D.st.ly+=d;return true}const sp=SPEC[D.ship.d],s=D.st,need=d*sp.burn;if(s.fuel<need)return false;
   s.fuel-=need;const days=d*365.25*.32;s.days+=days;s.yrs+=d*1.05;s.ly+=d;if(sp.prov)s.prov=Math.max(0,s.prov-eaters()*days*(D.hib&&sp.hib?.15:1)*(1-(sp.farm||0)));return true;
 }
-function togglePilot(){
+function togglePilot(){if(!pilot&&rondaBloquea({k:'travel'})){toast(esc(MSG_RONDA));return}
   if(travel)return;if(NET.role==='client'){toast('En la sesión compartida sólo el anfitrión pilota a mano. Propón un destino.');return}if(pilot){stopPilot();return}if(mode!=='map')exitToMap();
   if(crewCount()<SPEC[D.ship.d].crew[0]){toast('Tripulación insuficiente para pilotar.');return}
   const p=shipPos();pilot={pos:[p[0],p[1],p[2]],dir:null,moved:0};selStar=null;route=null;flyTo(p[0],p[1],p[2],Math.min(Math.max(tg.R,4),40));
@@ -4704,6 +4717,70 @@ function renderNav(){
 function randomPlace(){const r=Math.random,l=mkLocXYZ(Math.round((r()-.5)*16),Math.round((r()-.5)*16),Math.round((r()-.5)*4),Array.from({length:4},()=>DETAIL[r()*27|0]).join(''));gotoSeed(seedStr(l))}
 function copy(txt,ok){(navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>toast(esc(ok))).catch(()=>prompt('Copia manualmente:',txt))}
 
+/* ═════════ Inicio: elegir partida antes de entrar · espera de tripulación antes de la ronda ═════════
+   · Al abrir la Carta se decide: continuar la partida guardada, empezar una nueva o cargar un archivo,
+     y si se juega en este dispositivo o se crea una sala como director (o se une a una sala).
+   · La ronda no empieza hasta que hay al menos 1 tripulante con credencial activo; hasta entonces
+     la carta se puede mirar, pero no se viaja, ni se pilota, ni se explora.                         */
+var RONDA=false;
+function miembrosActivos(){return D.crew.filter(m=>m.mid&&m.st==='ok')}
+const BLOQ_RONDA=new Set(['travel','plan','orbit','civ','exp','base','rescue']);
+function rondaBloquea(c){if(RONDA||!c)return false;if(c.k==='fac')return!['move','drop'].includes(c.a);return BLOQ_RONDA.has(c.k)}
+const MSG_RONDA='⏳ La ronda todavía no ha empezado: hace falta al menos un tripulante con credencial.';
+function hayPartida(){const s=D.st||{};return(s.jumps|0)>0||(s.days||0)>0||D.crew.some(m=>m.mid)||Object.keys(D.disc||{}).length>1||(D.bases||[]).length>0}
+function nuevaPartida(pnj){
+  const sp=SPEC[D.ship.d];D.st=freshState(D.ship.d);D.crew=[];if(pnj){const n=newCrew(D.ship.d);D.crew=n.c;D.st.extra=n.extra}else D.st.extra=sp.c0;
+  Object.assign(D,{sp:sSeed(SOL),hib:0,cr:0,ex:{},scan:{},disc:{},q:0,qf:{},plan:null,rep:{},fx:null,bases:[],conv:[],rutas:[],intro:0,crewLogo:null});
+  _sp='';travel=null;route=null;selStar=null;if(mode!=='map')exitToMap();saveD();updateCrewLogo();centerOnShip();refresh();
+}
+function introRonda(){if(D.intro)return;D.intro=1;saveD();queueDialog({t:'Corporación Ad Astra · Orden de misión',who:alive()[0]||null,tx:`Capitán: el Sol pierde brillo y nadie sabe por qué, salvo que hay algo —lo llaman astrófago— alimentándose de su luz. Tau Ceti, a 11,9 años luz, parece inmune. Tu nave y tu tripulación están listas. Cada salto cuesta astrófago, provisiones y años. Elige bien.`,res:'Primera misión: '+QUESTS[0].t,next:'Consejo: selecciona una estrella en la carta para calcular el salto.'})}
+function empezarRonda(){
+  if(NET.role==='client')return;const n=miembrosActivos().length;if(!n){toast('Sube al menos una credencial de Members para empezar.');return}
+  RONDA=true;const t=`▶ Empieza la ronda con ${n} tripulante${n===1?'':'s'}: ${miembrosActivos().map(m=>m.nm).join(', ')}.`;logDM(t,'sys');toast(esc(t));
+  if(NET.role==='host'){bcast({t:'toast',h:esc(t)});sysMsg(t)}saveD();updEspera();refresh();introRonda();
+}
+function subirCredencial(){openCardUpload(card=>{if(NET.role==='client'){NET.host.send({t:'hello',name:D.n||card.n,card});return}toast(esc(addCardLocally(card,NET.me||'local',D.n||card.n)));if(NET.role==='host')netSync();updEspera();refresh()},'Sube tu credencial de Members')}
+function updEspera(){
+  let el=document.getElementById('espera');if(!el){el=document.createElement('div');el.id='espera';el.className='ov';(document.getElementById('stage')||document.body).appendChild(el)}
+  if(RONDA||document.getElementById('inicio')){el.hidden=true;return}el.hidden=false;
+  const n=miembrosActivos().length,cl=NET.role==='client',key=[n,NET.role,NET.code,cl?NET.players&&Object.keys(NET.players).length:0].join('|');if(el.dataset.k===key)return;el.dataset.k=key;
+  el.innerHTML=cl?`<b>⏳ Esperando a que el director empiece la ronda</b><span class="note">${n} tripulante${n===1?'':'s'} con credencial a bordo.</span>`
+   :`<b>⏳ Esperando tripulación</b><span class="note">${n?`${n} tripulante${n===1?'':'s'} con credencial: ${esc(miembrosActivos().map(m=>m.nm).join(', '))}.`:'Hace falta al menos 1 tripulante con credencial para empezar la ronda.'}${NET.role==='host'?` Sala <b>${esc(NET.code)}</b>.`:''}</span>
+    <span class="row"><button class="sm" id="espSub">⬆ Subir credencial</button><button class="sm pri" id="espGo" ${n?'':'disabled'}>▶ Empezar la ronda</button></span>`;
+  const s=document.getElementById('espSub'),g=document.getElementById('espGo');if(s)s.onclick=subirCredencial;if(g)g.onclick=empezarRonda;
+}
+setInterval(updEspera,1000);
+
+function pantallaInicio(join){
+  const ov=document.createElement('div');ov.id='inicio';const hay=hayPartida(),s=D.st,sp=SHIPS[D.ship.d],mem=D.crew.filter(m=>m.mid&&m.st!=='perdido');
+  ov.innerHTML=`<div class="ini-box"><div class="ini-h"><img src="../icons/logo.png" alt="" onerror="this.remove()"><div><div class="kick">CORPORACIÓN AD ASTRA</div><h2>Carta Estelar</h2></div></div>
+  ${hay?`<div class="card ini-sel"><div class="kick">PARTIDA GUARDADA EN ESTE DISPOSITIVO</div><b>${esc(D.ship.n||sp.n)}</b> <span class="dim">· ${esc(sp.n)}</span>
+    <div class="note">${fmtT(s.days/365.25)} a bordo · ${s.jumps} saltos · ${fmtLen(s.ly)} · ${Object.keys(D.disc||{}).length} sistemas · ${(D.bases||[]).length} bases</div>
+    <div class="note">${mem.length?'Tripulantes con credencial: '+esc(mem.map(m=>m.nm).join(', ')):'Sin tripulantes con credencial'}</div>
+    <label class="chk"><input type="radio" name="iniP" value="seguir" checked> Continuar esta partida</label></div>`:''}
+  <div class="card"><label class="chk"><input type="radio" name="iniP" value="nueva" ${hay?'':'checked'}> Nueva partida${hay?' <span class="bad">(reemplaza la guardada)</span>':''}</label>
+    <label class="chk" style="margin-left:22px"><input type="checkbox" id="iniPnj"> Añadir tripulantes generados (PNJ) además de los jugadores</label>
+    <label class="chk"><input type="radio" name="iniP" value="archivo"> Cargar una partida desde archivo (.partida)</label><input type="file" id="iniFile" accept=".partida,application/octet-stream" hidden></div>
+  <div class="card"><div class="kick">CÓMO SE JUEGA</div>
+    <label class="chk"><input type="radio" name="iniM" value="solo" checked> En este dispositivo</label>
+    <label class="chk"><input type="radio" name="iniM" value="host"> Crear sala como director (los demás se unen con código)</label></div>
+  <div class="row"><button class="pri" id="iniGo">Entrar a la carta</button></div>
+  <div class="card"><div class="kick">UNIRSE A UNA SALA</div><div class="row"><input id="iniCode" maxlength="5" placeholder="CÓDIGO" style="text-transform:uppercase;width:110px" value="${esc(join||'')}"><button id="iniJoin" ${join?'class="pri"':''}>Unirme con mi credencial</button></div></div>
+  <p class="note">Antes de la primera ronda hace falta al menos un tripulante con credencial de Members a bordo. <a href="../">← Volver al menú</a></p></div>`;
+  document.body.appendChild(ov);
+  const cerrar=()=>{ov.classList.add('out');setTimeout(()=>{ov.remove();updEspera()},350)};
+  const elegido=n=>(ov.querySelector(`input[name=${n}]:checked`)||{}).value;
+  ov.querySelector('#iniGo').onclick=async()=>{
+    const p=elegido('iniP'),m=elegido('iniM');
+    if(p==='archivo'){const f=ov.querySelector('#iniFile');f.onchange=()=>{if(f.files[0]){cerrar();loadSaveFile(f.files[0]);if(m==='host')setTimeout(hostSession,300)}};f.click();return}
+    if(p==='nueva'){if(hay&&!confirm('¿Empezar una partida nueva? La guardada en este dispositivo se perderá (descárgala antes desde «Partida» si la quieres).'))return;nuevaPartida(ov.querySelector('#iniPnj').checked)}
+    cerrar();if(m==='host'){D.n=D.n||'Director';hostSession();toggleDrawer(true);setTab('sess')}
+    else if(!miembrosActivos().length)setTimeout(subirCredencial,450)};
+  ov.querySelector('#iniJoin').onclick=()=>{const c=ov.querySelector('#iniCode').value.trim().toUpperCase();if(!/^[A-Z2-9]{5}$/.test(c)){toast('Escribe el código de 5 caracteres de la sala.');return}cerrar();joinSession(c)};
+}
+/* Al cargar: pantalla de inicio salvo que se abra un enlace de partida o de semilla */
+(()=>{const h=HASH0.slice(1);RONDA=false;if(/^(d|s)=/.test(h)){updEspera();return}setTimeout(()=>pantallaInicio(NET.wantJoin||''),RM?0:1450)})();
+
 /* ═════════ Compartir: enlace, QR y partida ═════════ */
 function baseUrl(){const b=(D.base||'').trim();if(b)return b.split('#')[0];return /^https?:/.test(location.protocol)?location.href.split('#')[0]:''}
 const b64u=u8=>{let s='';for(let i=0;i<u8.length;i+=8192)s+=String.fromCharCode.apply(null,u8.subarray(i,i+8192));return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')};
@@ -4715,7 +4792,7 @@ function snapshot(maxN){
   return{v:3,n:D.n||'',c:seedStr(focusLoc(14)),sh:[sh.d,sh.n||'',sh.c1,sh.c2],sp:D.sp,
     st:[+s.fuel.toFixed(2),Math.round(s.prov),s.extra|0,Math.round(s.hull),Math.round(s.min),+s.days.toFixed(1),+s.yrs.toFixed(3),s.jumps,+s.ly.toFixed(2)],
     cw:D.crew.map(m=>[m.nm,m.sp,m.role,KS.map(k=>m.s[k]),m.tr,Math.round(m.hp),Math.round(m.mor),m.xp,m.lv,m.st==='perdido'?1:m.st==='susp'?2:0,m.bio,m.mid||'',m.pid||'',m.pl||'',m.e0??'',m.s0?KS.map(k=>m.s0[k]):0,m.lv0||0,m.t||'',m.n0||'',m.id,m.fv0||0,m.ms0||0,m.mi0||'',m.d0||0,m.ph||'',m.inv&&invCount(m.inv)?m.inv:0,memberFa(m).length?memberFa(m):0]),lg:D.crewLogo||null,pl:D.plan||null,rp:D.rep||{},fx:D.fx||null,bs:D.bases||[],cv:D.conv||[],rt:D.rutas||[],
-    f:[D.hib?1:0,D.cr?1:0,D.q|0,D.anon?1:0],ex:D.ex,sc:Object.keys(D.scan),ds:Object.keys(D.disc),
+    f:[D.hib?1:0,D.cr?1:0,D.q|0,D.anon?1:0,typeof RONDA!=='undefined'&&RONDA?1:0],ex:D.ex,sc:Object.keys(D.scan),ds:Object.keys(D.disc),
     cm:[cam.fx,cam.fy,cam.fz,cam.R,cam.yaw,cam.pitch].map(v=>+v.toFixed(3)),op:[opt.color?1:0,opt.spin?1:0,opt.nav?1:0,opt.pet?1:0],b:D.base||'',
     h:D.h.slice(-maxN).map(e=>[e.s,Math.round(e.t/1000).toString(36),e.k,e.f?1:0,e.n||''])};
 }
@@ -4734,7 +4811,7 @@ function normState(st){
     st.plan=st.pl&&Array.isArray(st.pl.stops)?{stops:st.pl.stops.slice(0,40).map(s=>({s:String(s.s).slice(0,40),a:(s.a||[]).slice(0,12).map(x=>String(x).slice(0,20))}))}:null;
     st.rep=st.rp&&typeof st.rp==='object'?Object.fromEntries(Object.entries(st.rp).slice(0,500).map(([k,v])=>[String(k).slice(0,60),clamp(+v||0,-100,100)])):{};
     st.fx=normFx(st.fx);st.bases=normBases(st.bs);st.conv=normConv(st.cv);st.rutas=normRutas(st.rt);
-    const f=st.f||[];st.flags={hib:f[0]?1:0,cr:f[1]?1:0,q:clamp(f[2]|0,0,QUESTS.length),anon:!!f[3]};
+    const f=st.f||[];st.flags={hib:f[0]?1:0,cr:f[1]?1:0,q:clamp(f[2]|0,0,QUESTS.length),anon:!!f[3],ronda:!!f[4]};
     st.ex=st.ex&&typeof st.ex==='object'?Object.fromEntries(Object.entries(st.ex).slice(0,5000).map(([k,v])=>[String(k).slice(0,80),+v|0])):{};
     st.scan=Object.fromEntries((st.sc||[]).slice(0,5000).map(k=>[String(k).slice(0,80),1]));st.disc=Object.fromEntries((st.ds||[]).slice(0,5000).map(k=>[String(k).slice(0,40),1]));}
   return st;
@@ -4808,9 +4885,8 @@ addEventListener('drop',e=>{const f=e.dataTransfer&&e.dataTransfer.files[0];if(f
 updateCrewLogo();$('#logBtn').onclick=()=>showDM(!document.getElementById('dmBox').classList.contains('show'));$('#dualBtn').onclick=()=>{if(POP&&!POP.closed){const w=POP;closeDual();w.close()}else openDual()};
 resize();toggleDrawer(innerWidth>1100);setTab('carta');refresh();requestAnimationFrame(frame);handleHash();
 setTimeout(()=>{const b=$('#boot');if(b){b.classList.add('out');setTimeout(()=>b.remove(),700)}
-  if(!D.intro){D.intro=1;saveD();queueDialog({t:'Corporación Ad Astra · Orden de misión',who:alive()[0]||null,tx:`Capitán: el Sol pierde brillo y nadie sabe por qué, salvo que hay algo —lo llaman astrófago— alimentándose de su luz. Tau Ceti, a 11,9 años luz, parece inmune. Tu nave y tu tripulación están listas. Cada salto cuesta astrófago, provisiones y años. Elige bien.`,res:'Primera misión: '+QUESTS[0].t,next:'Consejo: selecciona una estrella en la carta para calcular el salto.'})}
 },RM?0:1400);
-window.__adastra={parseX,buildX,baseRes,buildBase,sendBase,addRoute,doBase,convTick,routeTick,baseTick,FX,facOf,boardFor,doFac,facEvent,exposure,genMission,EV,queueDialog,missionLink,endGame,NET,starsNearPub:starsNear,seedOf,starFromSeed,genSystem,starName,membersDecode,addCardLocally,exportLink,memberFromCard,doCiv,civInfo,getPlan,addToPlan,simulatePlan,startPlanNow,get planRun(){return planRun},cmd,execCmd,hostSession,joinSession,createVote,castVote,D:()=>D,cam,tg,selectStar,startTravel,get travel(){return travel},get route(){return route},ANCHSTARS,enterSystem,land,planetInfo,get SYS(){return SYS},openExpedition,packFile,unpackFile,gotoSeed,shipStar,A_BY,questEvent,crewCount,get mode(){return mode},setTab,exitToMap,centerOnShip};
+window.__adastra={empezarRonda,nuevaPartida,get RONDA(){return RONDA},miembrosActivos,parseX,buildX,baseRes,buildBase,sendBase,addRoute,doBase,convTick,routeTick,baseTick,FX,facOf,boardFor,doFac,facEvent,exposure,genMission,EV,queueDialog,missionLink,endGame,NET,starsNearPub:starsNear,seedOf,starFromSeed,genSystem,starName,membersDecode,addCardLocally,exportLink,memberFromCard,doCiv,civInfo,getPlan,addToPlan,simulatePlan,startPlanNow,get planRun(){return planRun},cmd,execCmd,hostSession,joinSession,createVote,castVote,D:()=>D,cam,tg,selectStar,startTravel,get travel(){return travel},get route(){return route},ANCHSTARS,enterSystem,land,planetInfo,get SYS(){return SYS},openExpedition,packFile,unpackFile,gotoSeed,shipStar,A_BY,questEvent,crewCount,get mode(){return mode},setTab,exitToMap,centerOnShip};
 })();
 </script>
 </body>

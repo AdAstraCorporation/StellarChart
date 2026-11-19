@@ -48,6 +48,7 @@ try{const raw=localStorage.getItem(LS_KEY);if(raw)Object.assign(D,JSON.parse(raw
 const saveD=()=>{if(NET&&NET.role==='client')return;try{localStorage.setItem(LS_KEY,JSON.stringify(D))}catch(e){}if(NET&&NET.role==='host')netSync()};
 D.ship=cleanShip(Object.assign({...DEF_SHIP},D.ship||{}));
 const SOL=A_BY('sol');
+const HASH0=location.hash; // se lee antes de que handleHash lo borre
 if(!D.sp||!parseSeed(D.sp).loc)D.sp=sSeed(SOL);
 if(!Array.isArray(D.h))D.h=[];
 for(const k of['ex','scan','disc','qf'])if(!D[k]||typeof D[k]!=='object')D[k]={};

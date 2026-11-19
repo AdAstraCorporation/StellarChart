@@ -2,6 +2,7 @@
 /* ═════════ Comandos: lo que cambia la partida pasa por aquí (votación en sesión compartida) ═════════ */
 function needVote(){return NET.role==='client'||(NET.role==='host'&&NET.demo&&NET.conns.size>0)}
 function cmd(c,label){
+  if(rondaBloquea(c)){toast(esc(MSG_RONDA));return}
   if(NET.role==='host'&&NET.conns.size>0&&(c.k==='travel'||c.k==='plan')){askRoute(c,label);return}
   logDM('Acción: '+(label||c.k),'cmd');
   if(needVote()){propose({kind:'cmd',title:label||'Acción',opts:['A favor','En contra'],cmd:c});toast('🗳 Propuesta enviada a votación: '+esc(label||''));return}
@@ -17,7 +18,7 @@ function askRoute(c,label){
 function respFor(k){const on=new Set([NET.me,...NET.conns.keys()]);let b=null;for(const m of alive())if(m.pid&&on.has(m.pid)&&m.role===k&&(!b||eff(m,k)>eff(b,k)))b=m;return b?{pid:b.pid,m:b,pl:b.pl||((NET.players[b.pid]||{}).name)||'?'}:null}
 function forceVote(id,o){const v=NET.votes.find(x=>x.id===id&&x.open);if(!v)return;v.ballots={[NET.me]:o};v.voters=[NET.me];v.forced=1;sysMsg(`El director impone «${v.opts[o]}» en «${v.title}».`);checkVotes()}
 function execCmd(c){
-  if(!c||typeof c!=='object')return'';
+  if(!c||typeof c!=='object')return'';if(rondaBloquea(c))return MSG_RONDA;
   if(c.k==='orbit')return doOrbit(String(c.act),c.i|0);
   if(c.k==='civ')return doCiv(c.i|0,String(c.a));
   if(c.k==='travel'){if(travel)return'Ya hay un viaje en curso.';const stars=(c.seeds||[]).map(s=>starFromSeed(s)||pointFromSeed(s)).filter(Boolean);if(stars.length<2)return'';stars[0]=shipStar();
@@ -175,7 +176,7 @@ async function clientRecv(m){
 }
 function applyRemote(st){
   const g=st.game;if(!g)return;D.st=g;D.crew=st.crew;D.hib=st.flags.hib;D.cr=st.flags.cr;D.q=st.flags.q;D.ex=st.ex;D.scan=st.scan;D.disc=st.disc;D.h=st.h;
-  if(st.ship)D.ship=st.ship;if(st.sp&&!travel){D.sp=st.sp;_sp=''}if(st.n)D.n=D.n||st.n;D.plan=st.plan||D.plan;D.rep=st.rep||D.rep;if(st.fx)D.fx=st.fx;D.bases=st.bases||[];D.conv=st.conv||[];D.rutas=st.rutas||[];
+  if(st.ship)D.ship=st.ship;if(st.sp&&!travel){D.sp=st.sp;_sp=''}if(st.n)D.n=D.n||st.n;D.plan=st.plan||D.plan;D.rep=st.rep||D.rep;if(st.fx)D.fx=st.fx;RONDA=!!st.flags.ronda;D.bases=st.bases||[];D.conv=st.conv||[];D.rutas=st.rutas||[];
 }
 function propose(v){
   if(NET.role==='client'){NET.host.send({t:'propose',v:{kind:v.kind,title:v.title,opts:v.opts,cmd:v.cmd}});return}
