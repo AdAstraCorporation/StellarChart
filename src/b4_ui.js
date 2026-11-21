@@ -203,6 +203,7 @@ function systemPanel(el){
   const S=SYS,here=sameStar(S.star,shipStar()),sp=SPEC[D.ship.d],sk=sSeed(S.star),s=D.st;
   let h=`<div class="kick">SISTEMA · ${here?'EN ÓRBITA':'VISTA REMOTA'}</div><h2>${esc(S.name)}</h2><div class="note">${esc(S.P.lab)} · ${S.planets.length} planeta${S.planets.length===1?'':'s'}${S.belts.length?' · '+S.belts.length+' cinturón':''}</div>
   <div class="row">${A('⤒ Volver a la carta',exitToMap)}${!here?A('Trazar ruta hasta aquí',()=>{const st=S.star;exitToMap();selectStar(st,true)},0,'pri'):''}</div>`;
+  if(MW.pi>=0&&MW.L>1.4&&S.planets[MW.pi]&&!planetInfo(S,MW.pi).gas)h+=escanerHtml(S,MW.pi,here);
   h+=`<p class="note story">${sysLore(S).map(esc).join(' ')}</p>`;
   if(here){
     const used=D.ex[sk+':-1']||0;h+=`<h3>Acciones en órbita</h3><div class="row">`;
@@ -233,7 +234,7 @@ function systemPanel(el){
       if(here){h+=`<div class="row">`;
         if(!sc)h+=A('Escanear · 2 d',()=>orbitAct('scan',i,'Escanear '+p.name));
         if(info.gas)h+=A('Sonda atmosférica · 4 d',()=>orbitAct('gas',i,'Sonda atmosférica a '+p.name));
-        else h+=A(sp.land?'⬇ Aterrizar':'⬇ Enviar lanzadera',()=>land(i),0,'pri');
+        else h+=A('🔭 Escanear la superficie',()=>land(i),0,'pri');
         h+=`</div>`}
       const civ=civInfo(S,i);
       if(civ&&(sc||civ.home||!here)){const rp=repOf(civ);h+=`<div class="card"><div class="kick">CIVILIZACIÓN</div><b>${esc(civ.name)}</b> <span class="tag">${TECH[civ.tech]}</span>${civ.tech?`<span class="tag">${esc(DISP[civ.disp]?DISP[civ.disp][0]:'')}</span><span class="tag ${rp>=20?'hz':rp<-10?'pet':''}">${repLab(rp)} (${rp})</span>`:''}
@@ -249,7 +250,7 @@ function systemPanel(el){
 }
 function surfacePanel(el){
   const {info}=surf,p=info.p,sp=SPEC[D.ship.d];
-  let h=`<div class="kick">SUPERFICIE · ${sp.land?'NAVE POSADA':'LANZADERA'}</div><h2>${esc(p.name)}</h2>
+  let h=`<div class="kick">SUPERFICIE · ${surf.sonda?'SONDA DESPLEGADA':'NAVE EN '+esc((surf.zona||'').toUpperCase())}</div><h2>${esc(p.name)}</h2>
   <div class="kv"><span>Tipo</span><span>${KIND[p.kind][0]}</span><span>Temperatura</span><span>${Math.round(p.T-273)} °C</span><span>Gravedad</span><span>${p.g.toFixed(2)} g</span><span>Atmósfera</span><span>${esc(info.atm)}${info.breath?' · respirable':''}</span></div>
   ${bioHtml(SYS,surf.i)}<p class="note">Rueda o pellizco para subir y bajar; arrastra para recorrer la superficie. Toca un punto de interés para explorarlo.</p>
   <h3>Condiciones</h3>${info.hz.length?`<div class="lst">${info.hz.map(z=>`<div class="item"><span class="${z[4]?'bad':'dim'}">${z[4]?'✦':'▲'}</span><div class="m"><b>${esc(z[0])}</b><i>${esc(z[3])} Dificultad +${z[2]} · mitiga ${STATN[z[1]]}</i></div></div>`).join('')}</div>`:'<p class="ok">Condiciones benignas.</p>'}
@@ -257,7 +258,7 @@ function surfacePanel(el){
   for(const n of info.pois){const P=POI[n],done=D.ex[info.key+':'+n];h+=`<div class="item"><span class="${done?'ok':''}">${done?'✓':'◆'}</span><div class="m"><b>${esc(n)}</b><i>${esc(P.tx)} ${STATN[P.k]} ${P.dc} · ${P.days} d</i></div>${done?'':A('Expedición',()=>openExpedition(info,n),0,'pri')}</div>`}
   h+=`</div>`;const civ=civInfo(SYS,surf.i);
   if(civ)h+=`<h3>Habitantes</h3><p class="note"><b>${esc(civ.name)}</b> · ${TECH[civ.tech]}. ${civ.hist.map(esc).join(' ')}</p>`;
-  h+=`<div class="row">${A('⤒ Despegar',()=>{MW.LT=.7})}</div>`;
+  h+=`<div class="row">${A(surf.sonda?'⤒ Recoger la sonda':'⤒ Despegar',()=>{MW.LT=.7})}</div>`;
   el.innerHTML=h;bindActs(el);
 }
 function renderShip(){

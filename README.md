@@ -98,14 +98,19 @@ En *Settings → Pages* la fuente debe ser **GitHub Actions**.
 - **Un solo zoom** recorre todo, como en No Man's Sky: vista del sistema → el planeta llena la pantalla → se atraviesan las
   nubes → la superficie vista desde arriba, hasta unos cientos de metros. Rueda, pellizco o los botones + / − del mapa.
   Elige un planeta (clic o lista del panel) y acerca; arrastrar gira el sistema o el planeta y, en la superficie, la recorre.
-- **Aterrizaje y despegue automáticos:** al bajar de la capa de nubes la nave se posa (en suelo firme, el más cercano) y al
-  subir despega. «Volver» y «Despegar» hacen el camino inverso con el mismo zoom. Desde otro sistema la vista es de sondeo:
-  se llega hasta la órbita, pero para descender hay que viajar allí. Los gigantes gaseosos no tienen superficie.
+- **Bajar: sonda o nave.** Al acercarte bajo las nubes se activa el escáner 3D y eliges el sitio tocando el terreno. El panel
+  muestra el terreno, la cota y la pendiente del sitio. **En cualquier sitio baja una sonda** (1 día); **la nave sólo se posa en
+  una zona de aterrizaje** 🛬: el puerto de una colonia o civilización, una base propia o el puerto espacial de la Tierra. Las
+  expediciones salen desde la sonda o la nave. Al volver a subir por encima de las nubes se recoge la sonda o despega la nave.
+  Desde otro sistema se puede escanear, pero para bajar hay que viajar allí. Los gigantes gaseosos no tienen superficie.
 - **Planetas como esferas con textura procedural** (relieve, mares, casquetes, nubes que se mueven, atmósfera con su color)
   y luz desde su estrella. La superficie usa **la misma función de relieve** que la esfera, así que lo que se ve desde la
   órbita es lo que se encuentra al bajar.
-- **Escáner de terreno cenital** que siempre cubre la pantalla (nunca se ven bordes): se genera por partes mientras se baja,
-  con relieve sombreado (luz del noroeste, exageración ×3), escala, altitud, coordenadas y el bioma bajo la retícula.
+- **Escáner de terreno 3D** (WebGL): malla con el relieve real del planeta, exageración vertical automática para que se
+  vean montañas, cráteres y valles, curvas de nivel, rejilla y barrido del escáner. Empieza cenital y se inclina al bajar;
+  Mayús o botón derecho y arrastrar inclina y gira la vista (también con los botones del panel). El alcance del escáner se
+  funde con el fondo, así que nunca se ven los bordes. Edificios de colonias y bases, ruinas y restos de naves aparecen
+  extruidos sobre el relieve. Si el navegador no tiene WebGL, se usa la vista cenital plana.
 - **Terrenos según las condiciones del planeta:** océanos con plataforma y fondo, playas, praderas, bosques, desiertos,
   tundra, nieve por latitud y altitud (con efecto invernadero de la atmósfera), montañas; mundos de lava con ríos
   incandescentes y costra enfriada; desiertos con dunas; mundos helados con mar congelado; mundos congelados con hielo de

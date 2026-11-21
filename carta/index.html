@@ -4087,10 +4087,8 @@ function drawSystem2D(now){
 /* ═════════ Superficie (aterrizaje) ═════════ */
 const SKY={lava:['#3a0d05','#a0300a'],desert:['#3b2a14','#c9965a'],ocean:['#071a33','#3f8fe0'],temperate:['#0b2238','#6fb0d8'],ice:['#0d1f2c','#9fd0e6'],frozen:['#0a0f18','#7d8ea3'],barren:['#050608','#3a3a40']};
 const GROUND={lava:'#1a0804',desert:'#5a3d1d',ocean:'#0b2b4a',temperate:'#183a22',ice:'#a8c8d8',frozen:'#5d6a7a',barren:'#2a2826'};
-function land(i,auto){if(rondaBloquea({k:'exp'})){toast(esc(MSG_RONDA));if(auto)MW.LT=1.6;return}
-  const info=planetInfo(SYS,i),sp=SPEC[D.ship.d];if(info.gas){toast('No hay superficie sólida.');return}
-  if(!D.scan[info.key]){D.scan[info.key]=1}if(!(NET&&NET.role==='client'))passDays(sp.land?1:2);selPlanet=SYS.planets[i];mwFoco(i);if(!MW.B)MW.B=baseDe([1,0,.2].map(v=>v/1.02));mode='surface';surf={i,info,t0:performance.now(),...mwAterriza(info)};if(!auto)MW.LT=Math.max(MW.LT,3);saveD();refresh();
-}
+/* Bajar a un planeta: se abre el escáner 3D para elegir el sitio (sonda) o una zona de aterrizaje (nave) */
+function land(i){const info=planetInfo(SYS,i);if(info.gas){toast('No hay superficie sólida.');return}selPlanet=SYS.planets[i];mwFoco(i);MW.LT=Math.max(MW.LT,2.8);setTab('carta');toast('Escáner 3D: toca el terreno para elegir dónde bajar.')}
 function drawSurface2D(now){
   ctx.letterSpacing='1.6px';const {info}=surf,p=info.p,k=p.kind,sky=SKY[k]||SKY.barren,t=now/1000,ent=RM?1:ease(clamp((now-surf.t0)/1200,0,1));
   const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,sky[0]);g.addColorStop(.75,sky[1]);ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
@@ -4289,8 +4287,7 @@ function colorDe(M,H,lat,mo,fine){const k=M.k,e=H-M.sea,al=Math.abs(lat),T=M.Ts-
     if(e>.24){const t=(e-.24)/.12;mezC([110,100,88],[150,145,140],t);return 8}
     if(T<268){mezC([120,118,90],[150,150,130],fine);return 6}
     if(mo<.32&&T>285){mezC([206,176,120],[186,150,96],fine);return 3}
-    if(mo<.52){setC(pc[0]*1.35+30+fine*20,pc[1]*1.3+30+fine*15,pc[2]*1.1+20);return 4}
-    setC(pc[0]*.7+fine*12,pc[1]*.72+fine*12,pc[2]*.7);return 5}
+    const fo=smooth(mo+fine*.12-.06,.44,.62);mezC([pc[0]*1.35+30+fine*20,pc[1]*1.3+30+fine*15,pc[2]*1.1+20],[pc[0]*.7+fine*12,pc[1]*.72+fine*12,pc[2]*.7],fo);return fo<.5?4:5}
   if(k==='desert'){if(M.marte){mezC([150,72,40],[205,120,72],clamp(H*1.3-.2+fine*.15,0,1));if(al>1.35){setC(240,236,230);return 7}return H<.38?10:3}
     if(H<.3&&mo>.6){setC(225,222,212);return 12}const t=clamp(H*1.2-.15+fine*.15,0,1);mezC([196,150,92],[234,200,140],t);return H>.72?8:11}
   if(k==='lava'){if(e<0){const g=.6+.4*Math.sin(fine*6.28);setC(255,90+g*80,20);return 9}if(e<.025){mezC([150,40,12],[60,30,24],e/.025);return 8}const t=clamp((H-.45)*2.2+fine*.25,0,1);mezC([58,48,44],[124,108,98],t);return 8}
@@ -4335,10 +4332,10 @@ function esfera(M,x,y,R,B,L,t,hi){if(R<.8)return;const T=texDe(M,false),Th=hi?te
 const V3={yaw:.5,pitch:.42,z:1};
 function p3(x,y,z,cx,cy,f){const cy_=Math.cos(V3.yaw),sy=Math.sin(V3.yaw),cp=Math.cos(V3.pitch),sp=Math.sin(V3.pitch);
   const x1=x*cy_-z*sy,z1=x*sy+z*cy_,y1=y*cp-z1*sp,z2=y*sp+z1*cp,k=f/(f+z2);return[cx+x1*k,cy-y1*k,k,z2]}
-const MW={L:0,LT:0,pi:-1,B:null,anc:null,buf:null,job:null,aviso:0,tLand:0};
+const MW={L:0,LT:0,pi:-1,B:null,anc:null,buf:null,job:null,aviso:0,tLand:0,tilt:.7,head:0,sel:null,cam:null};
 const MWLMAX=7.6;
 function mwReset(){MW.L=0;MW.LT=0;MW.pi=-1;MW.B=null;MW.anc=null;MW.buf=null;MW.job=null;V3.z=.55}
-function mwFoco(i){if(i!==MW.pi){MW.pi=i;MW.B=null;MW.anc=null;MW.buf=null;MW.job=null}}
+function mwFoco(i){if(i!==MW.pi){MW.pi=i;MW.B=null;MW.anc=null;MW.buf=null;MW.job=null;MW.cam=null}}
 const radioFoco=L=>Math.min(W,H)*.42*Math.pow(2,(L-1)*2.5);
 const spanDe=L=>W/radioFoco(L);
 /* ── Vista del sistema (L ≤ 1,4) ── */
@@ -4396,7 +4393,7 @@ function dibujaSistema(now,f){
 
 /* ── Superficie: escáner de terreno visto desde arriba, buffer progresivo que cubre siempre la pantalla ── */
 const _tb=()=>({cv:document.createElement('canvas'),cl:document.createElement('canvas')});
-function nuevoTrabajo(M,B,span,coarse){const RES=Math.max(2,Math.round(W/420))*(coarse?3:1),ext=1.55,gw=Math.ceil(W*ext/RES),gh=Math.ceil(H*ext/RES),pxr=span/W*RES;
+function nuevoTrabajo(M,B,span,coarse){const RES=Math.max(2,Math.round(W/420))*(coarse?3:1),ext=1.95,gw=Math.ceil(W*ext/RES),gh=Math.ceil(H*ext/RES),pxr=span/W*RES;
   const n=clamp(Math.ceil(Math.log2(1/(pxr*1.1)))+1,5,17),crs=[6,18,55,170,520,1600,5000,15000,45000].filter(s=>{const rad=.3/s;return rad>pxr*5&&rad<span*.7}).slice(0,3);
   return{M,B,span,RES,coarse,gw,gh,pxr,n,crs,row:0,h:new Float32Array(gw*gh),mo:new Float32Array(gw*gh),fn:new Float32Array(gw*gh),bio:new Uint8Array(gw*gh),cld:new Uint8Array(gw*gh),done:false}}
 function pasoTerreno(J,budget){const t0=performance.now(),{M,B,gw,gh,pxr,n,crs}=J,{c,e1,e2}=B;
@@ -4420,70 +4417,137 @@ const delPlano=(B,u,v)=>{const x=B.c[0]+B.e1[0]*u+B.e2[0]*v,y=B.c[1]+B.e1[1]*u+B
 const NBIO=['Mar profundo','Mar somero','Playa','Desierto','Pradera','Bosque','Tundra','Hielo','Roca y montaña','Lava','Regolito','Dunas','Salar','Lago de metano','Hielo de nitrógeno','Mar helado'];
 function bufEn(J,sx,sy,span){if(!J||!J.done)return null;const [uc,vc]=enPlano(J.B,MW.B.c),u=uc+(sx-W/2)*span/W,v=vc-(sy-H/2)*span/W,i=Math.round(u/J.pxr+J.gw/2),j=Math.round(-v/J.pxr+J.gh/2);
   if(i<0||j<0||i>=J.gw||j>=J.gh)return null;return J.gw*j+i}
+/* ═════ Escáner de terreno 3D (WebGL): malla con relieve real, curvas de nivel, rejilla y barrido ═════
+   La malla sale del mismo buffer de relieve; la cámara mira desde arriba y se puede inclinar y girar. Los bordes del
+   alcance del escáner se funden con el fondo, así que nunca se ve dónde acaba el terreno.                          */
+const GLS={ok:null,cv:null,gl:null};
+function glIni(){if(GLS.ok!==null)return GLS.ok;try{const cv=document.createElement('canvas'),gl=cv.getContext('webgl',{antialias:true,preserveDrawingBuffer:true})||cv.getContext('experimental-webgl');if(!gl)throw 0;
+  const sh=(t,s)=>{const o=gl.createShader(t);gl.shaderSource(o,s);gl.compileShader(o);if(!gl.getShaderParameter(o,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(o));return o};
+  const vs=`attribute vec3 p;attribute vec2 t;attribute vec2 g;uniform vec2 off;uniform float k,hs,h0,ch,sh,pc,ps,Dc,f;uniform vec2 scr;varying vec2 vt;varying float vh,vd,vl;varying vec2 vq;
+void main(){vec2 q=(p.xy-off)*k;float z=(p.z-h0)*hs;vec3 P=vec3(ch*q.x+sh*q.y,-sh*q.x+ch*q.y,z);vec3 r=P-vec3(0.,-Dc*ps,Dc*pc);
+float d=dot(r,vec3(0.,ps,-pc)),N=1.,F=Dc*30.;gl_Position=vec4(f*r.x/(scr.x*.5),f*dot(r,vec3(0.,pc,ps))/(scr.y*.5),d*(F+N)/(F-N)-2.*F*N/(F-N),d);
+vec3 n=normalize(vec3(-g.x*hs/k,-g.y*hs/k,1.));vl=max(0.,dot(n,normalize(vec3(-.55,.55,.62))));vt=t;vh=p.z;vd=d;vq=q;}`;
+  const fs=`precision mediump float;uniform sampler2D tx;uniform float tm,cst,gs,fogD;uniform vec3 bg;varying vec2 vt;varying float vh,vd,vl;varying vec2 vq;
+void main(){vec3 c=texture2D(tx,vt).rgb*(.22+1.05*vl);
+float e=fract(vh/cst);c=mix(c,vec3(.55,.95,1.),smoothstep(.965,1.,max(e,1.-e))*.22);
+vec2 gq=fract(vq/gs);c=mix(c,vec3(.45,.9,1.),max(step(.992,gq.x),step(.992,gq.y))*.16);
+float sb=mod(vq.y/(gs*6.)-tm*.18,1.);c+=vec3(.25,.75,1.)*exp(-pow((sb-.5)*70.,2.))*.3;
+float ed=min(min(vt.x,1.-vt.x),min(vt.y,1.-vt.y));c=mix(bg,c,smoothstep(0.,.09,ed)*(1.-smoothstep(fogD*1.5,fogD*3.2,vd)));gl_FragColor=vec4(c,1.);}`;
+  const pr=gl.createProgram();gl.attachShader(pr,sh(gl.VERTEX_SHADER,vs));gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,fs));gl.linkProgram(pr);if(!gl.getProgramParameter(pr,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(pr));
+  Object.assign(GLS,{cv,gl,pr,ok:true,u:n=>gl.getUniformLocation(pr,n),a:n=>gl.getAttribLocation(pr,n)})}catch(e){console.warn('Escáner 3D sin WebGL:',e&&e.message||e);GLS.ok=false}return GLS.ok}
+/* Malla a partir de un buffer de relieve (se rehace sólo cuando cambia el buffer) */
+function glMalla(J){const gl=GLS.gl,M=J.M,s=Math.max(1,Math.ceil(Math.max(J.gw/230,J.gh/160))),nx=Math.floor((J.gw-1)/s)+1,ny=Math.floor((J.gh-1)/s)+1,sea=M.sea>-1?M.sea:-9;
+  const V=new Float32Array(nx*ny*7),hf=(i,j)=>{const h=J.h[clamp(j,0,J.gh-1)*J.gw+clamp(i,0,J.gw-1)];return h<sea?sea:h};let lo=1e9,hi=-1e9;
+  for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){const bi=i*s,bj=j*s,o=(j*nx+i)*7,h=hf(bi,bj);V[o]=(bi-J.gw/2)*J.pxr;V[o+1]=-(bj-J.gh/2)*J.pxr;V[o+2]=h;V[o+3]=(bi+.5)/J.gw;V[o+4]=(bj+.5)/J.gh;
+    V[o+5]=(hf(bi+s,bj)-hf(bi-s,bj))/(2*s*J.pxr);V[o+6]=-(hf(bi,bj+s)-hf(bi,bj-s))/(2*s*J.pxr);if(h<lo)lo=h;if(h>hi)hi=h}
+  const I=new Uint16Array((nx-1)*(ny-1)*6);let q=0;for(let j=0;j<ny-1;j++)for(let i=0;i<nx-1;i++){const a=j*nx+i,b=a+1,c=a+nx,d=c+1;I[q++]=a;I[q++]=c;I[q++]=b;I[q++]=b;I[q++]=c;I[q++]=d}
+  if(J.gl){gl.deleteBuffer(J.gl.vb);gl.deleteBuffer(J.gl.ib);gl.deleteTexture(J.gl.tx)}
+  const vb=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,vb);gl.bufferData(gl.ARRAY_BUFFER,V,gl.STATIC_DRAW);const ib=gl.createBuffer();gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ib);gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,I,gl.STATIC_DRAW);
+  const tx=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,tx);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,gl.RGB,gl.UNSIGNED_BYTE,J.cv);for(const [p,v] of [[gl.TEXTURE_MIN_FILTER,gl.LINEAR],[gl.TEXTURE_MAG_FILTER,gl.LINEAR],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,p,v);
+  J.gl={vb,ib,tx,n:I.length};J.lo=lo;J.hi=hi}
+/* Cámara del escáner: se guarda para proyectar los marcadores y para elegir puntos con el ratón */
+function camEscaner(J,span,L){const M=J.M,k=W/span,phys=12*k/M.Rk,rango=Math.max(1e-6,J.hi-J.lo),ex=clamp(.22*W/(rango*phys),1,40),t=smooth(L,1.8,2.7),tilt=MW.tilt*t,hd=MW.head*t,[ou,ov]=enPlano(J.B,MW.B.c);
+  const Dc=W*1.15,sea=M.sea>-1?M.sea:-9,c0=J.h[Math.round(-ov/J.pxr+J.gh/2)*J.gw+Math.round(ou/J.pxr+J.gw/2)],h0=Math.max(sea,isFinite(c0)?c0:(J.lo+J.hi)/2);return{J,ou,ov,k,h0,hs:phys*ex,ex,ch:Math.cos(hd),sh:Math.sin(hd),pc:Math.cos(tilt),ps:Math.sin(tilt),Dc,f:Dc,sea:M.sea>-1?M.sea:-9}}
+function hEn(c,uj,vj){const J=c.J,i=Math.round(uj/J.pxr+J.gw/2),j=Math.round(-vj/J.pxr+J.gh/2);if(i<0||j<0||i>=J.gw||j>=J.gh)return null;const h=J.h[j*J.gw+i];return h<c.sea?c.sea:h}
+function proy(c,uj,vj,h){const x0=(uj-c.ou)*c.k,y0=(vj-c.ov)*c.k,z=(h-c.h0)*c.hs,x=c.ch*x0+c.sh*y0,y=-c.sh*x0+c.ch*y0,ry=y+c.Dc*c.ps,rz=z-c.Dc*c.pc,d=ry*c.ps-rz*c.pc;if(d<5)return null;return[W/2+c.f*x/d,H/2-c.f*(ry*c.pc+rz*c.ps)/d,c.f/d]}
+/* Punto del suelo bajo el cursor (rayo contra el relieve, refinado tres veces) */
+function pickSuelo(sx,sy){const c=MW.cam;if(!c)return null;const dx=(sx-W/2)/c.f,dy=-(sy-H/2)/c.f,dir=[dx,c.ps+c.pc*dy,-c.pc+c.ps*dy],C=[0,-c.Dc*c.ps,c.Dc*c.pc];let zt=0,uj=c.ou,vj=c.ov;
+  for(let it=0;it<4;it++){if(dir[2]>=-1e-6)return null;const t=(zt-C[2])/dir[2],x=C[0]+t*dir[0],y=C[1]+t*dir[1],x0=c.ch*x-c.sh*y,y0=c.sh*x+c.ch*y;uj=x0/c.k+c.ou;vj=y0/c.k+c.ov;const h=hEn(c,uj,vj);if(h==null)return null;zt=(h-c.h0)*c.hs}
+  return{w:delPlano(c.J.B,uj,vj),uj,vj}}
+
 function dibujaTerreno(now,alpha,span){const M=mundo(SYS,MW.pi),B=MW.B,t=now/1000;
   /* el trabajo apunta al zoom de destino, para que al llegar ya esté listo */
   const spanT=spanDe(Math.max(1.4,MW.LT)),J=MW.buf;
-  const vale=(X,sp)=>{if(!X)return false;const [uc,vc]=enPlano(X.B,B.c),k=X.pxr*W/sp/X.RES,half=X.gw/2*X.pxr*W/sp;return k>.7&&k<1.45&&half-Math.abs(uc*W/sp)>W/2*1.01&&X.gh/2*X.pxr*W/sp-Math.abs(vc*W/sp)>H/2*1.01};
+  const vale=(X,sp)=>{if(!X)return false;const [uc,vc]=enPlano(X.B,B.c),k=X.pxr*W/sp/X.RES,half=X.gw/2*X.pxr*W/sp;return k>.7&&k<1.45&&half-Math.abs(uc*W/sp)>W/2*1.2&&X.gh/2*X.pxr*W/sp-Math.abs(vc*W/sp)>H/2*1.2};
   if(!vale(MW.job,spanT)&&!(J&&vale(J,spanT)&&!J.coarse))MW.job=nuevoTrabajo(M,{c:B.c.slice(),e1:B.e1.slice(),e2:B.e2.slice()},spanT,!(J&&vale(J,spanT)));
   if(MW.job&&!MW.job.done){pasoTerreno(MW.job,12);if(MW.job.done){const jj=MW.job;MW.buf=jj;MW.job=jj.coarse?nuevoTrabajo(M,jj.B,jj.span,false):null}}
-  ctx.save();ctx.globalAlpha=alpha;
-  const X=MW.buf;if(X&&X.cv){const [uc,vc]=enPlano(X.B,B.c),k=X.pxr*W/span,ox=W/2-uc*W/span-X.gw/2*k,oy=H/2+vc*W/span-X.gh/2*k;ctx.imageSmoothingEnabled=true;ctx.drawImage(X.cv,ox,oy,X.gw*k,X.gh*k);
-    /* nubes: se atraviesan al bajar */
-    const ca=clamp((3.3-MW.L)/1.4,0,1)*(M.nubes?1:0);if(ca>0){ctx.globalAlpha=alpha*ca*.85;const dr=(t*.8)%1e6*W/span*.00002;ctx.drawImage(X.cl,ox+dr,oy,X.gw*k,X.gh*k);ctx.globalAlpha=alpha}
-    if(alpha>.6)vidaYsuperficie(M,X,now,span,alpha)}
+  const X=MW.buf;if(!X||!X.cv)return;ctx.save();ctx.globalAlpha=alpha;
+  if(glIni()){if(!X.gl)glMalla(X);const c=camEscaner(X,span,MW.L),gl=GLS.gl,cv=GLS.cv,r=Math.min(1.5,devicePixelRatio||1);if(cv.width!==Math.round(W*r)||cv.height!==Math.round(H*r)){cv.width=Math.round(W*r);cv.height=Math.round(H*r)}
+    gl.viewport(0,0,cv.width,cv.height);gl.clearColor(.012,.03,.045,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.enable(gl.DEPTH_TEST);gl.useProgram(GLS.pr);
+    gl.bindBuffer(gl.ARRAY_BUFFER,X.gl.vb);gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,X.gl.ib);const at=(n,sz,o)=>{const l=GLS.a(n);gl.enableVertexAttribArray(l);gl.vertexAttribPointer(l,sz,gl.FLOAT,false,28,o)};at('p',3,0);at('t',2,12);at('g',2,20);
+    gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,X.gl.tx);const U=GLS.u;gl.uniform1i(U('tx'),0);gl.uniform2f(U('off'),c.ou,c.ov);gl.uniform2f(U('scr'),W,H);
+    for(const [n,v] of [['k',c.k],['hs',c.hs],['h0',c.h0],['ch',c.ch],['sh',c.sh],['pc',c.pc],['ps',c.ps],['Dc',c.Dc],['f',c.f],['fogD',c.Dc],['tm',t],['cst',Math.max(1e-6,(X.hi-X.lo)/9)],['gs',W/8]])gl.uniform1f(U(n),v);gl.uniform3f(U('bg'),.012,.03,.045);
+    gl.drawElements(gl.TRIANGLES,X.gl.n,gl.UNSIGNED_SHORT,0);ctx.drawImage(cv,0,0,W,H);MW.cam=c}
+  else{const [uc,vc]=enPlano(X.B,B.c),k=X.pxr*W/span,ox=W/2-uc*W/span-X.gw/2*k,oy=H/2+vc*W/span-X.gh/2*k;ctx.imageSmoothingEnabled=true;ctx.drawImage(X.cv,ox,oy,X.gw*k,X.gh*k);MW.cam={...camEscaner(X,span,0),hs:0,pc:1,ps:0,ch:1,sh:0}}
+  /* nubes: se atraviesan al bajar */
+  const ca=clamp((2.9-MW.L)/1.1,0,1)*(M.nubes?1:0);if(ca>0){ctx.globalAlpha=alpha*ca*.75;const [uc,vc]=enPlano(X.B,B.c),k=X.pxr*W/span,dr=(t*.8)%1e6*W/span*.00002;ctx.drawImage(X.cl,W/2-uc*W/span-X.gw/2*k+dr,H/2+vc*W/span-X.gh/2*k,X.gw*k,X.gh*k);ctx.globalAlpha=alpha}
+  if(alpha>.6)vidaYsuperficie(M,X,now,span,alpha);
   ctx.restore();
-  /* barrido del escáner y escala */
-  if(alpha>.3){const y=(t*.12%1)*H;ctx.fillStyle='rgba(120,230,255,.05)';ctx.fillRect(0,y-30,W,30);ctx.strokeStyle='rgba(150,240,255,.35)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();
-    const km=span*M.Rk,nice=[.01,.02,.05,.1,.2,.5,1,2,5,10,20,50,100,200,500,1000,2000,5000].find(v=>v/km*W>90)||5000,bl=nice/km*W;
+  if(alpha>.3){const km=span*M.Rk,nice=[.01,.02,.05,.1,.2,.5,1,2,5,10,20,50,100,200,500,1000,2000,5000].find(v=>v/km*W>90)||5000,bl=nice/km*W,c=MW.cam;
     ctx.font='10px ui-monospace,Menlo,monospace';ctx.textAlign='left';ctx.fillStyle='rgba(200,240,255,.85)';ctx.fillRect(70,H-86,bl,2);ctx.fillText(nice<1?Math.round(nice*1000)+' m':nice+' km',70,H-96);
-    const alt=km*.55,lat=Math.asin(B.c[2])/RAD,lon=Math.atan2(B.c[1],B.c[0])/RAD,i0=bufEn(MW.buf,W/2,H/2,span);
-    ctx.fillText(spaced(`ESCÁNER DE TERRENO · ALTITUD ${alt<10?alt.toFixed(1):fmtI(alt)} KM · ${Math.abs(lat).toFixed(2)}°${lat<0?'S':'N'} ${Math.abs(lon).toFixed(2)}°${lon<0?'O':'E'}${i0!=null?' · '+NBIO[MW.buf.bio[i0]].toUpperCase():''}`),70,H-60)}}
-/* Flora, fauna, rocas, puntos de interés y la nave, anclados al mundo (no se mueven al desplazarte) */
-function vidaYsuperficie(M,X,now,span,alpha){const t=now/1000,A=MW.anc||(MW.anc={...baseDe(MW.B.c.slice())}),[ac,bc]=enPlano(A,MW.B.c),mpx=span*M.Rk*1000/W,vida=M.bio.vida,pc=M.bio.pc,lifeless=vida===0;
-  const toS=(u,v)=>[W/2+(u-ac)*W/span,H/2-(v-bc)*W/span];
-  const celdas=(sizeM,fn,maxN)=>{const cs=sizeM/1000/M.Rk,cpx=cs*W/span;if(cpx<4)return;const i0=Math.floor((ac-span/2)/cs)-1,i1=Math.ceil((ac+span/2)/cs)+1,hs=span*H/W,j0=Math.floor((bc-hs/2)/cs)-1,j1=Math.ceil((bc+hs/2)/cs)+1;
-    if((i1-i0)*(j1-j0)>maxN)return;for(let j=j0;j<=j1;j++)for(let i=i0;i<=i1;i++){const h=ih(i,j,sizeM|0,M.o[0]*1000|0),[x,y]=toS((i+(h&255)/255)*cs,(j+((h>>>8)&255)/255)*cs);if(x<-30||y<-30||x>W+30||y>H+30)continue;const o=bufEn(X,x,y,span);if(o==null)continue;fn(x,y,X.bio[o],h,cpx)}};
-  /* árboles y arbustos (copas vistas desde arriba) */
+    const alt=km*.55,lat=Math.asin(B.c[2])/RAD,lon=Math.atan2(B.c[1],B.c[0])/RAD,h0=c&&hEn(c,c.ou,c.ov),i0=bufEn(X,W/2,H/2,span);
+    ctx.fillText(spaced(`ESCÁNER 3D · ALTITUD ${alt<10?alt.toFixed(1):fmtI(alt)} KM · ${Math.abs(lat).toFixed(2)}°${lat<0?'S':'N'} ${Math.abs(lon).toFixed(2)}°${lon<0?'O':'E'}${i0!=null?' · '+NBIO[X.bio[i0]].toUpperCase():''}${h0!=null&&c?` · COTA ${((h0-(M.sea>-1?M.sea:.5))*12).toFixed(2)} KM · RELIEVE ×${c.ex.toFixed(0)}`:''}`),70,H-60);
+    ctx.fillStyle='rgba(126,231,135,.7)';ctx.fillText(spaced(mode==='surface'?'TOCA UN PUNTO DE INTERÉS PARA EXPLORARLO':'TOCA EL TERRENO PARA ELEGIR SITIO · MAYÚS+ARRASTRAR: INCLINAR Y GIRAR'),70,H-44)}}
+/* Zonas de aterrizaje: puertos de colonias y civilizaciones, y bases propias. Fuera de ellas sólo baja una sonda. */
+function zonas(M){const S=M.S,i=M.i,info=M.info,out=[],civ=civInfo(S,i),sol=S.star.anchor&&S.star.anchor.id==='sol'&&M.p.name==='Tierra';
+  const pos=(a,b)=>{const r=rng(hash(S.star.h,i,a,b));let w=[1,0,0];for(let k=0;k<60;k++){const z=r()*1.4-.7,lo=r()*6.283,c=Math.sqrt(1-z*z);w=[c*Math.cos(lo),c*Math.sin(lo),z];if(!(M.sea>-1)||relieve(M,w[0],w[1],w[2],7,null)>M.sea+.04)break}return w};
+  if(sol)out.push({n:'Puerto espacial Ad Astra',t:'centro',w:pos(9,9)});
+  if(info.colony||civ&&civ.tech>=3)out.push({n:`Puerto de ${civ?civ.name:'la colonia'}`,t:'colonia',w:pos(1,1)});
+  for(const b of (D.bases||[]).filter(b=>b.k===info.key))out.push({n:b.n,t:'base',w:pos(2,ih(b.id.charCodeAt(0),b.id.charCodeAt(1),3,4)%1000)});
+  return out}
+/* Flora, fauna, rocas, zonas, sitio elegido, sonda o nave: anclados al mundo y proyectados sobre el relieve 3D */
+function vidaYsuperficie(M,X,now,span,alpha){const t=now/1000,c=MW.cam;if(!c)return;const A=MW.anc||(MW.anc={...baseDe(MW.B.c.slice())}),[ac,bc]=enPlano(A,MW.B.c),mpx=span*M.Rk*1000/W,vida=M.bio.vida,pc=M.bio.pc,lifeless=vida===0;
+  const aJ=(u,v)=>enPlano(X.B,delPlano(A,u,v));
+  const pw=(w)=>{const [uj,vj]=enPlano(X.B,w),h=hEn(c,uj,vj);return h==null?null:proy(c,uj,vj,h)};
+  const celdas=(sizeM,fn,maxN)=>{const cs=sizeM/1000/M.Rk,cpx=cs*W/span;if(cpx<4)return;const ext=span*(.6+c.ps*.9),i0=Math.floor((ac-ext)/cs)-1,i1=Math.ceil((ac+ext)/cs)+1,j0=Math.floor((bc-ext)/cs)-1,j1=Math.ceil((bc+ext)/cs)+1;
+    if((i1-i0)*(j1-j0)>maxN)return;for(let j=j0;j<=j1;j++)for(let i=i0;i<=i1;i++){const h=ih(i,j,sizeM|0,M.o[0]*1000|0),[uj,vj]=aJ((i+(h&255)/255)*cs,(j+((h>>>8)&255)/255)*cs),hb=hEn(c,uj,vj);if(hb==null)continue;
+      const q=proy(c,uj,vj,hb);if(!q||q[0]<-30||q[1]<-30||q[0]>W+30||q[1]>H+30)continue;const ii=Math.round(uj/X.pxr+X.gw/2),jj=Math.round(-vj/X.pxr+X.gh/2);fn(q[0],q[1],X.bio[jj*X.gw+ii],h,cpx*q[2],q[2])}};
+  /* árboles y arbustos (con tronco y copa: se ven de pie sobre el relieve) */
   const tc=Math.max(22,span*M.Rk*1000/150),tk=Math.sqrt(tc/22);
-  if(!lifeless&&tc<=300)celdas(tc,(x,y,b,h,cpx)=>{const p=(h>>>16&255)/255;let prob=b===5?.75:b===4?.07:b===3?.025:b===6?.05:b===2?.04:b===1?.15:0;if(vida<2)prob*=.35;if(p>prob)return;
-    const r=Math.max(1.4,(b===5?7:b===1?3:3.5)*tk/mpx*(.7+((h>>>24)&255)/400));if(b===1){ctx.fillStyle=`rgba(${pc[0]+90},${pc[1]+60},${pc[2]+40},.55)`;ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();return}
-    ctx.fillStyle='rgba(0,0,0,.28)';ctx.beginPath();ctx.arc(x+r*.35,y+r*.35,r,0,7);ctx.fill();const k=b===3?1.3:1;ctx.fillStyle=`rgb(${pc[0]*.6*k|0},${pc[1]*.65*k|0},${pc[2]*.6*k|0})`;ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();
-    if(r>3){ctx.fillStyle=`rgba(${pc[0]+70},${pc[1]+70},${pc[2]+50},.5)`;ctx.beginPath();ctx.arc(x-r*.3,y-r*.3,r*.45,0,7);ctx.fill()}},16000);
-  /* rocas y cantos (en todos los mundos sólidos) */
-  celdas(14,(x,y,b,h)=>{if(!(b===8||b===10||b===3||b===11||b===6||b===14)||(h>>>16&255)>(b===8?60:22))return;const r=Math.max(1,(1.5+((h>>>24)&255)/60)/mpx);ctx.fillStyle='rgba(0,0,0,.3)';ctx.beginPath();ctx.arc(x+r*.4,y+r*.4,r,0,7);ctx.fill();ctx.fillStyle=`rgb(${M.roca})`;ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();if(r>3){ctx.fillStyle='rgba(255,255,255,.18)';ctx.beginPath();ctx.arc(x-r*.3,y-r*.3,r*.5,0,7);ctx.fill()}},9000);
+  if(!lifeless&&tc<=300)celdas(tc,(x,y,b,h,cpx,s)=>{const p=(h>>>16&255)/255;let prob=b===5?.75:b===4?.07:b===3?.025:b===6?.05:b===2?.04:b===1?.15:0;if(vida<2)prob*=.35;if(p>prob)return;
+    const r=Math.max(1.4,(b===5?7:b===1?3:3.5)*tk/mpx*s*(.7+((h>>>24)&255)/400)),lift=b===1?0:r*1.1*c.ps;if(b===1){ctx.fillStyle=`rgba(${pc[0]+90},${pc[1]+60},${pc[2]+40},.55)`;ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();return}
+    ctx.fillStyle='rgba(0,0,0,.28)';ctx.beginPath();ctx.ellipse(x+r*.4,y+r*.2,r,r*(.5+.5*c.pc),0,0,7);ctx.fill();if(lift>1){ctx.strokeStyle='rgba(60,40,25,.8)';ctx.lineWidth=Math.max(1,r*.22);ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x,y-lift);ctx.stroke()}
+    const k=b===3?1.3:1;ctx.fillStyle=`rgb(${pc[0]*.6*k|0},${pc[1]*.65*k|0},${pc[2]*.6*k|0})`;ctx.beginPath();ctx.arc(x,y-lift,r,0,7);ctx.fill();
+    if(r>3){ctx.fillStyle=`rgba(${pc[0]+70},${pc[1]+70},${pc[2]+50},.5)`;ctx.beginPath();ctx.arc(x-r*.3,y-lift-r*.3,r*.45,0,7);ctx.fill()}},16000);
+  /* rocas y cantos */
+  celdas(14,(x,y,b,h,cpx,s)=>{if(!(b===8||b===10||b===3||b===11||b===6||b===14)||(h>>>16&255)>(b===8?60:22))return;const r=Math.max(1,(1.5+((h>>>24)&255)/60)/mpx*s);ctx.fillStyle='rgba(0,0,0,.3)';ctx.beginPath();ctx.arc(x+r*.4,y+r*.3,r,0,7);ctx.fill();ctx.fillStyle=`rgb(${M.roca})`;ctx.beginPath();ctx.arc(x,y-r*.3*c.ps,r,0,7);ctx.fill();if(r>3){ctx.fillStyle='rgba(255,255,255,.18)';ctx.beginPath();ctx.arc(x-r*.3,y-r*.6,r*.5,0,7);ctx.fill()}},9000);
   /* respiraderos de lava que laten */
-  if(M.k==='lava')celdas(400,(x,y,b,h)=>{if((h>>>16&255)>50)return;const g=.5+.5*Math.sin(t*2+(h&63)),r=Math.max(2,30/mpx)*(1+g*.4);const gr=ctx.createRadialGradient(x,y,0,x,y,r*3);gr.addColorStop(0,`rgba(255,200,80,${.8*g})`);gr.addColorStop(1,'rgba(255,60,0,0)');ctx.fillStyle=gr;ctx.beginPath();ctx.arc(x,y,r*3,0,7);ctx.fill()},4000);
-  /* fauna: manadas que pastan y se desplazan, bancos de peces y bandadas */
-  if(vida>=1&&mpx<25)celdas(700,(x,y,b,h,cpx)=>{const land=b>=2&&b<=6,sea=b<=1;if(!(land||sea&&M.k!=='desert'))return;if((h>>>16&255)>(vida>=2?110:40))return;
-    const n=3+(h&7)+(vida>=2?4:0),sz=Math.max(1.3,(sea?.6:2.2)/mpx),dir=(h>>>20)/4096*6.28+Math.sin(t*.05+(h&31))*.8,mx=Math.cos(dir)*t*1.2/mpx%(cpx*.6),my=Math.sin(dir)*t*1.2/mpx%(cpx*.6);
-    for(let a=0;a<n;a++){const ha=ih(h,a,1,2),ox=((ha&255)/255-.5)*cpx*.25+Math.sin(t*.4+a)*sz*1.5,oy=(((ha>>>8)&255)/255-.5)*cpx*.25+Math.cos(t*.3+a*1.7)*sz*1.5,X_=x+ox+mx,Y_=y+oy+my;
+  if(M.k==='lava')celdas(400,(x,y,b,h,cpx,s)=>{if((h>>>16&255)>50)return;const g=.5+.5*Math.sin(t*2+(h&63)),r=Math.max(2,30/mpx*s)*(1+g*.4);const gr=ctx.createRadialGradient(x,y,0,x,y,r*3);gr.addColorStop(0,`rgba(255,200,80,${.8*g})`);gr.addColorStop(1,'rgba(255,60,0,0)');ctx.fillStyle=gr;ctx.beginPath();ctx.arc(x,y,r*3,0,7);ctx.fill()},4000);
+  /* fauna: manadas, bancos de peces y bandadas */
+  if(vida>=1&&mpx<25)celdas(700,(x,y,b,h,cpx,s)=>{const land=b>=2&&b<=6,sea=b<=1;if(!(land||sea&&M.k!=='desert'))return;if((h>>>16&255)>(vida>=2?110:40))return;
+    const n=3+(h&7)+(vida>=2?4:0),sz=Math.max(1.3,(sea?.6:2.2)/mpx*s),dir=(h>>>20)/4096*6.28+Math.sin(t*.05+(h&31))*.8,mx=Math.cos(dir)*t*1.2/mpx*s%(cpx*.6),my=Math.sin(dir)*t*1.2/mpx*s%(cpx*.6);
+    for(let a=0;a<n;a++){const ha=ih(h,a,1,2),ox=((ha&255)/255-.5)*cpx*.25+Math.sin(t*.4+a)*sz*1.5,oy=(((ha>>>8)&255)/255-.5)*cpx*.25*c.pc+Math.cos(t*.3+a*1.7)*sz*1.5,X_=x+ox+mx,Y_=y+oy+my*c.pc;
       ctx.save();ctx.translate(X_,Y_);ctx.rotate(dir+Math.sin(t+a)*.3);if(sea){ctx.fillStyle='rgba(220,240,255,.7)';ctx.beginPath();ctx.ellipse(0,0,sz*1.6,sz*.5,0,0,7);ctx.fill()}
       else{ctx.fillStyle='rgba(0,0,0,.3)';ctx.beginPath();ctx.ellipse(sz*.4,sz*.4,sz*1.4,sz*.7,0,0,7);ctx.fill();ctx.fillStyle=`rgb(${120+(h&40)},${90+(h>>>8&30)},${60})`;ctx.beginPath();ctx.ellipse(0,0,sz*1.4,sz*.7,0,0,7);ctx.fill();ctx.beginPath();ctx.arc(sz*1.5,0,sz*.45,0,7);ctx.fill()}ctx.restore()}},2500);
   if(vida>=2&&M.info.breath&&mpx<80){for(let k=0;k<3;k++){const ph=t*.03*(1+k*.3)+k*2,bx=((ph*W*.4)%(W*1.4))-W*.2,by=H*(.2+.25*k)+Math.sin(ph*3)*30;for(let a=0;a<7;a++){const x=bx-Math.abs(a-3)*10,y=by+(a-3)*8,w=Math.sin(t*8+a)*3;ctx.strokeStyle='rgba(20,20,20,.55)';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(x-5,y-w);ctx.lineTo(x,y);ctx.lineTo(x+5,y-w);ctx.stroke()}}}
-  /* puntos de interés y nave (si se aterrizó aquí) */
-  if(surf&&surf.i===MW.pi&&surf.c){const pois=mpx<90?surf.pois||[]:[];for(const q of pois){const [u,v]=enPlano(A,delPlano(surf.c,q.u,q.v)),[x,y]=toS(u,v),done=D.ex[M.info.key+':'+q.n];if(x<-40||y<-40||x>W+40||y>H+40)continue;
-      ctx.strokeStyle=done?'rgba(126,231,135,.95)':'rgba(255,180,84,.95)';ctx.fillStyle=ctx.strokeStyle;ctx.lineWidth=1.2;ctx.beginPath();ctx.arc(x,y,8,0,7);ctx.stroke();ctx.beginPath();ctx.moveTo(x,y-12);ctx.lineTo(x+5,y-7);ctx.lineTo(x,y-2);ctx.lineTo(x-5,y-7);ctx.closePath();ctx.fill();
-      ctx.font='9px ui-monospace,Menlo,monospace';ctx.textAlign='center';ctx.fillText(spaced(q.n.toUpperCase()),x,y-18);q.sx=x;q.sy=y}
-    const [u,v]=enPlano(A,surf.c.c),[x,y]=toS(u,v),len=SPEC[D.ship.d].len,sz=Math.max(14,len/mpx);if(x>-60&&y>-60&&x<W+60&&y<H+60){ctx.fillStyle='rgba(0,0,0,.35)';ctx.beginPath();ctx.ellipse(x+sz*.15,y+sz*.2,sz*.5,sz*.3,0,0,7);ctx.fill();drawShip3D(ctx,x,y,sz,-.6,1.25,D.ship,t,false);
-      if(sz<=14){ctx.strokeStyle='#58d0ff';ctx.beginPath();ctx.arc(x,y,11,0,7);ctx.stroke()}ctx.font='9px ui-monospace,Menlo,monospace';ctx.fillStyle='#9fe6ff';ctx.textAlign='center';ctx.fillText(spaced((D.ship.n||SHIPS[D.ship.d].n).toUpperCase()),x,y+sz*.5+14)}}}
+  /* estructuras: edificios de colonias y bases, ruinas y restos, extruidos sobre el relieve */
+  const caja=(x,y,w,hgt,col)=>{const up=hgt*c.ps*.9+hgt*.15,d=w*(.35+.65*c.pc);ctx.fillStyle='rgba(0,0,0,.35)';ctx.fillRect(x-w/2+up*.3,y-d/2+up*.2,w,d);ctx.fillStyle=col[1];ctx.fillRect(x-w/2,y-d/2-up,w,d/2+up);ctx.fillStyle=col[0];ctx.fillRect(x-w/2,y-d/2-up,w,d*.5+1)};
+  const grupo=(w0,n,radKm,tipo,seed)=>{const [u0,v0]=enPlano(X.B,w0),B0=baseDe(w0),r=rng(seed),pal=tipo==='ruina'?[['#a9a08e','#6e6658'],['#958b78','#5d564a']]:tipo==='nave'?[['#9aa6b4','#4e5966']]:[['#dfe6ee','#8b98a8'],['#c9d6e6','#6d7d92'],['#e8d9b8','#9c8a66']];
+    for(let k=0;k<n;k++){const a=r()*6.283,dk=Math.sqrt(r())*radKm,w=delPlano(B0,Math.cos(a)*dk/M.Rk,Math.sin(a)*dk/M.Rk),[uj,vj]=enPlano(X.B,w),hb=hEn(c,uj,vj);if(hb==null)continue;const q=proy(c,uj,vj,hb);if(!q||q[0]<-40||q[1]<-40||q[0]>W+40||q[1]>H+40)continue;
+      const sz=(tipo==='ruina'?25+r()*60:tipo==='nave'?30+r()*50:20+r()*70)/mpx*q[2],ht=sz*(tipo==='ruina'?.3+r()*.8:tipo==='nave'?.2:.5+r()*2.2);if(sz<1.2)continue;caja(q[0],q[1],sz,ht,pal[r()*pal.length|0])}};
+  for(const z of zonas(M))grupo(z.w,z.t==='base'?14:40,z.t==='base'?.6:2.2,'colonia',ih(z.n.length,z.n.charCodeAt(0),5,6));
+  if(surf&&surf.i===MW.pi&&surf.c)for(const q0 of surf.pois){const w=delPlano(surf.c,q0.u,q0.v);if(q0.n==='Ruinas antiguas')grupo(w,18,.4,'ruina',ih(q0.n.length,7,8,9));else if(q0.n==='Asentamiento')grupo(w,22,.5,'colonia',ih(q0.n.length,9,8,7));else if(q0.n==='Restos de una nave')grupo(w,6,.12,'nave',ih(3,3,3,3))}
+  ctx.font='9px ui-monospace,Menlo,monospace';ctx.textAlign='center';
+  /* zonas de aterrizaje */
+  for(const z of zonas(M)){const q=pw(z.w);if(!q||q[0]<-40||q[1]<-40||q[0]>W+40||q[1]>H+40){z.sx=null;continue}const g=.5+.5*Math.sin(t*3),R=Math.max(9,14*q[2]);
+    ctx.strokeStyle='#7ee787';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(q[0],q[1],R,R*(.35+.65*c.pc),0,0,7);ctx.stroke();ctx.fillStyle='#7ee787';ctx.fillText('H',q[0],q[1]+3);ctx.fillStyle=`rgba(126,231,135,${.4+.6*g})`;ctx.beginPath();ctx.arc(q[0],q[1]-R*.9,2.5,0,7);ctx.fill();
+    ctx.fillStyle='#b5f5bb';ctx.fillText(spaced('🛬 '+z.n.toUpperCase()),q[0],q[1]-R-8);z.sx=q[0];z.sy=q[1]}
+  /* sitio elegido */
+  if(MW.sel&&MW.sel.i===MW.pi&&!surf){const q=pw(MW.sel.w);if(q){const R=12+3*Math.sin(t*4);ctx.strokeStyle='#ffb454';ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(q[0]-R-6,q[1]);ctx.lineTo(q[0]-4,q[1]);ctx.moveTo(q[0]+4,q[1]);ctx.lineTo(q[0]+R+6,q[1]);ctx.moveTo(q[0],q[1]-R-6);ctx.lineTo(q[0],q[1]-4);ctx.moveTo(q[0],q[1]+4);ctx.lineTo(q[0],q[1]+R+6);ctx.stroke();ctx.beginPath();ctx.ellipse(q[0],q[1],R,R*(.4+.6*c.pc),0,0,7);ctx.stroke();ctx.fillStyle='#ffd08a';ctx.fillText(spaced(MW.sel.zona?'ZONA DE ATERRIZAJE':'SITIO ELEGIDO'),q[0],q[1]-R-12)}}
+  /* puntos de interés y sonda o nave */
+  if(surf&&surf.i===MW.pi&&surf.c){const pois=mpx<90?surf.pois||[]:[];for(const q0 of pois){const q=pw(delPlano(surf.c,q0.u,q0.v)),done=D.ex[M.info.key+':'+q0.n];if(!q||q[0]<-40||q[1]<-40||q[0]>W+40||q[1]>H+40){q0.sx=null;continue}const x=q[0],y=q[1];
+      ctx.strokeStyle=done?'rgba(126,231,135,.95)':'rgba(255,180,84,.95)';ctx.fillStyle=ctx.strokeStyle;ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x,y-22);ctx.stroke();ctx.beginPath();ctx.moveTo(x,y-32);ctx.lineTo(x+5,y-27);ctx.lineTo(x,y-22);ctx.lineTo(x-5,y-27);ctx.closePath();ctx.fill();
+      ctx.beginPath();ctx.ellipse(x,y,7,7*(.4+.6*c.pc),0,0,7);ctx.stroke();ctx.fillText(spaced(q0.n.toUpperCase()),x,y-38);q0.sx=x;q0.sy=y-16}
+    const q=pw(surf.c.c);if(q){const [x,y]=q;if(surf.sonda){const g=.5+.5*Math.sin(t*4);ctx.fillStyle='rgba(0,0,0,.35)';ctx.beginPath();ctx.ellipse(x+4,y+2,9,5,0,0,7);ctx.fill();ctx.strokeStyle='#cfd6e2';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(x-7,y);ctx.lineTo(x-3,y-9);ctx.moveTo(x+7,y);ctx.lineTo(x+3,y-9);ctx.moveTo(x,y-9);ctx.lineTo(x,y-20);ctx.stroke();ctx.fillStyle='#9fe6ff';ctx.fillRect(x-5,y-13,10,6);ctx.fillStyle=`rgba(120,230,255,${g})`;ctx.beginPath();ctx.arc(x,y-21,2.5,0,7);ctx.fill();ctx.strokeStyle=`rgba(120,230,255,${.6*(1-g)})`;ctx.beginPath();ctx.arc(x,y-21,6+12*g,0,7);ctx.stroke();ctx.fillStyle='#9fe6ff';ctx.fillText(spaced('SONDA'),x,y+14)}
+      else{const sz=Math.max(14,SPEC[D.ship.d].len/mpx*q[2]);ctx.fillStyle='rgba(0,0,0,.35)';ctx.beginPath();ctx.ellipse(x+sz*.15,y+sz*.2,sz*.5,sz*.3,0,0,7);ctx.fill();drawShip3D(ctx,x,y-sz*.15*c.ps,sz,-.6,1.25-c.ps*.6,D.ship,t,false);ctx.fillStyle='#9fe6ff';ctx.fillText(spaced((D.ship.n||SHIPS[D.ship.d].n).toUpperCase()),x,y+sz*.5+14)}}}}
 
-/* ── Bucle de la vista: decide qué se ve según el zoom y aterriza o despega solo ── */
+/* ── Bucle de la vista ── */
 function drawMundo(now){if(!SYS)return;ctx.letterSpacing='1.6px';trabajos(4);
   if(selPlanet){const i=SYS.planets.indexOf(selPlanet);if(i>=0&&i!==MW.pi)mwFoco(i)}else if(MW.pi>=0&&MW.LT<.02&&MW.L<.02)MW.pi=-1;
   const M=MW.pi>=0?mundo(SYS,MW.pi):null,here=sameStar(SYS.star,shipStar());if(M&&MW.LT>.1)texDe(M,true);
-  /* límites: gigantes gaseosos sin superficie; vista remota sólo hasta la órbita */
-  let max=MWLMAX;if(!M)max=0;else if(M.gas)max=1.25;else if(!here&&mode!=='surface')max=1.9;
-  if(MW.LT>max){MW.LT=max;if(M&&performance.now()-MW.aviso>4000){MW.aviso=performance.now();toast(M.gas?'Un gigante gaseoso no tiene superficie.':'Vista de sondeo: viaja hasta este sistema para descender.')}}
+  if(M&&!MW.B){const sp=performance.now()/1000*.05*(1+MW.pi*.13)+MW.pi;MW.B=baseDe([Math.cos(sp),Math.sin(sp),.18])}
+  let max=MWLMAX;if(!M)max=0;else if(M.gas)max=1.25;
+  if(MW.LT>max){MW.LT=max;if(M&&M.gas&&performance.now()-MW.aviso>4000){MW.aviso=performance.now();toast('Un gigante gaseoso no tiene superficie.')}}
   MW.L+=(MW.LT-MW.L)*(RM?1:.075);if(Math.abs(MW.LT-MW.L)<.002)MW.L=MW.LT;
-  /* aterrizaje y despegue automáticos al cruzar la capa de nubes */
-  if(M&&!M.gas&&here){if(mode==='system'&&MW.L>2.2&&MW.LT>2.2&&now-MW.tLand>800){MW.tLand=now;land(MW.pi,true)}
-    else if(mode==='surface'&&MW.L<1.9&&MW.LT<1.9&&now-MW.tLand>800){MW.tLand=now;mode='system';surf=null;refresh()}}
+  /* al subir por encima de las nubes se recoge la sonda o despega la nave */
+  if(mode==='surface'&&MW.L<1.7&&MW.LT<1.7&&now-MW.tLand>800){MW.tLand=now;const t=surf&&surf.sonda?'🛰 La sonda vuelve a la nave.':'🚀 La nave despega.';mode='system';surf=null;toast(t);refresh()}
   const f=M?smooth(MW.L,0,1):0,ta=M&&!M.gas?smooth(MW.L,1.45,2.05):0;
   if(ta<1)dibujaSistema(now,f);
-  if(M&&MW.L>1&&MW.B&&ta<1){const R=radioFoco(MW.L);ctx.fillStyle='#000';if(R>Math.hypot(W,H)){}esfera(M,W/2,H/2,R,MW.B,[-.45,.55,.72].map(v=>v/1.02),now/1000,true)}
+  if(M&&MW.L>1&&MW.B&&ta<1)esfera(M,W/2,H/2,radioFoco(MW.L),MW.B,[-.45,.55,.72].map(v=>v/1.02),now/1000,true);
   if(ta>0&&MW.B)dibujaTerreno(now,ta,spanDe(MW.L));
+  if(M&&!M.gas&&ta>.5!==!!MW._esc){MW._esc=ta>.5;if(tab==='carta')renderPanel()}
   ctx.globalAlpha=1;ctx.font='10px ui-monospace,Menlo,monospace';ctx.textAlign='left';ctx.textBaseline='middle';
-  if(ta<.5){ctx.fillStyle='rgba(126,231,135,.7)';ctx.fillText(spaced(M?(M.gas?'GIGANTE GASEOSO · ARRASTRA PARA GIRARLO':MW.L<1?'RUEDA / PELLIZCO: DESCENDER · ARRASTRA PARA GIRAR':'SIGUE BAJANDO PARA ENTRAR EN LA ATMÓSFERA'):'▮ ZONA HABITABLE · ELIGE UN PLANETA Y USA LA RUEDA PARA DESCENDER'),70,H-60);
+  if(ta<.5){ctx.fillStyle='rgba(126,231,135,.7)';ctx.fillText(spaced(M?(M.gas?'GIGANTE GASEOSO · ARRASTRA PARA GIRARLO':MW.L<1?'RUEDA / PELLIZCO: DESCENDER · ARRASTRA PARA GIRAR':'SIGUE BAJANDO: EL ESCÁNER 3D SE ACTIVA BAJO LAS NUBES'):'▮ ZONA HABITABLE · ELIGE UN PLANETA Y USA LA RUEDA PARA DESCENDER'),70,H-60);
     if(!here){ctx.fillStyle='rgba(255,180,84,.8)';ctx.fillText(spaced('VISTA REMOTA · DATOS DE SONDEO'),70,H-44)}
     const fate=destino(SYS.star);if(fate&&MW.L<.5){ctx.fillStyle='rgba(255,190,120,.85)';ctx.fillText(spaced(FATE[fate].ic+' '+FATE[fate].n.toUpperCase()+' · FUENTE DE ENERGÍA NEGATIVA'),70,H-92)}
     if(estacion(SYS.star)&&MW.L<.5){ctx.fillStyle='rgba(120,220,255,.8)';ctx.fillText(spaced('🛰 '+estacion(SYS.star).n.toUpperCase()),70,H-76)}}
@@ -4493,15 +4557,34 @@ function drawSurface(now){drawMundo(now)}
 /* Entrada del usuario en las vistas de sistema y superficie */
 function mwZoom(d){if(MW.pi<0&&!selPlanet){V3.z=clamp(V3.z*Math.exp(d*.9),.45,2.8);return}if(MW.LT<=0&&d<0){V3.z=clamp(V3.z*Math.exp(d*.9),.45,2.8);MW.LT=0;return}MW.LT=clamp(MW.LT+d*1.15,0,MWLMAX)}
 function mwArrastre(dx,dy,st){if(MW.pi<0||MW.L<.25||!MW.B){V3.yaw=st.v3y-dx*.008;V3.pitch=clamp(st.v3p+dy*.006,.08,1.45);return}
-  const sp=MW.L<1?2/ Math.max(1,radioFoco(Math.max(.5,MW.L))/(W/2)) :spanDe(MW.L);const B0=st.B0||(st.B0={c:MW.B.c.slice(),e1:MW.B.e1.slice(),e2:MW.B.e2.slice()});
-  const k=MW.L<1?1/radioFoco(1):sp/W,c=delPlano(B0,-dx*k,dy*k);let e2=B0.e2,d=e2[0]*c[0]+e2[1]*c[1]+e2[2]*c[2];e2=[e2[0]-c[0]*d,e2[1]-c[1]*d,e2[2]-c[2]*d];const l=Math.hypot(...e2);e2=e2.map(v=>v/l);
+  /* Mayús o botón derecho en el escáner: inclinar y girar la vista */
+  if(st.pan&&MW.L>1.6){if(st.h0==null){st.h0=MW.head;st.t0=MW.tilt}MW.head=st.h0+dx*.006;MW.tilt=clamp(st.t0+dy*.005,0,1.05);return}
+  const B0=st.B0||(st.B0={c:MW.B.c.slice(),e1:MW.B.e1.slice(),e2:MW.B.e2.slice()}),tt=smooth(MW.L,1.8,2.7),hd=MW.head*tt,ch=Math.cos(hd),sh=Math.sin(hd);
+  const k=MW.L<1?1/radioFoco(1):spanDe(MW.L)/W,ax=-dx*k,ay=dy*k/Math.max(.45,Math.cos(MW.tilt*tt)),c=delPlano(B0,ch*ax-sh*ay,sh*ax+ch*ay);let e2=B0.e2,d=e2[0]*c[0]+e2[1]*c[1]+e2[2]*c[2];e2=[e2[0]-c[0]*d,e2[1]-c[1]*d,e2[2]-c[2]*d];const l=Math.hypot(...e2);e2=e2.map(v=>v/l);
   MW.B={c,e2,e1:[e2[1]*c[2]-e2[2]*c[1],e2[2]*c[0]-e2[0]*c[2],e2[0]*c[1]-e2[1]*c[0]]}}
-function mwClic(mx,my){if(mode==='surface'&&surf&&surf.pois){for(const q of surf.pois)if(q.sx!=null&&Math.hypot(q.sx-mx,q.sy-my)<14&&!D.ex[surf.info.key+':'+q.n]){openExpedition(surf.info,q.n);return true}}return false}
-/* POIs y nave en el mundo: se fijan al aterrizar, alrededor del punto de aterrizaje */
-function mwAterriza(info){const M=mundo(SYS,info.i),r=rng(hash(info.key.length,info.i,31));let B=MW.B?{c:MW.B.c.slice(),e1:MW.B.e1.slice(),e2:MW.B.e2.slice()}:baseDe([1,0,0]);
-  /* zona de aterrizaje: el suelo firme más cercano al centro de la vista (en espiral) */
-  if(M.sea>-1){const ok=w=>relieve(M,w[0],w[1],w[2],7,null)>M.sea+.03;if(!ok(B.c)){let best=null;for(let k=1;k<500&&!best;k++){const a=k*2.4,d=.004*k,w=delPlano(B,Math.cos(a)*d,Math.sin(a)*d);if(ok(w))best=w}if(best){B=baseDe(best);MW.B={c:best.slice(),e1:B.e1.slice(),e2:B.e2.slice()};MW.anc=null;toast('Buscáis suelo firme: la nave se posa en el más cercano.')}}}
-  return{c:B,pois:info.pois.map((n,j)=>{const a=j/info.pois.length*6.283+r(),km=1.2+r()*4.5;return{n,u:Math.cos(a)*km/M.Rk,v:Math.sin(a)*km/M.Rk}})}}
+function mwClic(mx,my){if(MW.pi<0||MW.L<1.6||!SYS)return false;const M=mundo(SYS,MW.pi);
+  if(mode==='surface'&&surf&&surf.pois){for(const q of surf.pois)if(q.sx!=null&&Math.hypot(q.sx-mx,q.sy-my)<16&&!D.ex[surf.info.key+':'+q.n]){openExpedition(surf.info,q.n);return true}return true}
+  for(const z of zonas(M))if(z.sx!=null&&Math.hypot(z.sx-mx,z.sy-my)<22){MW.sel={i:MW.pi,w:z.w.slice(),zona:z};infoSitio();return true}
+  const p=pickSuelo(mx,my);if(!p)return true;MW.sel={i:MW.pi,w:p.w,zona:null};infoSitio();return true}
+/* Datos del sitio elegido: bioma, cota, pendiente y si es apto para la sonda */
+function infoSitio(){const s=MW.sel,M=mundo(SYS,s.i),w=s.w,n=10,h=relieve(M,w[0],w[1],w[2],n,null),B=baseDe(w),d=.4/M.Rk,hx=relieve(M,...delPlano(B,d,0),n,null),hy=relieve(M,...delPlano(B,0,d),n,null);
+  s.bio=colorDe(M,h,Math.asin(w[2]),humedad(M,w[0],w[1],w[2]),.5);s.cota=(h-(M.sea>-1?M.sea:.5))*12;s.pend=Math.atan(Math.hypot(hx-h,hy-h)*12/.4)/RAD;s.agua=M.sea>-1&&h<M.sea;setTab('carta');renderPanel()}
+/* Enviar la sonda (cualquier sitio en tierra) o aterrizar la nave (sólo en una zona de aterrizaje) */
+function desplegar(nave){const s=MW.sel;if(!s||!SYS)return;if(rondaBloquea({k:'exp'})){toast(esc(MSG_RONDA));return}const info=planetInfo(SYS,s.i),sp=SPEC[D.ship.d];if(info.gas)return;
+  if(nave&&!s.zona){toast('La nave sólo puede posarse en una zona de aterrizaje.');return}if(!nave&&s.agua&&!['ocean','temperate'].includes(info.p.kind)){toast('La sonda no puede posarse ahí.');return}
+  if(!(NET&&NET.role==='client'))passDays(nave?1:1);if(!D.scan[info.key])D.scan[info.key]=1;selPlanet=SYS.planets[s.i];mwFoco(s.i);
+  const B=baseDe(s.w),M=mundo(SYS,s.i),r=rng(hash(info.key.length,s.i,31));MW.B={c:B.c.slice(),e1:B.e1.slice(),e2:B.e2.slice()};MW.anc=null;
+  surf={i:s.i,info,t0:performance.now(),c:B,sonda:!nave,zona:s.zona?s.zona.n:'',pois:info.pois.map((n,j)=>{const a=j/info.pois.length*6.283+r(),km=1.2+r()*4.5;return{n,u:Math.cos(a)*km/M.Rk,v:Math.sin(a)*km/M.Rk}})};
+  mode='surface';MW.LT=Math.max(MW.LT,3.6);MW.sel=null;const t=nave?`🛬 La nave se posa en ${s.zona.n}.`:`🛰 La sonda se posa en ${info.p.name}${s.agua?' (flota en el agua)':''}.`;logDM(t,'sys');toast(esc(t));if(NET.role==='host')bcast({t:'toast',h:esc(t)});saveD();refresh()}
+function irAZona(i,z){mwFoco(i);selPlanet=SYS.planets[i];const B=baseDe(z.w);MW.B={c:B.c.slice(),e1:B.e1.slice(),e2:B.e2.slice()};MW.buf=null;MW.job=null;MW.anc=null;MW.sel={i,w:z.w.slice(),zona:z};MW.LT=Math.max(MW.LT,3.4);infoSitio()}
+/* Tarjeta del escáner en el panel del sistema */
+function escanerHtml(S,i,here){const M=mundo(S,i),s=MW.sel&&MW.sel.i===i?MW.sel:null,zs=zonas(M),cl=NET.role==='client';
+  let h=`<div class="card"><div class="kick">ESCÁNER 3D · ${esc(M.p.name.toUpperCase())}</div><p class="note">Toca el terreno para elegir dónde bajar. Arrastra para recorrerlo; Mayús o botón derecho y arrastrar inclina y gira la vista. Sólo se puede posar la nave en una zona de aterrizaje (🛬); en cualquier otro sitio baja una sonda.</p>
+  <div class="row">${A('Vista cenital',()=>{MW.tilt=0;MW.head=0})}${A('Inclinar',()=>{MW.tilt=clamp(MW.tilt+.2,0,1.05)})}${A('⟲',()=>{MW.head-=.4})}${A('⟳',()=>{MW.head+=.4})}</div>`;
+  if(zs.length)h+=`<div class="note"><b>Zonas de aterrizaje:</b></div><div class="row">${zs.map(z=>A('🛬 '+esc(z.n),()=>irAZona(i,z))).join('')}</div>`;else h+=`<p class="note">No hay zonas de aterrizaje en este planeta: sólo puede bajar la sonda.</p>`;
+  if(s){h+=`<div class="kv"><span>Sitio</span><span>${(Math.asin(s.w[2])/RAD).toFixed(2)}°, ${(Math.atan2(s.w[1],s.w[0])/RAD).toFixed(2)}°</span><span>Terreno</span><span>${esc(NBIO[s.bio]||'?')}</span><span>Cota</span><span>${s.cota.toFixed(2)} km</span><span>Pendiente</span><span class="${s.pend>25?'bad':''}">${s.pend.toFixed(0)}°</span>${s.zona?`<span>Zona</span><span class="ok">🛬 ${esc(s.zona.n)}</span>`:''}</div>
+    <div class="row">${A('🛰 Enviar la sonda aquí · 1 d',()=>desplegar(false),cl||!here)}${s.zona?A('🛬 Aterrizar la nave',()=>desplegar(true),cl||!here,'pri'):''}</div>${here?'':'<p class="note">Vista de sondeo: viaja hasta este sistema para bajar.</p>'}`}
+  return h+'</div>'}
 /* Ficha orbital y biosfera para los paneles */
 function orbitaHtml(S,i){const O=orbitas(S),el=O.pl[i],lu=O.lunas[i];return`<span>Excentricidad</span><span>${el.e.toFixed(3)}</span><span>Inclinación</span><span>${(el.i/RAD).toFixed(2)}°</span>${lu.length?`<span>Lunas mayores</span><span>${lu.map(m=>esc(m.n)).join(', ')}</span>`:''}`}
 function bioHtml(S,i){const b=biosfera(S,i);if(!b.vida)return'<p class="note">Biosfera: sin vida detectada.</p>';return`<h3>Biosfera</h3><p class="note"><b>Flora:</b> ${b.flora.map(esc).join(' · ')}<br><b>Fauna:</b> ${b.fauna.map(esc).join(' · ')}</p>`}
@@ -5193,6 +5276,7 @@ function systemPanel(el){
   const S=SYS,here=sameStar(S.star,shipStar()),sp=SPEC[D.ship.d],sk=sSeed(S.star),s=D.st;
   let h=`<div class="kick">SISTEMA · ${here?'EN ÓRBITA':'VISTA REMOTA'}</div><h2>${esc(S.name)}</h2><div class="note">${esc(S.P.lab)} · ${S.planets.length} planeta${S.planets.length===1?'':'s'}${S.belts.length?' · '+S.belts.length+' cinturón':''}</div>
   <div class="row">${A('⤒ Volver a la carta',exitToMap)}${!here?A('Trazar ruta hasta aquí',()=>{const st=S.star;exitToMap();selectStar(st,true)},0,'pri'):''}</div>`;
+  if(MW.pi>=0&&MW.L>1.4&&S.planets[MW.pi]&&!planetInfo(S,MW.pi).gas)h+=escanerHtml(S,MW.pi,here);
   h+=`<p class="note story">${sysLore(S).map(esc).join(' ')}</p>`;
   if(here){
     const used=D.ex[sk+':-1']||0;h+=`<h3>Acciones en órbita</h3><div class="row">`;
@@ -5223,7 +5307,7 @@ function systemPanel(el){
       if(here){h+=`<div class="row">`;
         if(!sc)h+=A('Escanear · 2 d',()=>orbitAct('scan',i,'Escanear '+p.name));
         if(info.gas)h+=A('Sonda atmosférica · 4 d',()=>orbitAct('gas',i,'Sonda atmosférica a '+p.name));
-        else h+=A(sp.land?'⬇ Aterrizar':'⬇ Enviar lanzadera',()=>land(i),0,'pri');
+        else h+=A('🔭 Escanear la superficie',()=>land(i),0,'pri');
         h+=`</div>`}
       const civ=civInfo(S,i);
       if(civ&&(sc||civ.home||!here)){const rp=repOf(civ);h+=`<div class="card"><div class="kick">CIVILIZACIÓN</div><b>${esc(civ.name)}</b> <span class="tag">${TECH[civ.tech]}</span>${civ.tech?`<span class="tag">${esc(DISP[civ.disp]?DISP[civ.disp][0]:'')}</span><span class="tag ${rp>=20?'hz':rp<-10?'pet':''}">${repLab(rp)} (${rp})</span>`:''}
@@ -5239,7 +5323,7 @@ function systemPanel(el){
 }
 function surfacePanel(el){
   const {info}=surf,p=info.p,sp=SPEC[D.ship.d];
-  let h=`<div class="kick">SUPERFICIE · ${sp.land?'NAVE POSADA':'LANZADERA'}</div><h2>${esc(p.name)}</h2>
+  let h=`<div class="kick">SUPERFICIE · ${surf.sonda?'SONDA DESPLEGADA':'NAVE EN '+esc((surf.zona||'').toUpperCase())}</div><h2>${esc(p.name)}</h2>
   <div class="kv"><span>Tipo</span><span>${KIND[p.kind][0]}</span><span>Temperatura</span><span>${Math.round(p.T-273)} °C</span><span>Gravedad</span><span>${p.g.toFixed(2)} g</span><span>Atmósfera</span><span>${esc(info.atm)}${info.breath?' · respirable':''}</span></div>
   ${bioHtml(SYS,surf.i)}<p class="note">Rueda o pellizco para subir y bajar; arrastra para recorrer la superficie. Toca un punto de interés para explorarlo.</p>
   <h3>Condiciones</h3>${info.hz.length?`<div class="lst">${info.hz.map(z=>`<div class="item"><span class="${z[4]?'bad':'dim'}">${z[4]?'✦':'▲'}</span><div class="m"><b>${esc(z[0])}</b><i>${esc(z[3])} Dificultad +${z[2]} · mitiga ${STATN[z[1]]}</i></div></div>`).join('')}</div>`:'<p class="ok">Condiciones benignas.</p>'}
@@ -5247,7 +5331,7 @@ function surfacePanel(el){
   for(const n of info.pois){const P=POI[n],done=D.ex[info.key+':'+n];h+=`<div class="item"><span class="${done?'ok':''}">${done?'✓':'◆'}</span><div class="m"><b>${esc(n)}</b><i>${esc(P.tx)} ${STATN[P.k]} ${P.dc} · ${P.days} d</i></div>${done?'':A('Expedición',()=>openExpedition(info,n),0,'pri')}</div>`}
   h+=`</div>`;const civ=civInfo(SYS,surf.i);
   if(civ)h+=`<h3>Habitantes</h3><p class="note"><b>${esc(civ.name)}</b> · ${TECH[civ.tech]}. ${civ.hist.map(esc).join(' ')}</p>`;
-  h+=`<div class="row">${A('⤒ Despegar',()=>{MW.LT=.7})}</div>`;
+  h+=`<div class="row">${A(surf.sonda?'⤒ Recoger la sonda':'⤒ Despegar',()=>{MW.LT=.7})}</div>`;
   el.innerHTML=h;bindActs(el);
 }
 function renderShip(){

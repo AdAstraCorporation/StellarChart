@@ -199,10 +199,8 @@ function drawSystem2D(now){
 /* ═════════ Superficie (aterrizaje) ═════════ */
 const SKY={lava:['#3a0d05','#a0300a'],desert:['#3b2a14','#c9965a'],ocean:['#071a33','#3f8fe0'],temperate:['#0b2238','#6fb0d8'],ice:['#0d1f2c','#9fd0e6'],frozen:['#0a0f18','#7d8ea3'],barren:['#050608','#3a3a40']};
 const GROUND={lava:'#1a0804',desert:'#5a3d1d',ocean:'#0b2b4a',temperate:'#183a22',ice:'#a8c8d8',frozen:'#5d6a7a',barren:'#2a2826'};
-function land(i,auto){if(rondaBloquea({k:'exp'})){toast(esc(MSG_RONDA));if(auto)MW.LT=1.6;return}
-  const info=planetInfo(SYS,i),sp=SPEC[D.ship.d];if(info.gas){toast('No hay superficie sólida.');return}
-  if(!D.scan[info.key]){D.scan[info.key]=1}if(!(NET&&NET.role==='client'))passDays(sp.land?1:2);selPlanet=SYS.planets[i];mwFoco(i);if(!MW.B)MW.B=baseDe([1,0,.2].map(v=>v/1.02));mode='surface';surf={i,info,t0:performance.now(),...mwAterriza(info)};if(!auto)MW.LT=Math.max(MW.LT,3);saveD();refresh();
-}
+/* Bajar a un planeta: se abre el escáner 3D para elegir el sitio (sonda) o una zona de aterrizaje (nave) */
+function land(i){const info=planetInfo(SYS,i);if(info.gas){toast('No hay superficie sólida.');return}selPlanet=SYS.planets[i];mwFoco(i);MW.LT=Math.max(MW.LT,2.8);setTab('carta');toast('Escáner 3D: toca el terreno para elegir dónde bajar.')}
 function drawSurface2D(now){
   ctx.letterSpacing='1.6px';const {info}=surf,p=info.p,k=p.kind,sky=SKY[k]||SKY.barren,t=now/1000,ent=RM?1:ease(clamp((now-surf.t0)/1200,0,1));
   const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,sky[0]);g.addColorStop(.75,sky[1]);ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
