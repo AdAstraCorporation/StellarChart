@@ -11,6 +11,8 @@ const SPEC={
  caza:{len:19,mass:40,acc:4,tank:16,burn:3,cargo:4,prov:900,crew:[1,2],c0:1,hib:0,land:1},
  carguero2:{len:120,mass:2600,acc:1.5,tank:320,burn:20,cargo:200,prov:7000,crew:[2,8],c0:3,hib:1,land:1},
  plataforma:{len:620,mass:4e4,acc:.3,tank:1600,burn:100,cargo:5000,prov:5e4,crew:[8,40],c0:20,hib:1,land:0}};
+/* El combustible rinde más: cada nave gasta un 40 % menos por año luz (alcance ×1,67) */
+const RINDE=.6;for(const k in SPEC)SPEC[k].burn=+(SPEC[k].burn*RINDE).toFixed(3);
 const legMax=d=>SPEC[d].tank/SPEC[d].burn;
 const REFS=[['Persona',1.8],['Autobús',12],['Boeing 747',71],['Estación Espacial Internacional',109],['Torre Eiffel',330],['Burj Khalifa',828],['Puente Golden Gate',2737]];
 const PETROVA=new Set(['M','K','G','F','A']);

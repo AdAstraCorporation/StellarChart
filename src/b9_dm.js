@@ -33,6 +33,19 @@ body.pop #hud div{text-align:left!important;flex:1 1 150px;display:flex!importan
 body.pop .info{flex-direction:row!important;flex-wrap:wrap;gap:6px 20px;padding:10px 14px;border-bottom:1px solid var(--line)}body.pop .info div{display:flex!important}
 body.pop #drawer{position:static!important;transform:none!important;width:100%!important;max-width:none!important;height:auto!important;top:auto!important;flex:1;border:0!important;backdrop-filter:none}
 body.pop #drawerX{display:none}body.pop .pane{overflow:visible}`;
+/* Holograma casero: el mapa se repite en 4 vistas (arriba, abajo, izquierda y derecha, giradas hacia el centro)
+   para proyectarlo con una pirámide de acetato sobre una pantalla. Mientras está abierto, el panel puede ir en
+   la otra ventana con «Doble pantalla». */
+let HOLO=null;
+function toggleHolo(){if(HOLO){HOLO.el.remove();cancelAnimationFrame(HOLO.raf);HOLO=null;return}
+  const el=document.createElement('div');el.id='holo';el.innerHTML='<canvas></canvas><button class="sm" title="Salir (Esc)">✕ Salir del holograma</button>';document.body.appendChild(el);
+  const c=el.querySelector('canvas'),g=c.getContext('2d');el.querySelector('button').onclick=toggleHolo;
+  const draw=()=>{const S=Math.min(innerWidth,innerHeight)*(devicePixelRatio||1);if(c.width!==S){c.width=c.height=S;c.style.width=c.style.height=Math.min(innerWidth,innerHeight)+'px'}
+    const q=S/3,src=Math.min(cv.width,cv.height),sx=(cv.width-src)/2,sy=(cv.height-src)/2;g.fillStyle='#000';g.fillRect(0,0,S,S);
+    for(const [x,y,a] of [[S/2,S-q/2,0],[S/2,q/2,Math.PI],[q/2,S/2,Math.PI/2],[S-q/2,S/2,-Math.PI/2]]){g.save();g.translate(x,y);g.rotate(a);g.drawImage(cv,sx,sy,src,src,-q/2,-q/2,q,q);g.restore()}
+    HOLO.raf=requestAnimationFrame(draw)};
+  HOLO={el,raf:0};draw();toast('Holograma: coloca la pirámide en el centro de la pantalla. Esc para salir.')}
+addEventListener('keydown',e=>{if(e.key==='Escape'&&HOLO)toggleHolo()});
 function openDual(){
   if(POP&&!POP.closed){POP.focus();return}
   POP=window.open('','adastra-panel','width=560,height=920');

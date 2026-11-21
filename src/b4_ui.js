@@ -137,10 +137,15 @@ function updateHud(){
 function refresh(){renderPanel();updateHud();syncToggles();$('#backBtn').style.display=mode==='map'?'none':'block';$('#pilotBtn').classList.toggle('on',!!pilot);$('#views').style.visibility=mode==='map'?'visible':'hidden'}
 
 /* ═════════ Panel de mando ═════════ */
-function setTab(t){tab=t;document.querySelectorAll('.tabs button[data-t]').forEach(b=>b.classList.toggle('on',b.dataset.t===t));document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('on',p.id==='p-'+t));if(t!=='ship')prevCv=null;renderPanel()}
+function setTab(t){tab=t;_shareT=0;document.querySelectorAll('.tabs button[data-t]').forEach(b=>b.classList.toggle('on',b.dataset.t===t));document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('on',p.id==='p-'+t));if(t!=='ship')prevCv=null;renderPanel()}
 document.querySelectorAll('.tabs button[data-t]').forEach(b=>b.onclick=()=>setTab(b.dataset.t));
 $('#drawerX').onclick=()=>toggleDrawer(false);
-function renderPanel(){if(tab==='sess'&&$('#sessDyn')){renderSessDyn();return}({carta:renderCarta,plan:renderPlan,ship:renderShip,crew:renderCrew,fac:renderFac,base:renderBases,sess:renderSess,hist:renderHist,nav:renderNav,share:renderShare})[tab]()}
+/* Se vuelve a pintar con cada cambio de la partida (también los que llegan del anfitrión), salvo mientras se escribe
+   en un campo del panel; la pestaña Partida, que genera el QR, como mucho cada 3 s */
+let _shareT=0;
+function renderPanel(){if(tab==='sess'&&$('#sessDyn')){renderSessDyn();return}
+  const ae=document.activeElement,pane=$('#p-'+tab);if(ae&&pane&&pane.contains(ae)&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))return;
+  if(tab==='share'){if(Date.now()-_shareT<3000&&$('#shareBody'))return;_shareT=Date.now()}({carta:renderCarta,plan:renderPlan,ship:renderShip,crew:renderCrew,fac:renderFac,base:renderBases,sess:renderSess,hist:renderHist,nav:renderNav,share:renderShare})[tab]()}
 let ACTS=[];const A=(label,fn,dis,cls)=>{ACTS.push(fn);return`<button class="sm ${cls||''}" data-a="${ACTS.length-1}" ${dis?'disabled':''}>${label}</button>`};
 const bindActs=el=>el.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>ACTS[+b.dataset.a]());
 function starKV(st){const P=st.P,ship=shipStar();return`<div class="kv"><span>Clase</span><span>${P.k} · ${esc(P.lab)}</span><span>Temperatura</span><span>${fmtI(P.T)} K</span><span>Luminosidad</span><span>${P.lum<.01?P.lum.toExponential(1):P.lum.toFixed(2)} L☉</span>
@@ -288,19 +293,23 @@ function drawPreview(now){
   g.strokeStyle='rgba(225,232,245,.18)';g.lineWidth=1;for(let i=-4;i<=4;i++){g.beginPath();g.moveTo(w/2+i*w*.08-w*.2,h*.86);g.lineTo(w/2+i*w*.11,h*.72);g.stroke()}
   drawShip3D(g,w/2,h*.48+Math.sin(now/700)*3,Math.min(w,h)*.9,prevSt.yaw,prevSt.pitch,D.ship,now/1000);
 }
+/* Barra de estadística: si pasa de 12 se vuelve a llenar por encima con otro color (×2, ×3…) para no salirse */
+const LAPC=['#cfd6e2','#e0aa46','#ff7b72','#d2a8ff','#7ee787'];
+function statBar(v){v=Math.max(0,v);const lap=v>12?Math.floor((v-1)/12):0,r=v-lap*12;return`<span class="sb" style="${lap?'background:'+LAPC[(lap-1)%LAPC.length]:''}" title="${v}"><i style="width:${(r/12*100).toFixed(1)}%;background:${LAPC[lap%LAPC.length]}"></i>${lap?`<em class="lap">×${lap+1}</em>`:''}</span>`}
 function renderCrew(){
   const el=$('#p-crew'),sp=SPEC[D.ship.d],a=alive(),lost=D.crew.filter(m=>m.st==='perdido'),zz=suspended();ACTS=[];
   el.innerHTML=`<div class="kick">FICHAS DE TRIPULACIÓN</div><h2>${crewCount()} en activo${zz.length?` · ${zz.length} ❄`:''}</h2><p class="note">Mínimo para operar: ${sp.crew[0]} · capacidad ${sp.crew[1]}${D.st.extra?` · ${fmtI(D.st.extra)} en la tripulación general`:''}.</p>
   <div class="row">${A('⬆ Subir ficha de Members',()=>openCardUpload(card=>{if(NET.role==='client')NET.host.send({t:'hello',name:D.n||card.n,card});else{toast(esc(addCardLocally(card,NET.me||'local',D.n||card.n)));refresh()}}),0,'pri')}${A('🏁 Fin de misión: QR para actualizar fichas',endGame,NET.role==='client')}</div>
-  ${a.map(m=>{const up=m.s0?KS.filter(k=>m.s[k]!==m.s0[k]).map(k=>`${STATN[k]} ${m.s0[k]}→${m.s[k]}`).join(', '):'';return`<div class="card"><div class="dh">${portrait(m)}<div><b>${esc(m.nm)}</b><div class="note">${esc(m.sp)} · ${ROLES[m.role]} · nivel ${m.lv}${m.pl?' · 👤 '+esc(m.pl):''}${m.mid?' · '+esc(m.mid):''}</div>${memberFa(m).length?`<div class="note">${memberFa(m).map(f=>`<span style="color:${FAC[f].c}">${FAC[f].ic} ${esc(FAC[f].n)}</span>`).join(' · ')}</div>`:''}</div></div>
+  ${a.map(m=>{const up=m.s0?KS.filter(k=>m.s[k]!==m.s0[k]).map(k=>`${STATN[k]} ${m.s0[k]}→${m.s[k]}`).join(', '):'';return`<div class="card"><div class="dh">${portrait(m)}<div><b>${esc(m.nm)}</b><div class="note">${esc(m.sp)} · ${ROLES[m.role]} · nivel ${m.lv}${m.pl?' · 👤 '+esc(m.pl):''}${m.mid?' · '+esc(m.mid):''}</div>${m.trf?`<div class="note">🔀 traspasado desde ${esc(m.trf.cn||m.trf.cr)}${m.trf.n>1?` · ${m.trf.n} traspasos`:''}</div>`:''}${memberFa(m).length?`<div class="note">${memberFa(m).map(f=>`<span style="color:${FAC[f].c}">${FAC[f].ic} ${esc(FAC[f].n)}</span>`).join(' · ')}</div>`:''}</div></div>
     <div class="res"><span>Salud</span><span>${Math.round(m.hp)}%</span></div>${meter(m.hp,100,m.hp<50?'#ff6b6b':'#7ee787')}
     <div class="res"><span>Moral</span><span>${Math.round(m.mor)}%</span></div>${meter(m.mor,100,m.mor<30?'#ff6b6b':'#78dcff')}
     <div class="res"><span>Experiencia</span><span>${m.xp} / ${30*m.lv}</span></div>${meter(m.xp,30*m.lv,'#e0aa46')}
-    <div class="stats">${STATS.map(([k,n])=>`<span>${n}</span><span class="sb"><i style="width:${eff(m,k)*8.3}%"></i></span><b>${eff(m,k)}</b>`).join('')}</div>
+    <div class="stats">${STATS.map(([k,n])=>`<span>${n}</span>${statBar(eff(m,k))}<b>${eff(m,k)}</b>`).join('')}</div>
     <p class="note"><b>${esc(m.tr)}</b>: ${esc((TRAITS[m.tr]||{d:''}).d)}</p><p class="note">${esc(m.bio)}</p>${up?`<p class="ok">Mejoras en esta partida: ${esc(up)}</p>`:''}${memberInvHtml(m)}
     <div class="row">${A('❄ Animación suspendida',()=>cmd({k:'crew',a:'susp',id:m.id},'Dejar a '+m.nm+' en animación suspendida'),NET.role==='client')}</div>
     ${m.mid?`<div class="row">${A('Actualizar su tarjeta en Members',async()=>{const u=await exportLink(m);window.open(u,'_blank','noopener')})}${A('Copiar enlace',async()=>copy(await exportLink(m),'Enlace de actualización copiado'))}</div>`:''}</div>`}).join('')||'<p class="note">Nave no tripulada: la IA de a bordo se encarga de todo.</p>'}
   ${zz.length?`<h3>❄ En animación suspendida</h3><p class="note">Siguen a bordo y su equipo cuenta, pero no participan en la ronda: no tiran, no deciden por su rol, no reciben daño ni XP y comen un 15 %. Al volver a subir su credencial a la sala despiertan solos.</p><div class="lst">${zz.map(m=>`<div class="item"><span>${portrait(m)}</span><div class="m"><b>${esc(m.nm)}${m.pl?` <span class="dim">· ${esc(m.pl)}</span>`:''}</b><i>${esc(m.sp)} · ${ROLES[m.role]} · nivel ${m.lv}</i></div>${A('☀ Despertar',()=>cmd({k:'crew',a:'wake',id:m.id},'Despertar a '+m.nm),NET.role==='client')}</div>`).join('')}</div>`:''}
+  ${enBase().length?`<h3>🏠 En bases y colonias</h3><p class="note">Fuera de la nave y de la ronda. Se recogen desde la pestaña Bases con la nave en su sistema.</p><div class="lst">${enBase().map(m=>{const b=baseById(m.bz);return`<div class="item"><span>${portrait(m)}</span><div class="m"><b>${esc(m.nm)}${m.pl?` <span class="dim">· ${esc(m.pl)}</span>`:''}</b><i>${esc(m.sp)} · ${ROLES[m.role]} · en ${esc(b?b.n:'?')}</i></div></div>`}).join('')}</div>`:''}
   ${lost.length?`<h3>En memoria</h3><p class="note">${lost.map(m=>esc(m.nm)).join(' · ')}</p>`:''}`;bindActs(el);bindMv(el);
 }
 async function endGame(){
@@ -317,6 +326,7 @@ async function endGame(){
   if(L){try{const q=qrcode(0,'L');q.addData(L.url,'Byte');q.make();drawQR($('#mqr'),q)}catch(e){$('#qrBox').outerHTML='<p class="bad">Demasiados datos para un QR: usa el enlace.</p>'}
     $('#mCp').onclick=()=>copy(L.url,'Enlace de la misión copiado');
     $('#mDl').onclick=()=>{const c=$('#mqr'),o=document.createElement('canvas'),pad=40;o.width=c.width;o.height=c.height+pad*2;const g=o.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,o.width,o.height);g.drawImage(c,0,pad);g.fillStyle='#000';g.font='bold 16px monospace';g.textAlign='center';g.fillText('AD ASTRA · MISIÓN '+L.id,o.width/2,26);g.font='12px monospace';g.fillText(`${s.jumps} saltos · ${fmtLen(s.ly)} · ${fmtT(s.days/365.25)} a bordo`,o.width/2,o.height-14);const a=document.createElement('a');a.download=`ad-astra-mision-${L.id}.png`;a.href=o.toDataURL('image/png');a.click()}}
+  if(NET.role==='host'&&L)bcast({t:'fin',id:L.id});guardarMiFicha();
   if(NET.role==='host'&&L)bcast({t:'dialog',d:{t:'Fin de la misión '+L.id,tx:'El capitán cerró la misión. Abre el enlace o escanea el QR de la misión desde Members para actualizar tu ficha.',res:L.url,who:null}});
   $('#no').onclick=()=>{modalOpen=false;closeModal()};
 }

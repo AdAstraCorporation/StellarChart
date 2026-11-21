@@ -48,6 +48,7 @@ function pantallaInicio(join){
     <label class="chk"><input type="radio" name="iniM" value="host"> Crear sala como director (los demás se unen con código)</label></div>
   <div class="row"><button class="pri" id="iniGo">Entrar a la carta</button></div>
   <div class="card"><div class="kick">UNIRSE A UNA SALA</div><div class="row"><input id="iniCode" maxlength="5" placeholder="CÓDIGO" style="text-transform:uppercase;width:110px" value="${esc(join||'')}"><button id="iniJoin" ${join?'class="pri"':''}>Unirme con mi credencial</button></div></div>
+  ${(()=>{try{const f=JSON.parse(localStorage.getItem('adastra-mi-ficha')||'null');return f&&/^https?:\/\/[^\s"<>]+#X[0-9A-Z$*+\-./:]+$/.test(f.u)?`<div class="card"><div class="kick">TU ÚLTIMA PARTIDA</div><a class="btnlink" href="${esc(f.u)}" target="_blank" rel="noopener" style="color:var(--cy)">🏁 Abrir la ficha actualizada de ${esc(f.n)} en Members →</a><div class="note">${esc(new Date(f.t).toLocaleString('es'))}</div></div>`:''}catch(e){return''}})()}
   <p class="note">Antes de la primera ronda hace falta al menos un tripulante con credencial de Members a bordo. <a href="../">← Volver al menú</a></p></div>`;
   document.body.appendChild(ov);
   const cerrar=()=>{ov.classList.add('out');setTimeout(()=>{ov.remove();updEspera()},350)};

@@ -31,7 +31,8 @@ if(!Array.isArray(D.crew)){const n=newCrew(D.ship.d);D.crew=n.c;D.st.extra=n.ext
 /* Estados: ok · susp (animación suspendida: fuera de la ronda, a bordo) · perdido */
 const alive=()=>D.crew.filter(m=>m.st!=='perdido'&&m.st!=='susp');
 const aboard=()=>D.crew.filter(m=>m.st!=='perdido');
-const suspended=()=>D.crew.filter(m=>m.st==='susp');
+const suspended=()=>D.crew.filter(m=>m.st==='susp'&&!m.bz); // en criosueño a bordo
+const enBase=()=>D.crew.filter(m=>m.st==='susp'&&m.bz); // destinados en una base o colonia: fuera de la nave y de la ronda
 const crewCount=()=>alive().length+(D.st.extra|0);
 const eaters=()=>crewCount()+suspended().length*.15; // en criosueño comen un 15 %
 const eff=(m,k)=>m.s[k]+((TRAITS[m.tr]||{m:{}}).m[k]||0)+Math.floor((m.lv-1)/2)+(m.hp<50?-2:0)+(m.mor<30?-1:0)+(typeof gearB==='function'?gearB(m,k):0);
@@ -49,6 +50,10 @@ function hurt(m,n){if(!m||m===AI)return'';if(m.tr==='Cauteloso')n=Math.round(n/2
 function morAll(n){for(const m of alive()){let v=n;if(n<0&&m.tr==='Optimista')v=Math.round(n/2);if(n<0&&m.tr==='Valiente'&&n>-8)v=0;m.mor=clamp(m.mor+v,0,100)}}
 const pick=a=>a[Math.random()*a.length|0];
 function addMember(src){if(alive().length>=8){D.st.extra++;return'Se une a la tripulación general.'}const m=src||genMember(rng((Math.random()*4e9)>>>0));D.crew.push(m);return`${m.nm} (${m.sp}, ${ROLES[m.role]}) se une a la tripulación.`}
+/* Un PNJ quiere unirse: la tripulación decide (o vota, en sala) si lo acepta */
+function offerMember(src,why){const m=src||genMember(rng((Math.random()*4e9)>>>0));
+  queueDialog({ev:{t:'¿Se une a la tripulación?',tx:`${why?why+': ':''}${m.nm} (${m.sp}, ${ROLES[m.role]}, ${m.tr}) pide subir a bordo.`,
+    op:[{l:'Aceptarle a bordo',run:()=>addMember(m)},{l:'Rechazarle',run:()=>`${m.nm} se queda atrás.`}]},ctx:{}});return` ${m.nm} pide unirse: decidid si sube.`}
 function loseRandom(){const a=alive();if(D.st.extra>0&&Math.random()<D.st.extra/(D.st.extra+a.length)){D.st.extra--;return'Un miembro de la tripulación general'}if(!a.length)return'';const m=pick(a);m.st='perdido';m.hp=0;return m.nm}
 const LINES={
  Valiente:['Si algo sale mal, yo voy primero.','Esto se pone interesante.'],Curioso:['¡Mira esa corona! Quiero muestras de todo.','¿Te das cuenta de que nadie ha visto esto antes?'],
@@ -98,7 +103,7 @@ function planetInfo(S,i){
 /* ═════════ Eventos aleatorios (con decisiones y tiradas) ═════════ */
 const EV=[
  {id:'socorro',w:3,at:'leg',t:'Señal de socorro',tx:'Una baliza débil pide ayuda desde una cápsula a la deriva. Podría ser una trampa.',
-  op:[{l:'Acercarse a rescatar',k:'seg',dc:11,ok:()=>'Encuentran a una superviviente congelada. '+addMember(),ko:()=>'Era chatarra con una carga inestable.'+hurt(pick(alive()),20)+(()=>{D.st.hull=Math.max(1,D.st.hull-8);return' Casco −8%.'})()},
+  op:[{l:'Acercarse a rescatar',k:'seg',dc:11,ok:()=>'Encuentran a una superviviente congelada.'+offerMember(null,'Superviviente rescatada'),ko:()=>'Era chatarra con una carga inestable.'+hurt(pick(alive()),20)+(()=>{D.st.hull=Math.max(1,D.st.hull-8);return' Casco −8%.'})()},
       {l:'Ignorarla',run:()=>{morAll(-6);return'La tripulación guarda silencio durante días. Moral −6.'}}]},
  {id:'meteoros',w:4,at:'leg',t:'Lluvia de micrometeoroides',tx:'El radar detecta una nube de polvo de alta velocidad justo en la trayectoria.',
   op:[{l:'Maniobrar a mano',k:'pil',dc:12,ok:()=>'Un pilotaje impecable. Ni un rasguño.',ko:()=>{const d=10+(Math.random()*12|0);D.st.hull=Math.max(1,D.st.hull-d);return`Impactos en el casco: −${d}%.`}},
@@ -140,20 +145,28 @@ function pickEvent(at,c){if(typeof facEvent==='function'&&Math.random()<.38){con
 
 /* ═════════ Misiones e historia ═════════ */
 const QUESTS=[
- {t:'Primer salto',d:'Sal del Sistema Solar y llega a otra estrella.',chk:e=>e.type==='arrive'&&!(e.star.anchor&&e.star.anchor.id==='sol'),
+ {t:'Primer salto',d:'Sal del Sistema Solar y llega a otra estrella.',chk:()=>HF('salto'),
   rw:()=>{D.st.min+=20;return'+20 t de minerales'},story:'Por primera vez, el Sol es sólo una estrella más en la ventanilla. La tripulación se queda mirando un buen rato sin decir nada.'},
- {t:'La línea Petrova',d:'Recolecta astrófago en la corona de una estrella.',chk:e=>e.type==='harvest'&&e.what==='fuel',
+ {t:'La línea Petrova',d:'Recolecta astrófago en la corona de una estrella.',chk:()=>HF('harv'),
   rw:()=>{morAll(8);return'Moral +8'},story:'Los colectores brillan con un resplandor infrarrojo. Si el astrófago puede cultivarse aquí, podemos seguir avanzando.'},
- {t:'Destino: Tau Ceti',d:'Llega al sistema de Tau Ceti (11,9 al).',chk:e=>e.type==='arrive'&&e.star.anchor&&e.star.anchor.id==='tceti',
+ {t:'Destino: Tau Ceti',d:'Llega al sistema de Tau Ceti (11,9 al).',chk:()=>HF('tceti'),
   rw:()=>{const sp=SPEC[D.ship.d];D.st.prov=Math.min(sp.prov,D.st.prov+sp.prov*.2);return'+20% provisiones'},story:'Tau Ceti no se está apagando. Alrededor de la estrella, algo mantiene a raya al astrófago. La respuesta está en Adrian.'},
- {t:'Superficie de Adrian',d:'Explora con éxito un punto de interés en Adrian.',chk:e=>e.type==='poi'&&e.planet==='Adrian',
+ {t:'Superficie de Adrian',d:'Explora con éxito un punto de interés en Adrian.',chk:()=>HF('adrian'),
   rw:()=>{for(const m of alive())gainXp(m,15);return'+15 XP a toda la tripulación'},story:'Las muestras de la atmósfera de Adrian contienen algo vivo que se alimenta del astrófago. Un depredador natural. Esperanza.'},
- {t:'El eco de 40 Eridani',d:'Viaja a 40 Eridani A y entra en su sistema.',chk:e=>e.type==='enter'&&e.star.anchor&&e.star.anchor.id==='40eri',
-  rw:()=>addMember({...genMember(rng(4040),'ing','Erideano'),nm:'Eko de Erid',tr:'Veterano'}),story:'Una nave de diseño imposible se acerca. Su tripulante se comunica con acordes musicales. Tras días de intercambiar números y notas, pide unirse a la misión.'},
+ {t:'El eco de 40 Eridani',d:'Viaja a 40 Eridani A y entra en su sistema.',chk:()=>HF('eri'),
+  rw:()=>offerMember({...genMember(rng(4040),'ing','Erideano'),nm:'Eko de Erid',tr:'Veterano'},'El eco de 40 Eridani').trim(),story:'Una nave de diseño imposible se acerca. Su tripulante se comunica con acordes musicales. Tras días de intercambiar números y notas, pide unirse a la misión.'},
  {t:'Cartógrafo',d:'Registra 10 sistemas.',chk:()=>Object.keys(D.disc).length>=10,rw:()=>{D.st.min+=40;return'+40 t de minerales'},story:'La carta de Ad Astra crece. Cada punto nuevo es un lugar que nadie había nombrado.'},
  {t:'Explorador de Ad Astra',d:'Registra 30 sistemas y recorre 100 al.',chk:()=>Object.keys(D.disc).length>=30&&D.st.ly>=100,rw:()=>{morAll(20);return'Moral +20'},story:'La Corporación Ad Astra te nombra Explorador de Primera Clase. Pero el universo sigue sin tener bordes.'}];
+/* Logros de la historia: se recuerdan aunque su misión todavía no toque (p. ej. llegar a Tau Ceti antes de tiempo).
+   Así la misión se cumple en cuanto le llega el turno y la historia nunca se bloquea. */
+const HF=k=>!!(D.hf&&D.hf[k]);
+function questMark(e){const h=D.hf||(D.hf={}),a=e.star&&e.star.anchor&&e.star.anchor.id;
+  if(e.type==='arrive'&&!(a==='sol'))h.salto=1;if((e.type==='arrive'||e.type==='enter')&&a==='tceti')h.tceti=1;if(e.type==='enter'&&a==='40eri')h.eri=1;
+  if(e.type==='poi'&&e.planet==='Adrian')h.adrian=1;if(e.type==='harvest'&&e.what==='fuel')h.harv=1;
+  if(e.type==='tick'&&typeof shipStar==='function'){const s=shipStar(),b=s&&s.anchor&&s.anchor.id;if(b==='tceti')h.tceti=1;if(b&&b!=='sol')h.salto=1;if(b==='40eri'&&mode==='system')h.eri=1}}
 function questEvent(e){
-  let q=QUESTS[D.q];if(!q||!q.chk(e))return;const rw=q.rw();D.q++;saveD();
+  if(typeof NET!=='undefined'&&NET.role==='client')return; /* en la sala manda el anfitrión: sus avisos llegan por la red */
+  questMark(e);let q=QUESTS[D.q];if(!q||!q.chk(e))return;const rw=q.rw();D.q++;saveD();
   queueDialog({t:'Misión cumplida: '+q.t,who:pick(alive())||null,tx:q.story,res:'Recompensa: '+rw,next:QUESTS[D.q]?'Nueva misión: '+QUESTS[D.q].t:''});
   questEvent({type:'tick'});
 }

@@ -33,7 +33,7 @@ function execCmd(c){
   return'';
 }
 /* Animación suspendida: el tripulante sigue a bordo pero no participa (no tira, no vota por su rol, no recibe daño ni XP) */
-function setSusp(id,on){const m=D.crew.find(q=>q.id===id&&q.st!=='perdido');if(!m)return'';if(on===(m.st==='susp'))return'';
+function setSusp(id,on){const m=D.crew.find(q=>q.id===id&&q.st!=='perdido');if(!m)return'';if(on===(m.st==='susp'))return'';if(!on&&m.bz){const b=baseById(m.bz);return`${m.nm} está en ${b?b.n:'una base'}: id allí a recogerlo.`}
   if(on&&crewCount()-1<SPEC[D.ship.d].crew[0]&&!D.cr)return`Sin ${m.nm} no queda tripulación suficiente para operar la nave.`;
   m.st=on?'susp':'ok';if(!on)m.mor=Math.max(m.mor,60);saveD();const t=on?`❄ ${m.nm} entra en animación suspendida: la partida sigue sin ${m.pl?m.pl:'su jugador'}.`:`☀ ${m.nm} despierta y vuelve a la ronda.`;logDM(t,'sys');return t}
 function changeShip(k){
@@ -54,11 +54,11 @@ async function membersId(n,e,i){const h=new Uint8Array(await crypto.subtle.diges
 function parseX(x){
   const o={};if(!x||!/^R1;/.test(x))return null;for(const kv of x.split(';').slice(1)){const i=kv.indexOf('=');if(i>0)o[kv.slice(0,i)]=kv.slice(i+1)}
   const s=(o.s||'').split(',').map(Number);if(s.length!==6||s.some(v=>!(v>=1&&v<=12)))return null;
-  return{role:ROLES[o.rol]?o.rol:'pil',tr:TRAITS[o.ras]?o.ras:'Curioso',s:Object.fromEntries(KS.map((k,i)=>[k,s[i]|0])),lv:clamp(+o.lv||1,1,999),xp:Math.max(0,+o.xp||0),hp:clamp(+o.hp||100,1,100),mor:clamp(+o.mo||75,0,100),t:/^[0-9A-Fa-f]{8}\.[1-9]\.\d{1,2}$/.test(o.t||'')?o.t:'',fv:Math.max(0,+o.fv|0),ms:Math.max(0,+o.ms|0),mi:/^[0-9A-F]{8}$/.test(o.mi||'')?o.mi:'',fa:faDecode(o.fa),iv:ivDecode(o.iv)};
+  return{role:ROLES[o.rol]?o.rol:'pil',tr:TRAITS[o.ras]?o.ras:'Curioso',s:Object.fromEntries(KS.map((k,i)=>[k,s[i]|0])),lv:clamp(+o.lv||1,1,999),xp:Math.max(0,+o.xp||0),hp:clamp(+o.hp||100,1,100),mor:clamp(+o.mo||75,0,100),t:/^[0-9A-Fa-f]{8}\.[1-9]\.\d{1,2}$/.test(o.t||'')?o.t:'',fv:Math.max(0,+o.fv|0),ms:Math.max(0,+o.ms|0),mi:/^[0-9A-F]{8}$/.test(o.mi||'')?o.mi:'',fa:faDecode(o.fa),iv:ivDecode(o.iv),trx:(()=>{const t=/^([1-9]\d{0,2})\.(AA-[A-Z2-9]{4})\.(CR-[A-Z2-9]{6})$/.exec(o.tr||'');return t?{n:+t[1],id:t[2],cr:t[3]}:null})()};
 }
 /* x ≤ 160 caracteres: si no cabe, se recorta el equipo */
 const buildX=(m,mis,crewFa)=>{const fv=Math.round((m.fv0||0)+(mis?mis.dv:0)),ms=(m.ms0||0)+(mis?1:0),mi=mis?mis.id:(m.mi0||''),fa=[...new Set([...memberFa(m),...(crewFa||[])])].filter(f=>FAC[f]),iv=ivEncode(m.inv);
-  const mk=n=>`R1;rol=${m.role};ras=${m.tr};s=${KS.map(k=>clamp(m.s[k],1,12)).join(',')};lv=${m.lv};xp=${Math.round(m.xp)};hp=${Math.round(m.hp)};mo=${Math.round(m.mor)}${fa.length?';fa='+fa.join('.'):''}${n?';iv='+iv.slice(0,n).join(','):''}${fv?';fv='+fv:''}${ms?';ms='+ms:''}${mi?';mi='+mi:''}${m.t?';t='+m.t:''}`;
+  const mk=n=>`R1;rol=${m.role};ras=${m.tr};s=${KS.map(k=>clamp(m.s[k],1,12)).join(',')};lv=${m.lv};xp=${Math.round(m.xp)};hp=${Math.round(m.hp)};mo=${Math.round(m.mor)}${fa.length?';fa='+fa.join('.'):''}${n?';iv='+iv.slice(0,n).join(','):''}${fv?';fv='+fv:''}${ms?';ms='+ms:''}${mi?';mi='+mi:''}${m.trf?`;tr=${m.trf.n}.${m.trf.id}.${m.trf.cr}`:''}${m.t?';t='+m.t:''}`;
   let n=iv.length,x=mk(n);while(x.length>160&&n>0)x=mk(--n);return x};
 /* Diccionario de las credenciales v5: copia exacta del de Members (app.js, DICCIONARIO). No cambiar el orden. */
 const MDIC=["https://","lh3.googleusercontent.com/","drive.google.com/","i.imgur.com/","pbs.twimg.com/media/","cdn.bsky.app/img/","i.pinimg.com/","d.furaffinity.net/art/",".media.tumblr.com/","i.redd.it/",".png",".jpg",".webp","R1;rol=",";ras=",";s=",";lv=",";xp=",";hp=100;mo=",";hp=",";mo=",";fa=",";iv=",";fv=",";ms=",";mi=",";t=","Corporación","Tripulante","Capitán"];
@@ -82,7 +82,7 @@ function memberFromCard(card){
   const R=card.rol,r=rng(hash(...[...card.id].map(c=>c.charCodeAt(0))));
   const base=R?{role:R.role,tr:R.tr,s:R.s,lv:R.lv,xp:R.xp,hp:R.hp,mor:R.mor,t:R.t,fv:R.fv,ms:R.ms,mi:R.mi,fa:R.fa||[],iv:R.iv||{}}:(()=>{const m=genMember(r,null);return{role:m.role,tr:m.tr,s:m.s,lv:1,xp:0,hp:100,mor:75,t:''}})();
   return{id:card.id,ph:card.foto||'',e0:card.e,nm:card.n,sp,role:base.role,s:base.s,tr:base.tr,hp:base.hp,mor:base.mor,xp:base.xp,lv:base.lv,st:'ok',t:base.t,mid:card.id,crewName:card.c,
-    fv0:base.fv||0,ms0:base.ms||0,mi0:base.mi||'',d0:D.st.days,...(base.fa&&base.fa.length?{fa:base.fa}:{}),...(base.iv&&Object.keys(base.iv).length?{inv:base.iv}:{}),bio:`Credencial ${card.id} · ${card.c||'sin crew'}${card.p?' · '+card.p:''}${card.r?' · '+card.r:''}.${R?'':' Sin estadísticas en la ficha: se generaron por azar.'}`,s0:{...base.s},lv0:base.lv};
+    fv0:base.fv||0,ms0:base.ms||0,mi0:base.mi||'',d0:D.st.days,...(R&&R.trx?{trf:{...R.trx,cn:R.trx.cr}}:{}),...(base.fa&&base.fa.length?{fa:base.fa}:{}),...(base.iv&&Object.keys(base.iv).length?{inv:base.iv}:{}),bio:`Credencial ${card.id} · ${card.c||'sin crew'}${card.p?' · '+card.p:''}${card.r?' · '+card.r:''}.${R?'':' Sin estadísticas en la ficha: se generaron por azar.'}`,s0:{...base.s},lv0:base.lv};
 }
 async function readQrFromImage(file){
   const bmp=await createImageBitmap(file);
@@ -104,9 +104,16 @@ function openCardUpload(onCard,title){
 function setCrewLogo(card){if(!card||!card.logo)return;if(D.crewLogo&&D.crewLogo.id&&D.crewLogo.id!==card.crew&&!(NET.crewLock&&NET.crewLock.id===card.crew))return;D.crewLogo={src:card.logo,name:card.c||'',id:card.crew};saveD();updateCrewLogo()}
 function updateCrewLogo(){const im=document.getElementById('crewLogo'),l=D.crewLogo;if(!im)return;if(l&&l.src){im.src=l.src;im.alt='Logo de '+(l.name||'la tripulación');im.title=l.name||'';im.hidden=false;logoImg=null}else im.hidden=true}
 let logoImg=null;function crewLogoImg(){if(!D.crewLogo||!D.crewLogo.src)return null;if(!logoImg){logoImg=new Image();logoImg.src=D.crewLogo.src}return logoImg.complete&&logoImg.naturalWidth?logoImg:null}
-function addCardLocally(card,pid,pl){setCrewLogo(card);
-  const sp=SPEC[D.ship.d],ex=D.crew.find(m=>m.mid===card.id&&m.st!=='perdido');if(ex){ex.pid=pid;ex.pl=pl;const w=ex.st==='susp';if(w)ex.st='ok';saveD();return w?`${ex.nm} despierta de la animación suspendida: vuelve a la partida con ${pl}.`:`${ex.nm} ya estaba a bordo: ahora lo maneja ${pl}.`}
-  const ocup=crewCount()+suspended().length;if(ocup>=sp.crew[1]&&D.st.extra>0)D.st.extra--;else if(ocup>=sp.crew[1])return'No queda sitio en la nave.';
+function addCardLocally(card,pid,pl,dv){setCrewLogo(card);
+  const sp=SPEC[D.ship.d],trx=card.rol&&card.rol.trx;let ex=D.crew.find(m=>m.mid===card.id&&m.st!=='perdido'),tras='';
+  /* Credencial traspasada a otra crew en Members: si ya está a bordo con su ID anterior, es la misma persona */
+  if(!ex&&trx){ex=D.crew.find(m=>m.mid===trx.id&&m.st!=='perdido');if(ex){const de=ex.crewName||trx.cr;ex.mid=card.id;ex.id=ex.id||card.id;ex.trf={...trx,cn:de};ex.crewName=card.c||'';ex.n0=card.n;ex.bio=`Credencial ${card.id} · ${card.c||card.crew}${card.p?' · '+card.p:''}${card.r?' · '+card.r:''} · antes en ${de}.`;tras=`🔀 ${ex.nm} viene traspasado desde ${de} a ${card.c||card.crew}. `;logDM(tras,'sys')}}
+  if(ex){if(ex.pid&&ex.pid!==pid&&NET.role==='host'&&(ex.pid===NET.me||NET.conns.has(ex.pid))){const old=NET.players[ex.pid];
+      /* Mismo dispositivo que vuelve (recargó la página): la conexión vieja se cierra; otra persona con la misma ficha, no entra */
+      if(ex.pid!==NET.me&&old&&dv&&old.dv===dv)dropPeer(ex.pid,true);else{const r=new String(`${ex.nm} ya está a bordo y lo maneja ${ex.pl||'otro jugador'}: no se puede subir la misma ficha dos veces.`);r.rej=1;return r}}
+    if(ex.bz){const b=baseById(ex.bz);ex.pid=pid;ex.pl=pl;saveD();return tras+`${ex.nm} está en ${b?b.n:'una base'}: recogedlo allí para que vuelva a la ronda.`}
+    ex.pid=pid;ex.pl=pl;if(card.c)ex.crewName=card.c;const w=ex.st==='susp';if(w)ex.st='ok';saveD();return tras+(w?`${ex.nm} despierta de la animación suspendida: vuelve a la partida con ${pl}.`:`${ex.nm} ya estaba a bordo: ahora lo maneja ${pl}.`)}
+  const ocup=ocupadas();if(ocup>=sp.crew[1]&&D.st.extra>0)D.st.extra--;else if(ocup>=sp.crew[1])return'No queda sitio en la nave.';
   const m=memberFromCard(card);m.n0=card.n;m.pid=pid;m.pl=pl;D.crew.push(m);saveD();return`${m.nm} (${m.sp}, ${ROLES[m.role]}) sube a bordo.`;
 }
 /* Fin de misión: un único QR/enlace #X (v2) con el resultado de toda la tripulación con ficha */
@@ -119,6 +126,10 @@ async function missionLink(){
   const js=JSON.stringify({v:2,mi:{id,f,nave:`${D.ship.n||SHIPS[D.ship.d].n} (${SHIPS[D.ship.d].n})`,dn:Math.round(s.days),ye:+s.yrs.toFixed(2),ly:+s.ly.toFixed(2),sj:s.jumps,ss:Object.keys(D.disc).length,q:D.q},c});
   return{id,url:MEMBERS_URL+'#X'+aB43(await pipe(new TextEncoder().encode(js),CompressionStream)),n:ms.length};
 }
+/* Mi ficha: enlace #X con mis estadísticas de ahora; se guarda en este dispositivo (localStorage) para abrirlo
+   también después de cerrar la partida desde la pantalla de inicio */
+async function guardarMiFicha(){const m=D.crew.find(q=>q.mid&&(q.pid===NET.me||(!NET.role&&q.pid==='local')));if(!m)return;try{localStorage.setItem('adastra-mi-ficha',JSON.stringify({u:await exportLink(m),n:m.nm,t:Date.now()}))}catch(e){}}
+async function miFicha(m){if(!m||!m.mid)return;const u=await exportLink(m);try{localStorage.setItem('adastra-mi-ficha',JSON.stringify({u,n:m.nm,t:Date.now()}))}catch(e){}window.open(u,'_blank','noopener')}
 /* Exportar a Members: enlace #X con las estadísticas actualizadas */
 async function exportLink(m){
   const res=`Partida del ${new Date().toLocaleDateString('es')}: nivel ${m.lv0||1}→${m.lv}, salud ${Math.round(m.hp)}%, moral ${Math.round(m.mor)}%; ${D.st.jumps} saltos, ${fmtLen(D.st.ly)}, ${Object.keys(D.disc).length} sistemas.`.slice(0,300);
@@ -132,21 +143,29 @@ var NET={anon:false,myVotes:{},luckPaint:null,decide:'rol',crewLock:null,role:nu
 function voteCnt(v){return v.cnt&&!v.ballots?v.cnt:v.opts.map((_,i)=>Object.values(v.ballots||{}).filter(b=>b===i).length)}
 function pubVote(v){const o={...v,cnt:voteCnt(v),nv:Object.keys(v.ballots||{}).length};if(v.anon){delete o.ballots;o.dice=Object.fromEntries(Object.values(v.dice||{}).map((d,i)=>['a'+i,d]))}return o}
 function bcast(m){if(NET.role!=='host')return;for(const c of NET.conns.values())try{c.open&&c.send(m)}catch(e){}}
-function netSync(){if(NET.role!=='host')return;clearTimeout(NET.syncT);NET.syncT=setTimeout(async()=>{const tok=await encodeState(300);bcast({t:'state',tok,logo:D.crewLogo||null,anon:NET.anon,players:NET.players,votes:NET.votes.map(pubVote),chat:NET.chat.slice(-60),demo:NET.demo})},250)}
+function netSync(){if(NET.role!=='host')return;clearTimeout(NET.syncT);NET.syncT=setTimeout(async()=>{const tok=await encodeState(300);NET.lastSync=Date.now();bcast({t:'state',tok,logo:D.crewLogo||null,anon:NET.anon,players:NET.players,votes:NET.votes.map(pubVote),chat:NET.chat.slice(-60),demo:NET.demo})},250)}
 const sysMsg=tx=>{logDM(tx,'sys');NET.chat.push({f:'',tx,t:Date.now()});if(NET.chat.length>120)NET.chat.shift();renderSessDyn();netSync()};
 const randCode=()=>Array.from(crypto.getRandomValues(new Uint8Array(5)),b=>MABC[b%32]).join('');
 function hostSession(){
   if(typeof Peer==='undefined'){toast('No se pudo cargar el módulo de red.');return}const code=randCode(),peer=new Peer('adastra-'+code,PEER_OPTS);
   peer.on('open',id=>{Object.assign(NET,{role:'host',peer,code,me:id,players:{[id]:{name:D.n||'Director',host:1}}});sysMsg(`Partida ${code} creada por ${D.n||'Director'}${NET.crewLock?' para la tripulación '+NET.crewLock.name:''}.`);showDM(true);renderSess()});
-  peer.on('connection',c=>{c.on('data',m=>hostRecv(c,m));c.on('open',()=>NET.conns.set(c.peer,c));c.on('close',()=>{NET.conns.delete(c.peer);const p=NET.players[c.peer];delete NET.players[c.peer];if(p)sysMsg(`${p.name} salió de la sala.`);const ch=D.crew.find(m=>m.pid===c.peer&&m.st==='ok');if(ch)toast(`${esc(p?p.name:'Un jugador')} se desconectó. ¿Dejar a ${esc(ch.nm)} en animación suspendida?`,'❄ Suspender',()=>{const t=setSusp(ch.id,true);if(t){toast(esc(t));bcast({t:'toast',h:esc(t)});netSync();refresh()}});checkVotes()})});
+  peer.on('connection',c=>{c.on('data',m=>hostRecv(c,m));c.on('open',()=>{NET.conns.set(c.peer,c);netSync()});c.on('close',()=>dropPeer(c.peer,false))});
   peer.on('error',e=>{if(e.type==='unavailable-id'){peer.destroy();hostSession();return}toast('Red: '+esc(e.type||e.message));renderSess()});
   peer.on('disconnected',()=>{try{peer.reconnect()}catch(e){}});
 }
+/* Un jugador sale (o su conexión quedó colgada): se quita de la sala y de las votaciones.
+   silent = vuelve a entrar el mismo dispositivo (recargó la página), sin avisos */
+function dropPeer(id,silent){const c=NET.conns.get(id);NET.conns.delete(id);if(c&&silent)try{c.close()}catch(e){}const p=NET.players[id];delete NET.players[id];
+  for(const v of NET.votes)if(v.open&&v.ballots&&id in v.ballots&&silent)delete v.ballots[id];
+  if(!silent){if(p)sysMsg(`${p.name} salió de la sala.`);const ch=D.crew.find(m=>m.pid===id&&m.st==='ok');if(ch)toast(`${esc(p?p.name:'Un jugador')} se desconectó. ¿Dejar a ${esc(ch.nm)} en animación suspendida?`,'❄ Suspender',()=>{const t=setSusp(ch.id,true);if(t){toast(esc(t));bcast({t:'toast',h:esc(t)});netSync();refresh()}})}
+  checkVotes();netSync();renderSessDyn()}
+/* Identificador del dispositivo (para reconocer a quien recarga la página) */
+function devId(){try{let v=localStorage.getItem('adastra-dev');if(!v){v=Math.random().toString(36).slice(2,12);localStorage.setItem('adastra-dev',v)}return v}catch(e){return NET.devTmp||(NET.devTmp=Math.random().toString(36).slice(2,12))}}
 function joinSession(code,card0){
   if(typeof Peer==='undefined'){toast('No se pudo cargar el módulo de red.');return}code=String(code||'').trim().toUpperCase();if(!/^[A-Z2-9]{5}$/.test(code)){toast('Código de sala no válido.');return}
   const go=card=>{
     const peer=new Peer(undefined,PEER_OPTS);peer.on('open',id=>{const c=peer.connect('adastra-'+code,{reliable:true});
-      c.on('open',()=>{Object.assign(NET,{role:'client',peer,host:c,code,me:id});c.send({t:'hello',name:D.n||card.n,card:{...card,rol:card.rol}});toast('Conectado a la sala '+code+'. Esperando la partida…');renderSess()});
+      c.on('open',()=>{Object.assign(NET,{role:'client',peer,host:c,code,me:id});c.send({t:'hello',name:D.n||card.n,dv:devId(),card:{...card,rol:card.rol}});toast('Conectado a la sala '+code+'. Esperando la partida…');renderSess()});
       c.on('data',clientRecv);c.on('close',()=>{toast('Se perdió la conexión con el anfitrión.');leaveSession(true)})});
     peer.on('error',e=>{toast(e.type==='peer-unavailable'?'No existe la sala '+esc(code)+' (o el anfitrión se desconectó).':'Red: '+esc(e.type||e.message));renderSess()});
   };if(card0&&card0.n)go(card0);else openCardUpload(go,'Únete con tu ficha de personaje');
@@ -155,9 +174,9 @@ function leaveSession(reload){try{NET.peer&&NET.peer.destroy()}catch(e){}const w
 function hostRecv(c,m){
   if(!m||typeof m!=='object')return;const pl=NET.players[c.peer];
   if(m.t==='hello'&&NET.crewLock&&(!m.card||m.card.crew!==NET.crewLock.id)){try{c.send({t:'reject',msg:`Esta partida es sólo para la tripulación «${NET.crewLock.name}» (${NET.crewLock.id}). Sube una credencial de esa tripulación.`})}catch(e){}logDM(`Rechazado: ${String(m.name||'?').slice(0,24)} (otra tripulación)`,'sys');setTimeout(()=>{try{c.close()}catch(e){}},600);return}
-  if(m.t==='hello'){const name=String(m.name||'Tripulante').slice(0,24);NET.players[c.peer]={name};sysMsg(`${name} se une a la sala.`);
-    if(m.card&&m.card.n){const card={...m.card,n:String(m.card.n).slice(0,40),e:String(m.card.e||'').slice(0,40),c:String(m.card.c||'').slice(0,30),p:String(m.card.p||''),r:String(m.card.r||''),id:String(m.card.id||'').slice(0,8),rol:(()=>{try{const r=m.card.rol;return r?parseX(buildX({...r,fv0:r.fv,ms0:r.ms,mi0:r.mi,fa:r.fa,inv:r.iv&&typeof r.iv==='object'?Object.fromEntries(Object.entries(r.iv).filter(([k])=>okItem(k))):null},null)):null}catch(e){return null}})()};
-      const msg=addCardLocally(card,c.peer,name);NET.players[c.peer].ch=card.id;sysMsg(msg)}
+  if(m.t==='hello'){const name=String(m.name||'Tripulante').slice(0,24),dv=String(m.dv||'').slice(0,24),nuevo=!NET.players[c.peer];NET.players[c.peer]={...(NET.players[c.peer]||{}),name,dv};if(nuevo)sysMsg(`${name} se une a la sala.`);
+    if(m.card&&m.card.n){const card={...m.card,n:String(m.card.n).slice(0,40),e:String(m.card.e||'').slice(0,40),c:String(m.card.c||'').slice(0,30),p:String(m.card.p||''),r:String(m.card.r||''),id:String(m.card.id||'').slice(0,8),rol:(()=>{try{const r=m.card.rol;return r?parseX(buildX({...r,fv0:r.fv,ms0:r.ms,mi0:r.mi,trf:r.trx,fa:r.fa,inv:r.iv&&typeof r.iv==='object'?Object.fromEntries(Object.entries(r.iv).filter(([k])=>okItem(k))):null},null)):null}catch(e){return null}})()};
+      const msg=addCardLocally(card,c.peer,name,dv);if(msg&&msg.rej){try{c.send({t:'toast',h:esc(String(msg))})}catch(e){}logDM('Rechazado: '+name+' (ficha ya a bordo)','sys');sysMsg(String(msg))}else{NET.players[c.peer].ch=card.id;sysMsg(String(msg))}}
     netSync();return}
   if(!pl)return;
   if(m.t==='chat'){logDM(`💬 ${pl.name}: ${String(m.tx||'').slice(0,300)}`,'chat');NET.chat.push({f:pl.name,tx:String(m.tx||'').slice(0,300),t:Date.now()});renderSessDyn();netSync()}
@@ -171,11 +190,17 @@ async function clientRecv(m){
   if(m.t==='state'){try{const st=await decodeState(m.tok);applyRemote(st)}catch(e){}if(m.logo&&typeof m.logo.src==='string'&&/^(data:image\/(webp|jpeg);base64,|https:\/\/)/.test(m.logo.src)&&(!D.crewLogo||D.crewLogo.src!==m.logo.src)){D.crewLogo={src:m.logo.src,name:String(m.logo.name||'').slice(0,30),id:String(m.logo.id||'')};updateCrewLogo()}NET.players=m.players||{};NET.votes=m.votes||[];NET.anon=!!m.anon;NET.chat=m.chat||[];NET.demo=!!m.demo;renderSessDyn();showEvVote();const v=NET.votes.find(x=>x.id===NET.shownVote);if(v&&$('#luck'))$('#luck').innerHTML=luckTxt(v.dice,v.anon);refresh()}
   else if(m.t==='travel'&&!travel){const stars=(m.seeds||[]).map(s=>starFromSeed(s)||pointFromSeed(s)).filter(Boolean);if(stars.length>1){route=null;travel={legs:stars.slice(1).map((s,i)=>({from:stars[i],to:s})),i:0,t0:0,pos:null,int:0,ghost:1};$('#travel').classList.add('show')}}
   else if(m.t==='dialog'&&m.d)queueDialog({...m.d,local:1});
+  else if(m.t==='view'&&NET.follow)followView(m);
+  else if(m.t==='fin'){await guardarMiFicha();const mine=D.crew.find(q=>q.pid===NET.me&&q.mid);if(mine)toast('🏁 Fin de la misión: tu ficha está lista.','Abrir mi ficha',()=>miFicha(mine))}
   else if(m.t==='toast')toast(String(m.h||''));
   else if(m.t==='reject'){alert(String(m.msg||'El director rechazó tu credencial.'));leaveSession(true)}
 }
+/* Seguir al capitán: la cámara y la vista (mapa o sistema) siguen a las del anfitrión */
+function followView(v){if(travel||!Array.isArray(v.c)||v.c.length!==6||!v.c.every(isFinite))return;
+  if(v.m==='map'){if(mode!=='map')exitToMap();[tg.fx,tg.fy,tg.fz,tg.R,tg.yaw,tg.pitch]=v.c;return}
+  if(v.s&&(mode!=='system'||!SYS||!SYS.star||sSeed(SYS.star)!==v.s)){const st=starFromSeed(String(v.s));if(st)enterSystem(st)}}
 function applyRemote(st){
-  const g=st.game;if(!g)return;D.st=g;D.crew=st.crew;D.hib=st.flags.hib;D.cr=st.flags.cr;D.q=st.flags.q;D.ex=st.ex;D.scan=st.scan;D.disc=st.disc;D.h=st.h;
+  const g=st.game;if(!g)return;D.st=g;D.crew=st.crew;D.hib=st.flags.hib;D.cr=st.flags.cr;D.q=st.flags.q;D.hf=st.hf||{};D.ex=st.ex;D.scan=st.scan;D.disc=st.disc;D.h=st.h;
   if(st.ship)D.ship=st.ship;if(st.sp&&!travel){D.sp=st.sp;_sp=''}if(st.n)D.n=D.n||st.n;D.plan=st.plan||D.plan;D.rep=st.rep||D.rep;if(st.fx)D.fx=st.fx;RONDA=!!st.flags.ronda;D.bases=st.bases||[];D.conv=st.conv||[];D.rutas=st.rutas||[];
 }
 function propose(v){
@@ -191,8 +216,10 @@ function castDice(id,pid,d){if(!(d>=1&&d<=6))return;if(NET.role==='client'){NET.
   sysMsg(`🎲 ${v.anon?'Alguien':((NET.players[pid]||{}).name||'?')} tira el dado de fortuna en «${v.title}»: ${d} (${DIEM[d]>0?'+':''}${DIEM[d]}).`);if(NET.luckPaint)NET.luckPaint();netSync()}
 function castVote(id,pid,o){if(NET.role==='client'){NET.myVotes[id]=o;NET.host.send({t:'vote',id,o});return}const v=NET.votes.find(x=>x.id===id&&x.open);if(!v||o<0||o>=v.opts.length)return;if(v.voters&&!v.voters.includes(pid)&&pid!==NET.me)return;v.ballots[pid]=o;checkVotes();netSync();renderSessDyn()}
 function checkVotes(){
-  if(NET.role!=='host')return;const everyone=[NET.me,...NET.conns.keys()];
-  for(const v of NET.votes){if(!v.open)continue;let voters=v.voters&&v.voters.some(p=>everyone.includes(p))?v.voters.filter(p=>everyone.includes(p)):everyone;const all=voters.every(p=>p in v.ballots);if(!all&&Date.now()<v.ends)continue;
+  if(NET.role!=='host')return;const everyone=[NET.me,...[...NET.conns].filter(([k,c])=>c.open&&NET.players[k]).map(([k])=>k)];
+  for(const v of NET.votes){if(!v.open)continue;let voters=v.voters&&v.voters.some(p=>everyone.includes(p))?v.voters.filter(p=>everyone.includes(p)):everyone;const all=voters.every(p=>p in v.ballots);
+    /* Cuando han votado todos, la votación se cierra a los 3 s (se puede cambiar el voto mientras); el director la cierra al momento si impone */
+    if(all&&!v.forced){if(!v.allAt){v.allAt=Date.now();netSync()}if(Date.now()-v.allAt<3000)continue}else if(!all){v.allAt=0;if(Date.now()<v.ends)continue}
     const cnt=v.opts.map((_,i)=>Object.values(v.ballots).filter(b=>b===i).length),max=Math.max(...cnt);let w=cnt.indexOf(max);
     if(v.kind==='cmd'&&cnt[0]===cnt[1])w=1;if(!Object.keys(v.ballots).length&&v.kind==='ev')w=0;v.open=false;v.result=w;
     sysMsg(`Resultado de «${v.title}»: ${v.opts[w]} (${v.anon?cnt.join(' / ')+' · voto anónimo':v.opts.map((o,i)=>`${o}: ${Object.entries(v.ballots).filter(([,b])=>b===i).map(([p])=>(NET.players[p]||{}).name||'?').join(', ')||'—'}`).join(' · ')})`);
@@ -200,18 +227,45 @@ function checkVotes(){
     if(v.kind==='ev'&&NET.vcb[v.id]){const f=NET.vcb[v.id];delete NET.vcb[v.id];f(w)}}
   const closed=NET.votes.filter(v=>!v.open);if(closed.length>12)NET.votes=NET.votes.filter(v=>v.open).concat(closed.slice(-12));refresh();
 }
-setInterval(()=>{if(NET.role==='host'&&NET.votes.some(v=>v.open))checkVotes();if(tab==='sess')renderSessDyn()},1000);
+setInterval(()=>{if(NET.role==='host'){
+    /* Conexiones colgadas (p. ej. un invitado que recargó y cuyo «close» nunca llegó): fuera de la sala y de las votaciones */
+    for(const [k,c] of [...NET.conns])if(!c.open)dropPeer(k,false);
+    if(NET.votes.some(v=>v.open))checkVotes();
+    /* Sincronía periódica: los invitados ven el mapa, la nave y la partida al momento, sin recargar */
+    if(NET.conns.size&&Date.now()-(NET.lastSync||0)>3000)netSync();
+    /* Lo que ve el capitán, para quien quiera seguirle */
+    if(NET.conns.size)bcast({t:'view',m:mode,s:mode!=='map'&&SYS&&SYS.star?sSeed(SYS.star):'',c:[tg.fx,tg.fy,tg.fz,tg.R,tg.yaw,tg.pitch].map(v=>+(+v).toFixed(4))})}
+  if(NET.role!=='client'&&typeof questEvent==='function'&&D.crew)questEvent({type:'tick'});
+  if(NET.role)showEvVote();if(tab==='sess')renderSessDyn()},1000);
+/* Votaciones en pantalla grande: salen a todos en cuanto se abren, aunque haya otra ventana abierta.
+   El director (capitán) tiene la última palabra: puede imponer cualquier opción. En el anfitrión los eventos ya
+   salen en su ventana de evento, así que aquí sólo se muestran las demás votaciones. */
 function showEvVote(){
-  const v=NET.votes.find(x=>x.open&&x.kind==='ev');
-  if(NET.shownVote&&!NET.votes.some(x=>x.id===NET.shownVote&&x.open)){if(NET.shownVote&&modalOpen&&$('#evv')){modalOpen=false;closeModal()}NET.shownVote=null}
-  if(!v||NET.shownVote===v.id||modalOpen)return;NET.shownVote=v.id;
-  const spect=v.voters&&!v.voters.includes(NET.me),hasK=/·\s*(Pilotaje|Ingeniería|Ciencia|Medicina|Seguridad|Diplomacia)\s\d+/.test(v.opts.join('|'))||Object.values(STATN).some(n=>v.opts.some(o=>o.includes('· '+n+' ')));
-  modalOpen=true;
-  showModal(`<div id="evv" class="kick">EVENTO · ${spect?'DECIDE '+esc(v.who).toUpperCase():v.voters?'TE TOCA DECIDIR POR TU ROL':'VOTACIÓN DE LA TRIPULACIÓN'}${v.anon?' · VOTO ANÓNIMO':''}</div><h2>${esc(v.title)}</h2><p class="story">${esc(v.tx)}</p>
-  ${hasK?`<div class="row"><button id="dice">🎲 Tirar dado de fortuna</button></div><div id="luck" class="note">${luckTxt(v.dice,v.anon)}</div>`:''}
-  ${spect?`<p class="note">Decide ${esc(v.who)}. Tu dado de fortuna también cuenta para la prueba.</p><div class="row"><button id="evHide">Ocultar</button></div>`:`<div class="opts">${v.opts.map((o,i)=>`<button data-o="${i}">${esc(o)}</button>`).join('')}</div><div class="note" id="vstat">${v.anon?'Voto secreto: nadie sabrá qué elegiste.':'Voto público: la tripulación verá qué elegiste.'}</div>`}`);
-  if($('#dice'))$('#dice').onclick=e=>dieAnim(e.currentTarget,d=>castDice(v.id,NET.me,d));if($('#evHide'))$('#evHide').onclick=()=>{modalOpen=false;closeModal()};
-  $('#modalBox').querySelectorAll('[data-o]').forEach(b=>b.onclick=()=>{castVote(v.id,NET.me,+b.dataset.o);$('#modalBox').querySelectorAll('[data-o]').forEach(x=>x.classList.toggle('pri',x===b));$('#vstat').textContent='Voto registrado. Esperando al resto…'});
+  if(!NET.role){const o=$('#voteOv');if(o)o.remove();return}
+  NET.hidVote=NET.hidVote||{};const host=NET.role==='host';
+  const v=NET.votes.find(x=>x.open&&!NET.hidVote[x.id]&&!(host&&x.kind==='ev'&&NET.vcb[x.id]));let ov=$('#voteOv');
+  if(!v){if(ov)ov.remove();NET.shownVote=null;return}
+  const spect=v.voters&&!v.voters.includes(NET.me),cnt=voteCnt(v),mine=v.ballots&&NET.me in v.ballots?v.ballots[NET.me]:NET.myVotes[v.id];
+  const hasK=Object.values(STATN).some(n=>v.opts.some(o=>o.includes('· '+n+' ')));
+  if(!ov||NET.shownVote!==v.id){
+    if(!ov){ov=document.createElement('div');ov.id='voteOv';ov.setAttribute('role','dialog');document.body.appendChild(ov)}NET.shownVote=v.id;
+    ov.innerHTML=`<div class="vbox"><div class="kick">${v.kind==='ev'?'EVENTO · ':''}${spect?'DECIDE '+esc(v.who).toUpperCase():v.voters?'TE TOCA DECIDIR POR TU ROL':'VOTACIÓN DE LA TRIPULACIÓN'}${v.anon?' · VOTO ANÓNIMO':''}</div>
+      <h1>${esc(v.title)}</h1>${v.tx?`<p class="story">${esc(v.tx)}</p>`:''}<p class="note">Propone ${esc(v.byName||'?')}</p>
+      ${hasK?`<div class="row"><button id="vDice">🎲 Tirar dado de fortuna</button></div><div id="luck" class="note">${luckTxt(v.dice,v.anon)}</div>`:''}
+      <div class="vopts">${v.opts.map((o,i)=>`<button data-vo="${i}" ${spect?'disabled':''}><span>${esc(o)}</span><b data-vc="${i}">0</b></button>`).join('')}</div>
+      <div id="vTime" class="note"></div>
+      ${host?`<div class="kick" style="margin-top:10px">EL CAPITÁN TIENE LA ÚLTIMA PALABRA</div><div class="row">${v.opts.map((o,i)=>`<button class="sm" data-vf="${i}">⚑ Imponer «${esc(o)}»</button>`).join('')}</div>`:''}
+      <div class="row"><button class="sm" id="vHide">Ocultar (sigue en la pestaña Sesión)</button></div></div>`;
+    ov.querySelectorAll('[data-vo]').forEach(b=>b.onclick=()=>{castVote(v.id,NET.me,+b.dataset.vo);showEvVote()});
+    ov.querySelectorAll('[data-vf]').forEach(b=>b.onclick=()=>{forceVote(v.id,+b.dataset.vf);showEvVote()});
+    if($('#vDice'))$('#vDice').onclick=e=>dieAnim(e.currentTarget,d=>castDice(v.id,NET.me,d));
+    $('#vHide').onclick=()=>{NET.hidVote[v.id]=1;showEvVote()};
+  }
+  ov.querySelectorAll('[data-vo]').forEach(b=>b.classList.toggle('pri',mine===+b.dataset.vo));
+  ov.querySelectorAll('[data-vc]').forEach(b=>b.textContent=cnt[+b.dataset.vc]||0);
+  const L=$('#luck');if(L)L.innerHTML=luckTxt(v.dice,v.anon);
+  const nv=v.nv!=null?v.nv:Object.keys(v.ballots||{}).length,left=Math.max(0,Math.round((v.ends-Date.now())/1000));
+  $('#vTime').textContent=v.allAt?'Han votado todos: se cierra en un momento…':`${nv} voto${nv===1?'':'s'} · quedan ${left} s${spect?' · decide '+v.who:mine!=null?' · tu voto está registrado (puedes cambiarlo)':''}`;
 }
 /* Pestaña Sesión */
 function renderSess(){
@@ -234,10 +288,12 @@ function renderSess(){
     <label class="chk"><input type="checkbox" id="sDemo" ${NET.demo?'checked':''}> Las acciones de los sistemas también se votan</label>
     <label class="chk"><input type="checkbox" id="sAnon" ${NET.anon?'checked':''}> Votos anónimos (sólo se ve el recuento)</label><p class="note">Los rumbos siempre te preguntan si decides tú o se vota.</p>
     <div class="row"><button id="sLog">📜 Registro de la partida</button></div></div>`:''}
+  ${NET.role==='client'?`<label class="chk"><input type="checkbox" id="sFollow" ${NET.follow?'checked':''}> 👁 Seguir al capitán (ver lo mismo que él: cámara, mapa y sistema)</label>`:''}
   <div id="sessDyn"></div>
   <h3>Proponer votación</h3><input id="vT" placeholder="¿Qué se vota?" style="width:100%" maxlength="140"><input id="vO" placeholder="Opciones separadas por comas (Sí, No)" style="width:100%;margin-top:4px" maxlength="200"><div class="row"><button id="vGo">🗳 Proponer</button></div>
   <h3>Chat</h3><div id="chatL" class="lst" style="max-height:220px;overflow:auto"></div><div class="row"><input id="chT" style="flex:1" maxlength="300" placeholder="Mensaje a la tripulación"><button id="chGo">Enviar</button></div>`;
   $('#sCopy').onclick=()=>copy(link||NET.code,'Copiado');$('#sLeave').onclick=()=>{if(confirm(NET.role==='host'?'¿Cerrar la sala? Los demás se desconectarán.':'¿Salir de la sala? Se recargará tu partida local.'))leaveSession()};
+  if($('#sFollow'))$('#sFollow').onchange=e=>{NET.follow=e.target.checked;toast(NET.follow?'Sigues la vista del capitán.':'Vista libre.')};
   if($('#sDemo'))$('#sDemo').onchange=e=>{NET.demo=e.target.checked;netSync()};if($('#sAnon'))$('#sAnon').onchange=e=>{NET.anon=e.target.checked;sysMsg(NET.anon?'🕶 Las votaciones nuevas serán anónimas.':'👁 Las votaciones nuevas serán públicas.')};if($('#sDec'))$('#sDec').onchange=e=>{NET.decide=e.target.value;logDM('Eventos: '+e.target.selectedOptions[0].text,'sys')};if($('#sLog'))$('#sLog').onclick=()=>showDM(true);
   $('#vGo').onclick=()=>{const t=$('#vT').value.trim();if(!t)return;const o=$('#vO').value.split(',').map(s=>s.trim()).filter(Boolean);propose({kind:'free',title:t,opts:o.length>1?o:['Sí','No']});$('#vT').value='';$('#vO').value=''};
   const send=()=>{const tx=$('#chT').value.trim();if(!tx)return;if(NET.role==='client')NET.host.send({t:'chat',tx});else{NET.chat.push({f:(NET.players[NET.me]||{}).name||'Anfitrión',tx,t:Date.now()});renderSessDyn();netSync()}$('#chT').value=''};
@@ -247,12 +303,13 @@ function renderSessDyn(){
   const el=$('#sessDyn');if(!el||!NET.role)return;
   const mine=D.crew.find(m=>m.pid===NET.me&&m.st!=='perdido');
   el.innerHTML=`<h3>Jugadores</h3><div class="lst">${Object.entries(NET.players).map(([id,p])=>{const ch=D.crew.find(m=>m.pid===id&&m.st!=='perdido');return`<div class="item">${portrait(ch)}<div class="m"><b>${esc(p.name)}${p.host?' · anfitrión':''}${id===NET.me?' (tú)':''}</b><i>${ch?esc(ch.nm)+' · '+ROLES[ch.role]+' · nivel '+ch.lv+(ch.st==='susp'?' · ❄ en animación suspendida':''):'sin personaje'}</i></div>${ch&&NET.role==='host'&&id!==NET.me?`<button class="sm" data-sus="${esc(ch.id)}" data-on="${ch.st==='susp'?0:1}">${ch.st==='susp'?'☀ Despertar':'❄ Suspender'}</button>`:''}</div>`}).join('')}</div>
-  ${mine?'':`<div class="row"><button class="pri" id="myCard">Subir mi ficha de Members</button></div>`}
+  ${mine?(mine.mid?`<div class="row"><button id="myUpd">🏁 Mi ficha actualizada en Members</button></div>`:''):`<div class="row"><button class="pri" id="myCard">Subir mi ficha de Members</button></div>`}
   <h3>Votaciones ${NET.anon?'<span class="tag">🕶 anónimas</span>':'<span class="tag">👁 públicas</span>'}</h3><div class="lst">${NET.votes.slice().reverse().map(v=>{const my=v.ballots&&NET.me in v.ballots?v.ballots[NET.me]:NET.myVotes[v.id],cnt=voteCnt(v);
     const who=i=>v.anon||!v.ballots?'':Object.entries(v.ballots).filter(([,b])=>b===i).map(([p])=>(NET.players[p]||{}).name||'?').join(', ');
     return`<div class="item col"><div><b>${esc(v.title)}</b> <span class="dim">· ${esc(v.byName||'')} · ${v.anon?'🕶 ':''}${v.open?Math.max(0,Math.round((v.ends-Date.now())/1000))+' s':'cerrada'}</span></div><div class="row">${v.opts.map((o,i)=>`<button class="sm ${my===i?'pri':''} ${!v.open&&v.result===i?'pri':''}" data-v="${v.id}" data-o="${i}" ${v.open?'':'disabled'} title="${esc(who(i))}">${esc(o)} · ${cnt[i]}</button>`).join('')}</div>${!v.anon&&v.ballots&&Object.keys(v.ballots).length?`<div class="note">${v.opts.map((o,i)=>who(i)?`${esc(o)}: ${esc(who(i))}`:'').filter(Boolean).join(' · ')}</div>`:''}${v.dice&&Object.keys(v.dice).length?`<div class="note">${luckTxt(v.dice,v.anon)}</div>`:''}</div>`}).join('')||'<p class="note">Sin votaciones.</p>'}</div>`;
   el.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>castVote(b.dataset.v,NET.me,+b.dataset.o));
   el.querySelectorAll('[data-sus]').forEach(b=>b.onclick=()=>{const t=setSusp(b.dataset.sus,b.dataset.on==='1');if(t){toast(esc(t));bcast({t:'toast',h:esc(t)});netSync();refresh();renderSessDyn()}});
-  if($('#myCard'))$('#myCard').onclick=()=>openCardUpload(card=>{if(NET.role==='client')NET.host.send({t:'hello',name:D.n||card.n,card});else{toast(esc(addCardLocally(card,NET.me,D.n||'Anfitrión')));netSync();refresh()}});
+  if($('#myUpd'))$('#myUpd').onclick=()=>miFicha(mine);
+  if($('#myCard'))$('#myCard').onclick=()=>openCardUpload(card=>{if(NET.role==='client')NET.host.send({t:'hello',name:D.n||card.n,dv:devId(),card});else{toast(esc(addCardLocally(card,NET.me,D.n||'Anfitrión')));netSync();refresh()}});
   const cl=$('#chatL');if(cl){cl.innerHTML=NET.chat.map(c=>`<div class="note" style="margin:0">${c.f?`<b style="color:var(--tx)">${esc(c.f)}:</b> `:'· '}${esc(c.tx)}</div>`).join('');cl.scrollTop=cl.scrollHeight}
 }

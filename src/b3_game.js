@@ -251,7 +251,7 @@ function applyLoot(lo,mult){
   if(lo.prov&&sp.prov){const v=Math.round(sp.prov*rr(lo.prov));s.prov=Math.min(sp.prov,s.prov+v);out.push(`+${fmtI(v)} días-persona de provisiones`)}
   if(lo.fuel){const v=+(sp.tank*rr(lo.fuel)).toFixed(1);s.fuel=Math.min(sp.tank,s.fuel+v);out.push(`+${v} t de astrófago`)}
   if(lo.mor){morAll(lo.mor);out.push(`moral +${lo.mor}`)}
-  if(lo.crew&&crewCount()<sp.crew[1])out.push(addMember());
+  if(lo.crew&&crewCount()<sp.crew[1])out.push(offerMember(null,'Superviviente en la expedición').trim());
   if(lo.lore)out.push('«'+pick(LORE)+'»');
   return out.join(' · ');
 }

@@ -35,6 +35,32 @@ function buildBase(i,ty){
 function upBase(id){const b=(D.bases||[]).find(q=>q.id===id);if(!b)return'';if(b.lv>=3)return'La base ya está al máximo.';const c=50*b.lv;if(!sameStar(baseStar(b),shipStar()))return'Tenéis que estar en ese sistema.';
   if(D.st.min<c&&!D.cr)return`Hacen falta ${c} t de minerales.`;baseTick();if(!D.cr)D.st.min-=c;passDays(15);b.lv++;saveD();return`${b.n} pasa a nivel ${b.lv}.`}
 const baseById=id=>(D.bases||[]).find(q=>q.id===id);
+/* ═════ Cambio de tripulación dentro de la partida ═════
+   El director deja a un tripulante en una base o colonia (queda allí, fuera de la ronda, como en animación suspendida
+   pero sin ocupar litera ni comer de la nave) y lo recoge después, o lo intercambia con alguien de a bordo o de la
+   tripulación general. Sólo con la nave en el sistema de la base. */
+const ocupadas=()=>crewCount()+suspended().length;
+const naveEn=b=>!travel&&!shipStar().point&&sSeed(shipStar())===b.s;
+const genBase=b=>b.tg|0;
+function bajarABase(bid,mid){const b=baseById(bid);if(!b||!naveEn(b))return'La nave tiene que estar en el sistema de la base.';
+  if(mid==='gen'){if(!(D.st.extra>0))return'No hay nadie en la tripulación general.';if(crewCount()-1<SPEC[D.ship.d].crew[0]&&!D.cr)return'La nave se quedaría sin la tripulación mínima.';D.st.extra--;b.tg=genBase(b)+1;saveD();return`🏠 Un tripulante de la tripulación general se queda en ${b.n}.`}
+  const m=D.crew.find(q=>q.id===mid&&q.st==='ok');if(!m)return'';if(crewCount()-1<SPEC[D.ship.d].crew[0]&&!D.cr)return`Sin ${m.nm} no queda tripulación suficiente para operar la nave.`;
+  m.st='susp';m.bz=b.id;saveD();const t=`🏠 ${m.nm} se queda en ${b.n}: fuera de la ronda hasta que lo recojáis.`;logDM(t,'sys');return t}
+function subirDeBase(bid,mid,libre){const b=baseById(bid);if(!b||!naveEn(b))return'La nave tiene que estar en el sistema de la base.';
+  if(!libre&&ocupadas()>=SPEC[D.ship.d].crew[1])return'No queda litera libre: intercambiadlo con alguien de a bordo.';
+  if(mid==='gen'){if(!genBase(b))return'';b.tg--;D.st.extra=(D.st.extra|0)+1;saveD();return`🛫 Un tripulante de ${b.n} vuelve a la tripulación general.`}
+  const m=D.crew.find(q=>q.id===mid&&q.bz===b.id);if(!m)return'';delete m.bz;m.st='ok';m.mor=Math.max(m.mor,60);saveD();const t=`🛫 ${m.nm} vuelve a bordo desde ${b.n} y entra en la ronda.`;logDM(t,'sys');return t}
+function cambiarEnBase(bid,sube,baja){const b=baseById(bid);if(!b||!naveEn(b))return'La nave tiene que estar en el sistema de la base.';
+  const r1=subirDeBase(bid,sube,true);if(!r1||/^La nave|^No /.test(r1))return r1;const r2=bajarABase(bid,baja);return`⇄ ${r1} ${r2}`}
+function abrirCambioBase(bid){const b=baseById(bid);if(!b)return;const est=enBase().filter(m=>m.bz===b.id),abordo=alive();modalOpen=true;
+  const op=(arr,gen,n)=>arr.map(m=>`<option value="${esc(m.id)}">${esc(m.nm)} · ${ROLES[m.role]}${m.pl?' · 👤 '+esc(m.pl):''}</option>`).join('')+(gen?`<option value="gen">Tripulante de la tripulación general (${fmtI(n)})</option>`:'');
+  showModal(`<div class="kick">CAMBIO DE TRIPULACIÓN · ${esc(b.n)}</div><h2>¿Quién se queda y quién sube?</h2><p class="note">Quien se queda en la base sale de la ronda (no tira, no decide por su rol, no gana XP) y no ocupa litera. Se le recoge cuando la nave vuelva aquí.</p>
+  <div class="field"><label>Se queda en la base</label><select id="cbB"><option value="">— nadie —</option>${op(abordo,D.st.extra>0,D.st.extra)}</select></div>
+  <div class="field"><label>Sube a la nave</label><select id="cbS"><option value="">— nadie —</option>${op(est,genBase(b)>0,genBase(b))}</select></div>
+  <div class="row"><button class="pri" id="cbOk">Hacer el cambio</button><button id="no">Cancelar</button></div><div id="cbM" class="note"></div>`);
+  $('#cbOk').onclick=()=>{const ba=$('#cbB').value,su=$('#cbS').value;if(!ba&&!su)return;const t=ba&&su?cambiarEnBase(b.id,su,ba):ba?bajarABase(b.id,ba):subirDeBase(b.id,su);
+    if(!t||/^La nave|^No |^Sin /.test(t)){$('#cbM').innerHTML=`<span class="bad">${esc(t||'No se pudo.')}</span>`;return}modalOpen=false;closeModal();toast(esc(t));if(NET.role==='host'){bcast({t:'toast',h:esc(t)});netSync()}refresh()};
+  $('#no').onclick=()=>{modalOpen=false;closeModal()}}
 const dstName=d=>d==='nave'?(D.ship.n||SHIPS[D.ship.d].n):((baseById(d)||{}).n||'base perdida');
 /* id: base de origen · dst: 'nave' o id de base · res: 'all'|'min'|'fuel'|'prov' · q: cantidad máxima (0 = todo) */
 function sendBase(id,dst='nave',res='all',q=0){baseTick();const b=baseById(id),st=b&&baseStar(b);if(!b||!st)return'';if(dst===id)return'El origen y el destino son la misma base.';
@@ -69,7 +95,7 @@ setInterval(()=>{if(!(NET&&NET.role==='client')){routeTick();convTick()}if(tab==
 function doBase(c){if(c.a==='build')return buildBase(c.i|0,String(c.ty));if(c.a==='up')return upBase(String(c.id));
   if(c.a==='send')return sendBase(String(c.id),String(c.dst||'nave'),['all','min','fuel','prov'].includes(c.res)?c.res:'all',Math.max(0,+c.q|0));
   if(c.a==='route')return addRoute(c);if(c.a==='unroute'){D.rutas=(D.rutas||[]).filter(r=>r.id!==c.id);saveD();return'Ruta eliminada.'}
-  if(c.a==='drop'){const b=baseById(c.id);if(!b)return'';D.bases=D.bases.filter(q=>q!==b);D.rutas=(D.rutas||[]).filter(r=>r.from!==b.id&&r.dst!==b.id);saveD();return`Abandonáis ${b.n}.`}return''}
+  if(c.a==='drop'){const b=baseById(c.id);if(!b)return'';for(const m of enBase())if(m.bz===b.id)delete m.bz;D.bases=D.bases.filter(q=>q!==b);D.rutas=(D.rutas||[]).filter(r=>r.from!==b.id&&r.dst!==b.id);saveD();return`Abandonáis ${b.n}.`}return''}
 function normRutas(a){return(Array.isArray(a)?a:[]).slice(0,RMAX).filter(r=>r&&r.from).map(r=>({id:String(r.id).slice(0,8),from:String(r.from).slice(0,8),dst:String(r.dst||'nave').slice(0,8),res:['all','min','fuel','prov'].includes(r.res)?r.res:'all',q:Math.max(0,+r.q|0),u:r.u==='m'?'m':'d',ev:clamp(+r.ev||30,1,3650),ld:+r.ld||0,lm:+r.lm||0}))}
 /* Diálogo de envío: destino, recurso, cantidad y repetición */
 function openSend(id){const b=baseById(id);if(!b)return;baseTick();modalOpen=true;const others=(D.bases||[]).filter(q=>q.id!==id);
@@ -85,7 +111,7 @@ function openSend(id){const b=baseById(id);if(!b)return;baseTick();modalOpen=tru
     if(rep)cmd({k:'base',a:'route',...c},`Ruta ${b.n} → ${dstName(c.dst)}`);cmd({k:'base',a:'send',...c},`Envío ${b.n} → ${dstName(c.dst)}`)};
   let rep=false;$('#sdRep').addEventListener('change',e=>rep=e.target.checked);$('#no').onclick=()=>{modalOpen=false;closeModal()}}
 function normBases(a){return(Array.isArray(a)?a:[]).slice(0,BMAX).filter(b=>b&&BTY[b.ty]&&starFromSeed(String(b.s))).map(b=>({id:String(b.id).slice(0,8),k:String(b.k).slice(0,50),s:String(b.s).slice(0,40),i:b.i|0,n:String(b.n).slice(0,60),sn:String(b.sn||'').slice(0,40),pn:String(b.pn||'').slice(0,40),ty:b.ty,lv:clamp(b.lv|0,1,3),t:+b.t||0,
-  stk:Object.fromEntries(['min','fuel','prov'].filter(k=>b.stk&&+b.stk[k]>0).map(k=>[k,Math.min(1e6,+b.stk[k])])),rich:Object.fromEntries(['min','fuel','prov'].map(k=>[k,clamp(+(b.rich||{})[k]||0,0,5)]))}))}
+  stk:Object.fromEntries(['min','fuel','prov'].filter(k=>b.stk&&+b.stk[k]>0).map(k=>[k,Math.min(1e6,+b.stk[k])])),rich:Object.fromEntries(['min','fuel','prov'].map(k=>[k,clamp(+(b.rich||{})[k]||0,0,5)])),...(b.tg>0?{tg:Math.min(999,b.tg|0)}:{})}))}
 function normConv(a){const v3=x=>Array.isArray(x)&&x.length===3&&x.every(isFinite)?x.map(Number):null;return(Array.isArray(a)?a:[]).slice(0,20).filter(c=>c&&v3(c.f)&&v3(c.to)&&isFinite(c.eta)).map(c=>({id:String(c.id).slice(0,24),dst:String(c.dst||'nave').slice(0,8),b:String(c.b).slice(0,8),bn:String(c.bn).slice(0,60),f:v3(c.f),to:v3(c.to),d:+c.d||0,t0:+c.t0,eta:+c.eta,
   amt:Object.fromEntries(['min','fuel','prov'].filter(k=>c.amt&&+c.amt[k]>0).map(k=>[k,Math.min(1e6,+c.amt[k]|0)]))}))}
 
@@ -125,5 +151,6 @@ function renderBases(){
     return`<div class="item col"><div class="rowi"><span>${BTY[b.ty].ic}</span><div class="m"><b>${esc(b.n)} · nivel ${b.lv}</b><i>${esc(b.sn)} · ${fmtLen(d)} de la nave · envío en ${fmtDur(Math.max(5000,d*BSPEED))}</i></div></div>
     ${Object.keys(cp).map(k=>`<div class="res"><span>${RESN[k][0]} (+${fmtI(rt[k]||0)}/100 d)</span><span>${fmtI(b.stk[k]||0)} / ${fmtI(cp[k])}</span></div>${meter(b.stk[k]||0,cp[k],k==='fuel'?'#e0aa46':k==='prov'?'#7ee787':'#9b9186')}`).join('')}
     ${b.ty!=='puesto'&&!(rt[BTY[b.ty].r]>0)?'<p class="bad">Este planeta no tiene ese recurso: la base no produce.</p>':''}
-    <div class="row">${A('🚚 Pedir a la nave',()=>cmd({k:'base',a:'send',id:b.id},'Pedir envío desde '+b.n),cl||!has)}${A('Enviar…',()=>openSend(b.id),cl)}${st?A('Ver',()=>{if(mode!=='map')exitToMap();selectStar(st,true)}):''}${A('Abandonar',()=>{if(confirm('¿Abandonar '+b.n+'? Se pierde lo almacenado.'))cmd({k:'base',a:'drop',id:b.id},'Abandonar '+b.n)},cl)}</div></div>`}).join('')||'<p class="note">Todavía no hay bases.</p>'}</div>`;
+    ${(()=>{const est=enBase().filter(m=>m.bz===b.id);return est.length||genBase(b)?`<p class="note">🏠 En la base: ${est.map(m=>esc(m.nm)+(m.pl?' (👤 '+esc(m.pl)+')':'')).concat(genBase(b)?[fmtI(genBase(b))+' de la tripulación general']:[]).join(' · ')}</p>`:''})()}
+    <div class="row">${naveEn(b)?A('⇄ Cambio de tripulación',()=>abrirCambioBase(b.id),cl):''}${A('🚚 Pedir a la nave',()=>cmd({k:'base',a:'send',id:b.id},'Pedir envío desde '+b.n),cl||!has)}${A('Enviar…',()=>openSend(b.id),cl)}${st?A('Ver',()=>{if(mode!=='map')exitToMap();selectStar(st,true)}):''}${A('Abandonar',()=>{if(confirm('¿Abandonar '+b.n+'? Se pierde lo almacenado.'))cmd({k:'base',a:'drop',id:b.id},'Abandonar '+b.n)},cl)}</div></div>`}).join('')||'<p class="note">Todavía no hay bases.</p>'}</div>`;
   el.innerHTML=h;bindActs(el)}

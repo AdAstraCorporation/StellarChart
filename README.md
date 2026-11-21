@@ -27,6 +27,39 @@ En *Settings → Pages* la fuente debe ser **GitHub Actions**.
 - **🖥 Doble pantalla**: el panel con métricas e información se abre en otra ventana (para otro monitor) y esta queda con el
   mapa y los mensajes de la partida.
 
+## Cambio de tripulación
+- **Credenciales traspasadas (Members → Carta).** Cuando un personaje cambia de crew en Members, su credencial nueva trae en
+  `x` la clave `tr=<nº de traspasos>.<ID de miembro anterior>.<crew anterior>`. Si en la partida ya hay un tripulante con ese ID
+  anterior, la Carta lo trata como la **misma persona**: no lo duplica, actualiza su ID de miembro y su crew, y su ficha muestra
+  «🔀 traspasado desde <crew>». El QR de fin de misión usa el ID nuevo y conserva `tr`.
+- **Tripulación fijada (crewLock).** Sólo cuenta la crew de la credencial que se sube: un personaje recién traspasado a la crew
+  fijada entra sin problema; su credencial antigua (de la otra crew) se rechaza.
+- **Una ficha, un jugador.** Si un tripulante ya está a bordo y lo maneja alguien conectado, nadie más puede subir la misma
+  ficha. Si es el mismo dispositivo que vuelve (recargó la página), toma el relevo y la conexión vieja se cierra.
+- **Dentro de la partida (bases y colonias).** Con la nave en el sistema de una base, el director usa «⇄ Cambio de tripulación»
+  (pestaña Bases): deja a un tripulante en la base (queda fuera de la ronda, como en animación suspendida, pero sin ocupar litera
+  ni comer de la nave), lo recoge después o lo intercambia con alguien de a bordo o de la tripulación general. Quien está en una
+  base aparece en Tripulación → «🏠 En bases y colonias».
+
+## Sala en tiempo real y votaciones
+- El anfitrión envía la partida con cada cambio y, además, cada 3 s: los invitados ven el mapa, la nave y las pestañas al
+  momento, sin recargar (un panel no se repinta mientras se escribe en él).
+- Las conexiones colgadas se quitan solas de la sala y de las votaciones (antes, un invitado que recargaba dejaba un
+  «jugador sin ficha» y las votaciones esperaban su voto).
+- **Votaciones en pantalla grande** para todos en cuanto se abren, aunque haya otra ventana abierta; se pueden ocultar y siguen
+  en Sesión. Cuando han votado todos, se cierran a los **3 s**. **El capitán tiene la última palabra:** puede imponer cualquier opción.
+- **👁 Seguir al capitán** (Sesión, invitados): la cámara, el mapa y el sistema siguen a los del anfitrión.
+- Los avisos de la bitácora y de misión cumplida salen en ventana a todos; al cerrar la misión cada jugador recibe el aviso con
+  **«Abrir mi ficha»**, y el enlace a su ficha actualizada queda guardado en el dispositivo (pantalla de inicio → «Tu última partida»).
+
+## Otros cambios
+- **Historia sin bloqueos:** los logros (salir del Sol, recolectar, llegar a Tau Ceti, explorar Adrian, entrar en 40 Eridani) se
+  recuerdan aunque su misión todavía no toque; llegar antes a Tau Ceti ya no deja la historia atascada.
+- **PNJ:** cuando alguien pide unirse (rescates, expediciones, 40 Eridani) se decide (o se vota) si sube.
+- **Combustible:** las naves gastan un 40 % menos por año luz.
+- **Estadísticas altas:** si una barra pasa de 12 se vuelve a llenar encima con otro color y marca ×2, ×3…
+- **◈ Holograma:** el mapa en 4 vistas giradas hacia el centro, para una pirámide holográfica casera.
+
 ## Fin de misión → Credenciales
 Al cerrar una misión, la Carta muestra **un QR general** (enlace `credenciales/#X…`, versión 2). Cada jugador lo escanea
 desde Credenciales («Actualizar → Escanear QR de la misión») y después su credencial: se renueva con estadísticas, nivel,

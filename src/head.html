@@ -108,13 +108,20 @@ h3{margin:16px 0 6px;font-size:9px;color:var(--dim);letter-spacing:.24em;text-tr
 .dh{display:flex;gap:10px;align-items:center;margin-bottom:6px}
 .pt{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border:1px solid var(--line);font-size:22px;background:rgba(255,255,255,.04);flex:none}
 .stats{display:grid;grid-template-columns:86px 1fr 18px;gap:3px 6px;align-items:center;font-size:11px;margin-top:8px}.stats span:first-child{color:var(--dim)}
-.sb{display:block;height:4px;background:rgba(205,215,235,.12)}.sb i{display:block;height:100%;background:#cfd6e2}.stats b{font-weight:400;text-align:right}
+.sb{display:block;height:4px;background:rgba(205,215,235,.12);position:relative}.sb .lap{position:absolute;right:0;top:-11px;font-size:8px;font-style:normal;color:var(--amb,#e0aa46)}.sb i{display:block;height:100%;background:#cfd6e2}.stats b{font-weight:400;text-align:right}
 textarea{width:100%;height:64px;resize:vertical;font-size:10px}
 a.btn{display:inline-block;border:1px solid var(--line);padding:4px 10px;text-decoration:none;color:inherit;font-size:11px;letter-spacing:.06em}a.btn.pri{border-color:var(--cy);color:var(--cy)}
 select{background:rgba(0,0,0,.5);border:1px solid var(--line);color:inherit;padding:4px}
 .story{white-space:pre-line}
 #qrBox{background:#fff;padding:10px;display:inline-block;line-height:0}
 /* diálogos */
+#voteOv{position:fixed;inset:0;z-index:20;background:rgba(2,4,8,.88);display:flex;align-items:center;justify-content:center;padding:16px;animation:fadeIn .25s;backdrop-filter:blur(4px)}
+#voteOv .vbox{width:min(760px,100%);max-height:94dvh;overflow:auto;border:1px solid var(--cy,#78dcff);background:rgba(10,12,16,.96);padding:clamp(14px,3vw,28px);animation:boxIn .3s ease}
+#voteOv h1{font-weight:400;letter-spacing:.08em;font-size:clamp(20px,4.5vw,34px);margin:6px 0 8px;color:#fff}
+#voteOv .vopts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:10px;margin:14px 0 8px}
+#voteOv .vopts button{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:clamp(14px,2.6vw,18px);padding:16px 14px;text-align:left}
+#voteOv .vopts button b{font-size:1.5em;font-weight:400;color:var(--cy,#78dcff)}
+#holo{position:fixed;inset:0;z-index:30;background:#000;display:flex;align-items:center;justify-content:center}#holo canvas{max-width:100vw;max-height:100dvh}#holo button{position:absolute;top:10px;right:10px;opacity:.5}
 #modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:9;padding:16px;animation:fadeIn .2s}
 #modal .box{background:rgba(10,12,16,.97);border:1px solid rgba(205,215,235,.35);padding:18px;max-width:480px;width:100%;max-height:90vh;overflow:auto;animation:boxIn .25s ease}
 .story{font-size:13px;line-height:1.6;color:#e6eaf1}.roll{font-size:11px;color:var(--amb);border-left:2px solid var(--amb);padding-left:8px}
@@ -176,7 +183,7 @@ select{background:rgba(0,0,0,.5);border:1px solid var(--line);color:inherit;padd
   <button class="ov" id="backBtn">⤒ VOLVER</button>
   <div class="ov" id="toast"></div>
   <div class="ov" id="travel"><div class="tl" id="trTxt"></div><div class="tb"><i id="trBar"></i></div></div>
-  <div class="ov" id="views"><button data-v="sol">Sistema Solar</button><button data-v="traj">Trayectoria</button><button data-v="tau">Tau Ceti</button><button data-v="gal">Galáctica</button><button data-v="here" title="Fijar destino en el centro de la carta">⌖ Destino</button><button data-v="pilot" id="pilotBtn" title="Pilotaje libre (F)">✈ Pilotar</button><button id="logBtn" title="Registro de la partida">📜 Registro</button><button id="dualBtn" title="Mapa en esta ventana, panel en otra">🖥 Doble pantalla</button></div>
+  <div class="ov" id="views"><button data-v="sol">Sistema Solar</button><button data-v="traj">Trayectoria</button><button data-v="tau">Tau Ceti</button><button data-v="gal">Galáctica</button><button data-v="here" title="Fijar destino en el centro de la carta">⌖ Destino</button><button data-v="pilot" id="pilotBtn" title="Pilotaje libre (F)">✈ Pilotar</button><button id="logBtn" title="Registro de la partida">📜 Registro</button><button id="dualBtn" title="Mapa en esta ventana, panel en otra">🖥 Doble pantalla</button><button id="holoBtn" title="Mapa en 4 vistas para una pirámide holográfica casera">◈ Holograma</button></div>
   <div class="ov" id="zoom"><button data-z="-1" title="Acercar">+</button><button data-z="1" title="Alejar">−</button><button id="spinBtn" title="Rotación automática">⟳</button></div>
   <button class="ov" id="drawerBtn">☰ MANDO</button>
   <button class="ov" id="ctr">◎ MI NAVE</button>
