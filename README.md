@@ -94,9 +94,37 @@ En *Settings → Pages* la fuente debe ser **GitHub Actions**.
 - **Hambruna:** sin comida, sólo el capitán puede proponer una medida de emergencia (sacrificar a un tripulante para alimentar
   al resto). Se vota y sólo se aplica si se aprueba.
 
-## Vistas 3D
-- **Sistema estelar en 3D:** órbitas inclinadas, plano de referencia y perspectiva. Arrastrar gira y la rueda acerca.
-- **Escáner de terreno al aterrizar:** malla 3D del relieve con un barrido de escáner; los puntos de interés y la nave se posan sobre ella.
+## Mundo continuo: del sistema a la superficie sin cortes
+- **Un solo zoom** recorre todo, como en No Man's Sky: vista del sistema → el planeta llena la pantalla → se atraviesan las
+  nubes → la superficie vista desde arriba, hasta unos cientos de metros. Rueda, pellizco o los botones + / − del mapa.
+  Elige un planeta (clic o lista del panel) y acerca; arrastrar gira el sistema o el planeta y, en la superficie, la recorre.
+- **Aterrizaje y despegue automáticos:** al bajar de la capa de nubes la nave se posa (en suelo firme, el más cercano) y al
+  subir despega. «Volver» y «Despegar» hacen el camino inverso con el mismo zoom. Desde otro sistema la vista es de sondeo:
+  se llega hasta la órbita, pero para descender hay que viajar allí. Los gigantes gaseosos no tienen superficie.
+- **Planetas como esferas con textura procedural** (relieve, mares, casquetes, nubes que se mueven, atmósfera con su color)
+  y luz desde su estrella. La superficie usa **la misma función de relieve** que la esfera, así que lo que se ve desde la
+  órbita es lo que se encuentra al bajar.
+- **Escáner de terreno cenital** que siempre cubre la pantalla (nunca se ven bordes): se genera por partes mientras se baja,
+  con relieve sombreado (luz del noroeste, exageración ×3), escala, altitud, coordenadas y el bioma bajo la retícula.
+- **Terrenos según las condiciones del planeta:** océanos con plataforma y fondo, playas, praderas, bosques, desiertos,
+  tundra, nieve por latitud y altitud (con efecto invernadero de la atmósfera), montañas; mundos de lava con ríos
+  incandescentes y costra enfriada; desiertos con dunas; mundos helados con mar congelado; mundos congelados con hielo de
+  nitrógeno, tolinas y lagos de metano; mundos estériles con cráteres a varias escalas (perfil de cuenco y borde).
+- **Flora y fauna según la biosfera:** el color de la vegetación depende del tipo de estrella (rojo oscuro en enanas M,
+  ocre en K, verde en G, azulado en F/A). Bosques y matorrales vistos desde arriba, algas en los bajíos, rocas y cantos en
+  todos los mundos sólidos, respiraderos de lava que laten, manadas que se desplazan, bancos de peces y bandadas. Los
+  paneles del planeta y de la superficie describen la flora y la fauna detectadas.
+
+## Sistemas estelares realistas (no planos)
+- **Órbitas keplerianas en 3D** con excentricidad, inclinación, nodo y perihelio; cada cuerpo se mueve según la tercera ley
+  de Kepler. Las excentricidades siguen la distribución medida en exoplanetas por velocidad radial (Kipping 2013,
+  Beta(0,867; 3,03)) y las inclinaciones mutuas la de los sistemas múltiples de Kepler (Fabrycky et al. 2014, Rayleigh σ≈1,5°).
+- **El Sistema Solar usa sus elementos orbitales reales (J2000)** y sus lunas principales (Luna, Fobos, Deimos, los
+  galileanos, Titán, Rea, Jápeto, Titania, Oberón, Tritón) y el cometa Halley.
+- **Cinturones en 3D** con dispersión de inclinación (cinturón interior σ≈7°, exterior tipo Kuiper σ≈12°) y composición de
+  los asteroides C/S/M (≈75/17/8 %, como el cinturón principal), **cometas** de periodo corto y largo con cola opuesta a la
+  estrella, y **lunas** con sus propias órbitas alrededor de cada planeta.
+- Panel de cada planeta: excentricidad, inclinación y lunas mayores.
 
 ## Fin de misión → Credenciales
 Al cerrar una misión, la Carta muestra **un QR general** (enlace `credenciales/#X…`, versión 2). Cada jugador lo escanea

@@ -46,10 +46,10 @@ function panFrom(f,dx,dy){if(!CP)return;const s=CP.dist/CP.F;tg.fx=f[0]-CP.cy*dx
 cv.addEventListener('pointermove',e=>{
   const [mx,my]=pos(e);
   if(drag&&ptrs.has(e.pointerId)){ptrs.set(e.pointerId,[e.clientX,e.clientY]);lastInput=performance.now();
-    if(drag.pinch&&ptrs.size===2){const a=[...ptrs.values()],d=Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]),m=[(a[0][0]+a[1][0])/2,(a[0][1]+a[1][1])/2];tg.R=clamp(drag.pinch.R0*drag.pinch.d0/Math.max(20,d),1,3000);if(mode==='map')panFrom(drag.pinch.f,m[0]-drag.pinch.m[0],m[1]-drag.pinch.m[1]);return}
+    if(drag.pinch&&ptrs.size===2){const a=[...ptrs.values()],d=Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]),m=[(a[0][0]+a[1][0])/2,(a[0][1]+a[1][1])/2];if(mode!=='map'){if(drag.pinch.L0==null)drag.pinch.L0=MW.LT;MW.LT=clamp(drag.pinch.L0+Math.log2(Math.max(20,d)/drag.pinch.d0)*1.3,0,MWLMAX);return}tg.R=clamp(drag.pinch.R0*drag.pinch.d0/Math.max(20,d),1,3000);if(mode==='map')panFrom(drag.pinch.f,m[0]-drag.pinch.m[0],m[1]-drag.pinch.m[1]);return}
     const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.moved=Math.max(drag.moved,Math.hypot(dx,dy));
     if(drag.moved>4&&mode==='map'){tip.style.display='none';if(drag.pan)panFrom(drag.f,dx,dy);else{tg.yaw=drag.yaw-dx*.006;tg.pitch=clamp(drag.pitch+dy*.006,-1.45,1.45)}}
-    else if(drag.moved>4){tip.style.display='none';V3.yaw=drag.v3y-dx*.008;V3.pitch=clamp(drag.v3p+dy*.006,.08,1.45)}
+    else if(drag.moved>4){tip.style.display='none';mwArrastre(dx,dy,drag)}
     return}
   if(mode==='system'){const p=pickPlanet(mx,my);cv.style.cursor=p?'pointer':'default';if(p)showTip(`${esc(p.name)} · ${KIND[p.kind][0]}`,mx,my);else tip.style.display='none';return}
   if(mode!=='map'){tip.style.display='none';return}
@@ -61,14 +61,15 @@ cv.addEventListener('pointermove',e=>{
 });
 cv.addEventListener('pointerup',e=>{
   ptrs.delete(e.pointerId);if(ptrs.size)return;const d=drag;drag=null;if(!d||d.moved>=5)return;const [mx,my]=pos(e);
-  if(mode==='system'){const p=pickPlanet(mx,my);if(p){selPlanet=p;setTab('carta');renderPanel()}return}
+  if(mwClic(mx,my))return;
+  if(mode==='system'){const p=MW.L<.6?pickPlanet(mx,my):null;if(p){selPlanet=p;setTab('carta');renderPanel()}return}
   if(mode!=='map')return;
   if(shipHit&&Math.hypot(shipHit.x-mx,shipHit.y-my)<shipHit.r){centerOnShip();return}
   const s=pickStar(mx,my);if(s)selectStar(s);
 });
 cv.addEventListener('pointercancel',e=>{ptrs.delete(e.pointerId);drag=null});
 cv.addEventListener('dblclick',e=>{if(mode!=='map')return;const s=pickStar(...pos(e));if(s)selectStar(s,true)});
-cv.addEventListener('wheel',e=>{e.preventDefault();lastInput=performance.now();idleDone=false;if(mode!=='map'){V3.z=clamp(V3.z*Math.exp(-clamp(e.deltaY,-200,200)*.0013),.5,2.6);return}tg.R=clamp(tg.R*Math.exp(clamp(e.deltaY,-200,200)*.0013),1,3000)},{passive:false});
+cv.addEventListener('wheel',e=>{e.preventDefault();lastInput=performance.now();idleDone=false;if(mode!=='map'){mwZoom(-clamp(e.deltaY,-200,200)*.0016);return}tg.R=clamp(tg.R*Math.exp(clamp(e.deltaY,-200,200)*.0013),1,3000)},{passive:false});
 const KEYS=new Set(['w','a','s','d','q','e','shift','arrowup','arrowdown','arrowleft','arrowright']);
 document.addEventListener('keydown',e=>{
   if(e.target.matches('input,textarea,select'))return;if(e.ctrlKey||e.metaKey||e.altKey)return;const k=e.key.toLowerCase();
@@ -77,7 +78,7 @@ document.addEventListener('keydown',e=>{
   if(k==='f'){togglePilot();return}
   if(k==='escape'){if(mode==='surface'){mode='system';surf=null;refresh()}else if(mode==='system')exitToMap();else{selStar=null;route=null;renderPanel()}}
   else if(k==='home'||k==='.')centerOnShip();
-  else if(k==='+'||k==='=')tg.R=clamp(tg.R/1.4,1,3000);else if(k==='-')tg.R=clamp(tg.R*1.4,1,3000);
+  else if(mode!=='map'&&(k==='+'||k==='='||k==='-'))mwZoom(k==='-'?-.35:.35);else if(k==='+'||k==='=')tg.R=clamp(tg.R/1.4,1,3000);else if(k==='-')tg.R=clamp(tg.R*1.4,1,3000);
   else if(k==='enter'&&route&&!travel)startTravel();
   else if(k==='m')toggleDrawer();
   else if(k==='/'){e.preventDefault();$('#seedIn').focus()}
@@ -105,7 +106,7 @@ function stopPilot(){
 }
 function centerOnShip(){if(travel)return;if(mode!=='map')exitToMap();const p=shipPos();flyTo(p[0],p[1],p[2],Math.max(legMax(D.ship.d)*1.3,8));ping=performance.now()}
 $('#ctr').onclick=centerOnShip;
-$('#zoom').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.id==='spinBtn'){opt.spin=!opt.spin;syncToggles();saveView();return}tg.R=clamp(tg.R*(+b.dataset.z>0?1.5:1/1.5),1,3000);lastInput=performance.now()});
+$('#zoom').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.id==='spinBtn'){opt.spin=!opt.spin;syncToggles();saveView();return}if(mode!=='map'){mwZoom(+b.dataset.z>0?-.4:.4);return}tg.R=clamp(tg.R*(+b.dataset.z>0?1.5:1/1.5),1,3000);lastInput=performance.now()});
 $('#toggles').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;opt[b.dataset.o]=!opt[b.dataset.o];syncToggles();saveView()});
 function syncToggles(){document.querySelectorAll('#toggles button').forEach(b=>b.classList.toggle('on',!!opt[b.dataset.o]));$('#spinBtn').classList.toggle('on',opt.spin)}
 $('#views').addEventListener('click',e=>{
@@ -116,7 +117,7 @@ $('#views').addEventListener('click',e=>{
   else if(b.dataset.v==='traj'){selectStar(T);flyTo((S0.gx+T.gx)/2,(S0.gy+T.gy)/2,(S0.gz+T.gz)/2,Math.max(gd(S0,T)*.85,8),.75)}
   else if(b.dataset.v==='gal'){flyTo(cam.fx,cam.fy,cam.fz,2500,.3)}
 });
-$('#backBtn').onclick=()=>{if(mode==='surface'){mode='system';surf=null;refresh()}else exitToMap()};
+$('#backBtn').onclick=()=>{if(mode==='surface'){MW.LT=.7}else if(MW.LT>.02||MW.L>.02){MW.LT=0}else exitToMap()};
 function toggleDrawer(force){const d=$('#drawer'),o=force!=null?force:!d.classList.contains('open');d.classList.toggle('open',o);$('#drawerBtn').classList.toggle('on',o)}
 $('#drawerBtn').onclick=()=>toggleDrawer();
 
@@ -223,7 +224,9 @@ function systemPanel(el){
     const info=planetInfo(S,i),sc=D.scan[info.key]||!here&&false,open=p===selPlanet;ACTS.push(()=>{selPlanet=open?null:p;renderPanel()});
     h+=`<div class="item col ${open?'sel':''}"><div class="rowi" data-a="${ACTS.length-1}"><span style="color:${KIND[p.kind][1]}">●</span><div class="m"><b>${esc(p.name)}</b><i>${KIND[p.kind][0]} · ${p.a.toFixed(2)} UA${p.hz?' · habitable':''}${info.colony&&sc?' · colonia':''}</i></div></div>`;
     if(open){
-      h+=`<div class="kv"><span>Temperatura</span><span>${p.T} K (${Math.round(p.T-273)} °C)</span><span>Gravedad</span><span>${p.g.toFixed(2)} g</span><span>Radio</span><span>${p.r.toFixed(2)} R⊕</span><span>Atmósfera</span><span>${esc(info.atm)}${info.breath?' · respirable':''}</span><span>Año</span><span>${p.period<700?p.period.toFixed(0)+' días':(p.period/365.25).toFixed(1)+' años'}</span><span>Lunas</span><span>${p.moons}${p.ring?' · anillos':''}</span></div>`;
+      h+=`<div class="kv"><span>Temperatura</span><span>${p.T} K (${Math.round(p.T-273)} °C)</span><span>Gravedad</span><span>${p.g.toFixed(2)} g</span><span>Radio</span><span>${p.r.toFixed(2)} R⊕</span><span>Atmósfera</span><span>${esc(info.atm)}${info.breath?' · respirable':''}</span><span>Año</span><span>${p.period<700?p.period.toFixed(0)+' días':(p.period/365.25).toFixed(1)+' años'}</span><span>Lunas</span><span>${p.moons}${p.ring?' · anillos':''}</span>${orbitaHtml(S,i)}</div>`;
+      if(sc&&!info.gas)h+=bioHtml(S,i);
+      h+=`<div class="row">${A(info.gas?'🔭 Acercarse':here?'⬇ Descender (rueda o pellizco)':'🔭 Acercarse (sondeo)',()=>{MW.LT=info.gas?1.2:here?1.2:1.6})}</div>`;
       if(p.note)h+=`<p class="note">${esc(p.note)}</p>`;
       if(sc){h+=info.hz.length?`<div class="hzl">${info.hz.map(z=>`<span class="tag ${z[4]?'pet':''}" title="${esc(z[3])}">${esc(z[0])}</span>`).join('')}</div>`:'<p class="ok">Sin condiciones adversas.</p>';
         if(!info.gas)h+=`<p class="note">Puntos de interés: ${info.pois.map(n=>esc(n)+(D.ex[info.key+':'+n]?' ✓':'')).join(' · ')}</p>`}
@@ -248,12 +251,13 @@ function surfacePanel(el){
   const {info}=surf,p=info.p,sp=SPEC[D.ship.d];
   let h=`<div class="kick">SUPERFICIE · ${sp.land?'NAVE POSADA':'LANZADERA'}</div><h2>${esc(p.name)}</h2>
   <div class="kv"><span>Tipo</span><span>${KIND[p.kind][0]}</span><span>Temperatura</span><span>${Math.round(p.T-273)} °C</span><span>Gravedad</span><span>${p.g.toFixed(2)} g</span><span>Atmósfera</span><span>${esc(info.atm)}${info.breath?' · respirable':''}</span></div>
+  ${bioHtml(SYS,surf.i)}<p class="note">Rueda o pellizco para subir y bajar; arrastra para recorrer la superficie. Toca un punto de interés para explorarlo.</p>
   <h3>Condiciones</h3>${info.hz.length?`<div class="lst">${info.hz.map(z=>`<div class="item"><span class="${z[4]?'bad':'dim'}">${z[4]?'✦':'▲'}</span><div class="m"><b>${esc(z[0])}</b><i>${esc(z[3])} Dificultad +${z[2]} · mitiga ${STATN[z[1]]}</i></div></div>`).join('')}</div>`:'<p class="ok">Condiciones benignas.</p>'}
   <h3>Puntos de interés</h3><div class="lst">`;
   for(const n of info.pois){const P=POI[n],done=D.ex[info.key+':'+n];h+=`<div class="item"><span class="${done?'ok':''}">${done?'✓':'◆'}</span><div class="m"><b>${esc(n)}</b><i>${esc(P.tx)} ${STATN[P.k]} ${P.dc} · ${P.days} d</i></div>${done?'':A('Expedición',()=>openExpedition(info,n),0,'pri')}</div>`}
   h+=`</div>`;const civ=civInfo(SYS,surf.i);
   if(civ)h+=`<h3>Habitantes</h3><p class="note"><b>${esc(civ.name)}</b> · ${TECH[civ.tech]}. ${civ.hist.map(esc).join(' ')}</p>`;
-  h+=`<div class="row">${A('⤒ Despegar',()=>{mode='system';surf=null;refresh()})}</div>`;
+  h+=`<div class="row">${A('⤒ Despegar',()=>{MW.LT=.7})}</div>`;
   el.innerHTML=h;bindActs(el);
 }
 function renderShip(){
