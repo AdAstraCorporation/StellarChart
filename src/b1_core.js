@@ -24,7 +24,7 @@ const gd=(a,b)=>Math.hypot(a.gx-b.gx,a.gy-b.gy,a.gz-b.gz);
 const sameStar=(a,b)=>!!(a&&b&&a.h===b.h&&a.gx===b.gx&&a.gy===b.gy);
 const sSeed=st=>seedStr(starLoc(st,14));
 function starFromSeed(s){const p=parseSeed(s);return p.loc?starInCell(cellOf(p.loc)):null}
-const cleanShip=s=>({d:SHIPS[s.d]?s.d:'corbeta',n:String(s.n||'').slice(0,24),c1:/^#[0-9a-f]{6}$/i.test(s.c1)?s.c1:DEF_SHIP.c1,c2:/^#[0-9a-f]{6}$/i.test(s.c2)?s.c2:DEF_SHIP.c2});
+const cleanShip=s=>({d:SHIPS[s.d]?s.d:'corbeta',n:String(s.n||'').slice(0,24),c1:/^#[0-9a-f]{6}$/i.test(s.c1)?s.c1:DEF_SHIP.c1,c2:/^#[0-9a-f]{6}$/i.test(s.c2)?s.c2:DEF_SHIP.c2,mods:Array.isArray(s.mods)?[...new Set(s.mods.filter(k=>/^[a-z]{3,12}$/.test(k)))].slice(0,4):[]});
 
 /* ═════════ Rejilla global de estrellas (celdas de 8 al, con caché) ═════════ */
 const gridCache=new Map();
@@ -44,7 +44,7 @@ function starsNear(x,y,z,r,fn){
 }
 
 /* ═════════ Estado del juego ═════════ */
-function freshState(d){const s=SPEC[d];return{fuel:s.tank,prov:s.prov,extra:0,hull:100,min:20,days:0,yrs:0,jumps:0,ly:0}}
+function freshState(d){const s=SPEC[d];return{fuel:s.tank,mat:s.tank*2,prov:s.prov,extra:0,hull:100,min:20,days:0,yrs:0,jumps:0,ly:0}}
 let D={v:3,n:'',h:[],base:'',anon:false,ship:{...DEF_SHIP},sp:'',st:null,crew:null,hib:0,cr:0,ex:{},scan:{},disc:{},q:0,qf:{},cm:null,op:null,c:''};
 try{const raw=localStorage.getItem(LS_KEY);if(raw)Object.assign(D,JSON.parse(raw));else{const o=localStorage.getItem('adastra.explorer.v2');if(o){const j=JSON.parse(o);for(const k of['n','h','base','anon','ship'])if(j[k]!=null)D[k]=j[k]}}}catch(e){}
 const saveD=()=>{if(NET&&NET.role==='client')return;try{localStorage.setItem(LS_KEY,JSON.stringify(D))}catch(e){}if(NET&&NET.role==='host')netSync()};

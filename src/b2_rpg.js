@@ -31,18 +31,19 @@ if(!Array.isArray(D.crew)){const n=newCrew(D.ship.d);D.crew=n.c;D.st.extra=n.ext
 /* Estados: ok · susp (animación suspendida: fuera de la ronda, a bordo) · perdido */
 const alive=()=>D.crew.filter(m=>m.st!=='perdido'&&m.st!=='susp');
 const aboard=()=>D.crew.filter(m=>m.st!=='perdido');
-const suspended=()=>D.crew.filter(m=>m.st==='susp'&&!m.bz); // en criosueño a bordo
+const suspended=()=>D.crew.filter(m=>m.st==='susp'&&!m.bz&&!m.esp); // en criosueño a bordo
+const esperando=()=>D.crew.filter(m=>m.st==='susp'&&m.esp); // nuevos: esperan en un sistema a que la nave los recoja
 const enBase=()=>D.crew.filter(m=>m.st==='susp'&&m.bz); // destinados en una base o colonia: fuera de la nave y de la ronda
 const crewCount=()=>alive().length+(D.st.extra|0);
-const eaters=()=>crewCount()+suspended().length*.15; // en criosueño comen un 15 %
-const eff=(m,k)=>m.s[k]+((TRAITS[m.tr]||{m:{}}).m[k]||0)+Math.floor((m.lv-1)/2)+(m.hp<50?-2:0)+(m.mor<30?-1:0)+(typeof gearB==='function'?gearB(m,k):0);
+const eaters=()=>(crewCount()+suspended().length*.15)*(hasMod('reciclador')?.8:1); // en criosueño comen un 15 %
+const eff=(m,k)=>(m.role===k?1:0)-(incomodo(m)?1:0)+m.s[k]+((TRAITS[m.tr]||{m:{}}).m[k]||0)+Math.floor((m.lv-1)/2)+(m.hp<50?-2:0)+(m.mor<30?-1:0)+(typeof gearB==='function'?gearB(m,k):0);
 const okImg=s=>typeof s==='string'&&/^(data:image\/(webp|jpeg);base64,[A-Za-z0-9+/=]+|https:\/\/[^\s"'<>]+)$/.test(s);
 const portrait=m=>m?(okImg(m.ph)?`<span class="pt"><img src="${esc(m.ph)}" alt="${esc(m.nm)}"></span>`:`<span class="pt" title="${esc(m.sp)}">${SPEMO[m.sp]||'🐾'}</span>`):'<span class="pt">🤖</span>';
 const AI={nm:'IA de a bordo',sp:'IA',s:{pil:5,ing:5,cie:5,med:3,seg:3,soc:3},tr:'',lv:1,hp:100,mor:100};
 function best(k,team){const c=(team&&team.length?team:alive().filter(m=>m.hp>0));if(!c.length)return{m:AI,v:AI.s[k]};let b=c[0],v=eff(b,k);for(const m of c){const e=eff(m,k);if(e>v){v=e;b=m}}return{m:b,v}}
 const chance=(k,dc,team,luck)=>{const b=best(k,team).v+((team&&team.length>1)?team.length-1:0)+(luck|0);return clamp((11-(dc-b))/10,0,1)};
 function roll(k,dc,team,luck){
-  luck=luck|0;const b=best(k,team),bonus=(team&&team.length>1)?team.length-1:0,d=1+(Math.random()*10|0),tot=b.v+d+bonus+luck,ok=tot>=dc;
+  luck=(luck|0)+(hasMod('sensores')&&(k==='cie'||k==='pil')?2:0)+(k==='seg'&&!team?Math.round(rolF('seg',.5,3)/3):0);const b=best(k,team),bonus=(team&&team.length>1)?team.length-1:0,d=1+(Math.random()*10|0),tot=b.v+d+bonus+luck,ok=tot>=dc;
   return{ok,crit:d===10,fumble:d===1,m:b.m,line:`🎲 ${d} + ${b.v} (${esc(b.m.nm)}, ${STATN[k]})${bonus?` + ${bonus} equipo`:''}${luck?` ${luck>0?'+':'−'} ${Math.abs(luck)} fortuna`:''} = ${tot} vs ${dc} ${ok?'✓':'✗'}`};
 }
 function gainXp(m,n){if(!m||m===AI||m.st==='perdido'||m.st==='susp')return'';m.xp+=n;let out='';while(m.xp>=30*m.lv){m.xp-=30*m.lv;m.lv++;m.s[m.role]=Math.min(12,m.s[m.role]+1);out+=` ${m.nm} sube a nivel ${m.lv}.`}return out}
@@ -76,12 +77,12 @@ const POI={
  'Señal enterrada':{k:'soc',dc:12,days:4,lo:{xp:20,lore:1},tx:'Una baliza todavía emite un patrón regular.'},
  'Nido de fauna':{k:'seg',dc:14,days:5,lo:{prov:[.1,.2],xp:20},tx:'Criaturas grandes y nerviosas.'},
  'Hielo puro':{k:'ing',dc:8,days:3,lo:{prov:[.04,.08]},tx:'Glaciares de agua casi pura.'},
- 'Cristales de astrófago':{k:'cie',dc:13,days:5,lo:{fuel:[.1,.25]},tx:'Depósitos oscuros que absorben la luz: astrófago latente.'},
+ 'Cristales exóticos':{k:'cie',dc:13,days:5,lo:{fuel:[.1,.25]},tx:'Depósitos oscuros que doblan la luz: energía negativa atrapada en la roca.'},
  'Asentamiento':{k:'soc',dc:9,days:3,lo:{crew:1,mor:12,prov:[.05,.1]},tx:'Una colonia pequeña que recibe visitas con recelo.'},
  'Géiser de lava':{k:'pil',dc:12,days:3,lo:{min:[25,50]},tx:'Hay que volar entre columnas de roca fundida.'}};
 const KPOI={lava:['Géiser de lava','Depósito mineral','Restos de una nave','Ruinas antiguas'],desert:['Ruinas antiguas','Depósito mineral','Restos de una nave','Señal enterrada','Cueva profunda'],
  ocean:['Flora comestible','Nido de fauna','Fuente termal','Ruinas antiguas'],temperate:['Flora comestible','Nido de fauna','Ruinas antiguas','Cueva profunda','Fuente termal','Señal enterrada'],
- ice:['Hielo puro','Cueva profunda','Restos de una nave','Señal enterrada'],frozen:['Hielo puro','Cristales de astrófago','Restos de una nave'],barren:['Depósito mineral','Cristales de astrófago','Restos de una nave','Cueva profunda']};
+ ice:['Hielo puro','Cueva profunda','Restos de una nave','Señal enterrada'],frozen:['Hielo puro','Cristales exóticos','Restos de una nave'],barren:['Depósito mineral','Cristales exóticos','Restos de una nave','Cueva profunda']};
 const LORE=['Los grabados muestran una estrella que se oscurece y una flota que parte hacia otra.','La baliza repite coordenadas que apuntan a Tau Ceti, una y otra vez.',
  'Encuentran un mapa estelar tallado: el Sol aparece marcado con un círculo roto.','Los restos hablan de una especie que cosechaba la luz de su estrella.',
  'Un diario en un idioma desconocido termina con un dibujo de dos manos, de especies distintas, unidas.','La estructura canta cuando la atraviesa el viento: alguien la diseñó así.',
@@ -108,9 +109,9 @@ const EV=[
  {id:'meteoros',w:4,at:'leg',t:'Lluvia de micrometeoroides',tx:'El radar detecta una nube de polvo de alta velocidad justo en la trayectoria.',
   op:[{l:'Maniobrar a mano',k:'pil',dc:12,ok:()=>'Un pilotaje impecable. Ni un rasguño.',ko:()=>{const d=10+(Math.random()*12|0);D.st.hull=Math.max(1,D.st.hull-d);return`Impactos en el casco: −${d}%.`}},
       {l:'Reforzar blindaje (10 t minerales)',need:()=>D.st.min>=10,run:()=>{D.st.min-=10;return'Las placas extra absorben los impactos.'}}]},
- {id:'reactor',w:3,at:'leg',t:'Fluctuación en el motor de astrófago',tx:'La temperatura de los tanques sube. Si el astrófago se calienta demasiado, se pierde.',
-  op:[{l:'Reparar en caliente',k:'ing',dc:13,ok:()=>'Reparado. El motor suena mejor que nunca.',ko:()=>{const f=Math.round(D.st.fuel*.12);D.st.fuel-=f;return`Se ventean ${f} t de astrófago.`+hurt(pick(alive()),15)}},
-      {l:'Dejar que la IA estabilice',run:()=>{const f=Math.round(D.st.fuel*.06);D.st.fuel-=f;return`La IA purga ${f} t para enfriar los tanques.`}}]},
+ {id:'reactor',w:3,at:'leg',t:'Fluctuación en el motor de curvatura',tx:'La burbuja de curvatura oscila. Si el confinamiento falla, la energía negativa se escapa.',
+  op:[{l:'Reparar en caliente',k:'ing',dc:13,ok:()=>'Reparado. El motor suena mejor que nunca.',ko:()=>{const f=Math.round(D.st.fuel*.12);D.st.fuel-=f;return`Se pierden ${f} ${EN_U} de energía negativa.`+hurt(pick(alive()),15)}},
+      {l:'Dejar que la IA estabilice',run:()=>{const f=Math.round(D.st.fuel*.06);D.st.fuel-=f;return`La IA purga ${f} ${EN_U} para estabilizar la burbuja.`}}]},
  {id:'enfermedad',w:2,at:'arr',cond:()=>alive().length>=2,t:'Brote a bordo',tx:'Varios tripulantes tienen fiebre. Puede venir de las muestras recogidas.',
   op:[{l:'Tratarlo en la enfermería',k:'med',dc:12,ok:()=>{morAll(4);return'Diagnóstico rápido y tratamiento eficaz. Moral +4.'},ko:()=>{let s='';for(const m of alive())if(Math.random()<.5)s+=hurt(m,15);return'El tratamiento tarda.'+s}},
       {l:'Cuarentena (15 días)',run:()=>{passDays(15);return'Quince días de aislamiento. Nadie más enferma.'}}]},
@@ -131,28 +132,31 @@ const EV=[
   op:[{l:'Aceptarle en la tripulación',run:()=>addMember()},{l:'Ponerle en hibernación hasta volver',run:()=>'Duerme en una cápsula de repuesto.'}]},
  {id:'mercader',w:2,at:'arr',t:'Mercader errante',tx:'Una nave comercial independiente propone un trueque.',
   op:[{l:'20 t minerales → provisiones',need:()=>D.st.min>=20,run:()=>{const sp=SPEC[D.ship.d];D.st.min-=20;D.st.prov=Math.min(sp.prov,D.st.prov+sp.prov*.2);return'Trato hecho.'}},
-      {l:'20 t minerales → astrófago',need:()=>D.st.min>=20,run:()=>{const sp=SPEC[D.ship.d];D.st.min-=20;D.st.fuel=Math.min(sp.tank,D.st.fuel+sp.tank*.15);return'Trato hecho.'}},
-      {l:'Regatear',k:'soc',dc:12,ok:()=>{const sp=SPEC[D.ship.d];D.st.fuel=Math.min(sp.tank,D.st.fuel+sp.tank*.1);return'Te regala astrófago por la conversación.'},ko:()=>'Se ofende y se marcha.'}]},
+      {l:'20 t minerales → 60 t de materia',need:()=>D.st.min>=20,run:()=>{D.st.min-=20;D.st.mat=Math.min(MATC(),D.st.mat+60);return'Trato hecho.'}},
+      {l:'Regatear',k:'soc',dc:12,ok:()=>{D.st.fuel=Math.min(ENC(),D.st.fuel+3);return`Te regala 3 ${EN_U} por la conversación.`},ko:()=>'Se ofende y se marcha.'}]},
  {id:'fiesta',w:2,at:'leg',cond:()=>alive().length>=2&&!D.hib,t:'Aniversario de la misión',tx:'Alguien recuerda que hoy se cumple otro año desde el despegue.',
   op:[{l:'Celebrar (gasta provisiones)',run:()=>{D.st.prov=Math.max(0,D.st.prov-crewCount()*5);morAll(15);return'Música, comida y anécdotas. Moral +15.'}},{l:'Seguir trabajando',run:()=>{morAll(-3);return'Un día más.'}}]},
  {id:'criogenia',w:3,at:'leg',cond:()=>D.hib&&SPEC[D.ship.d].hib&&alive().length>0,t:'Fallo de criogenia',tx:'Una cápsula de coma marca una caída de constantes vitales.',
   op:[{l:'Despertar a la médica de guardia',k:'med',dc:13,ok:()=>'Estabilizado a tiempo.',ko:()=>{const m=pick(alive());return hurt(m,40)}},{l:'Confiar en la IA',k:'med',dc:15,ok:()=>'La IA lo logra.',ko:()=>{const who=loseRandom();return who?`${who} no despertó del coma.`:''}}]},
  {id:'mascota',w:1,at:'leg',t:'Algo se mueve en la bodega',tx:'Ruidos en los conductos. Las muestras de un planeta parecen haberse… escapado.',
   op:[{l:'Atraparlo',k:'seg',dc:10,ok:()=>{morAll(10);return'Es pequeño, peludo y ronronea. Ahora es la mascota de la nave. Moral +10.'},ko:()=>hurt(pick(alive()),8)+' Muerde.'},{l:'Sellar la bodega',run:()=>'Silencio… por ahora.'}]},
- {id:'lluvia',w:1,at:'arr',cond:c=>c.star&&PETROVA.has(c.star.P.k),t:'Nube de astrófago',tx:'La nave atraviesa una corriente de astrófago migrando hacia la estrella.',
-  op:[{l:'Abrir los colectores',k:'pil',dc:10,ok:()=>{const sp=SPEC[D.ship.d];D.st.fuel=Math.min(sp.tank,D.st.fuel+sp.tank*.2);return'Tanques +20%.'},ko:()=>'Demasiado rápida. Se escapa.'}]}];
-function pickEvent(at,c){if(typeof facEvent==='function'&&Math.random()<.38){const fe=facEvent(at,c);if(fe&&fe.op.length)return fe}const pool=EV.filter(e=>(e.at===at||e.at==='any')&&(!e.cond||e.cond(c)));let w=pool.reduce((a,e)=>a+e.w,0)*Math.random();for(const e of pool){w-=e.w;if(w<=0)return e}return null}
+ {id:'lluvia',w:1,at:'arr',cond:c=>PLG().on&&c.star&&infectado(c.star),t:'Nube de la plaga',tx:()=>`La nave atraviesa una corriente de ${pln()} migrando hacia la estrella.`,
+  op:[{l:'Esquivarla',k:'pil',dc:11,ok:()=>'La dejáis atrás sin un rasguño.',ko:()=>{morAll(-6);const v=Math.min(D.st.mat,20);D.st.mat-=v;return`Se adhiere al casco y devora ${fmtI(v)} t de materia de las bodegas. Moral −6.`}},
+      {l:'Tomar muestras',k:'cie',dc:12,ok:(c,r)=>'Muestras valiosas para estudiar la plaga.'+gainXp(r.m,20),ko:()=>hurt(pick(alive()),10)+' La muestra se escapa del contenedor.'}]}];
+function pickEvent(at,c){if(typeof facEvent==='function'&&Math.random()<.38){const fe=facEvent(at,c);if(fe&&fe.op.length)return fe}
+  if(Math.random()<.3){const ns=eventosNaves().filter(e=>e.at===at||e.at==='any');let w=ns.reduce((a,e)=>a+e.w,0)*Math.random();for(const e of ns){w-=e.w;if(w<=0)return e}}
+  const pool=EV.filter(e=>(e.at===at||e.at==='any')&&(!e.cond||e.cond(c)));let w=pool.reduce((a,e)=>a+e.w,0)*Math.random();for(const e of pool){w-=e.w;if(w<=0)return e}return null}
 
 /* ═════════ Misiones e historia ═════════ */
 const QUESTS=[
  {t:'Primer salto',d:'Sal del Sistema Solar y llega a otra estrella.',chk:()=>HF('salto'),
   rw:()=>{D.st.min+=20;return'+20 t de minerales'},story:'Por primera vez, el Sol es sólo una estrella más en la ventanilla. La tripulación se queda mirando un buen rato sin decir nada.'},
- {t:'La línea Petrova',d:'Recolecta astrófago en la corona de una estrella.',chk:()=>HF('harv'),
-  rw:()=>{morAll(8);return'Moral +8'},story:'Los colectores brillan con un resplandor infrarrojo. Si el astrófago puede cultivarse aquí, podemos seguir avanzando.'},
+ {t:'La línea Petrova',d:'Extrae materia en un sistema para alimentar el motor de curvatura.',chk:()=>HF('harv'),
+  rw:()=>{morAll(8);return'Moral +8'},get story(){return`Los drones vuelven cargados. Con materia de cualquier sistema y energía negativa de las estrellas muertas, la ${pln()} no nos va a dejar varados.`}},
  {t:'Destino: Tau Ceti',d:'Llega al sistema de Tau Ceti (11,9 al).',chk:()=>HF('tceti'),
-  rw:()=>{const sp=SPEC[D.ship.d];D.st.prov=Math.min(sp.prov,D.st.prov+sp.prov*.2);return'+20% provisiones'},story:'Tau Ceti no se está apagando. Alrededor de la estrella, algo mantiene a raya al astrófago. La respuesta está en Adrian.'},
+  rw:()=>{const sp=SPEC[D.ship.d];D.st.prov=Math.min(sp.prov,D.st.prov+sp.prov*.2);return'+20% provisiones'},get story(){return`Tau Ceti no se está apagando. Alrededor de la estrella, algo mantiene a raya a la ${pln()}. La respuesta está en Adrian.`}},
  {t:'Superficie de Adrian',d:'Explora con éxito un punto de interés en Adrian.',chk:()=>HF('adrian'),
-  rw:()=>{for(const m of alive())gainXp(m,15);return'+15 XP a toda la tripulación'},story:'Las muestras de la atmósfera de Adrian contienen algo vivo que se alimenta del astrófago. Un depredador natural. Esperanza.'},
+  rw:()=>{for(const m of alive())gainXp(m,15);return'+15 XP a toda la tripulación'},get story(){return`Las muestras de la atmósfera de Adrian contienen algo vivo que se alimenta de la ${pln()}. Un depredador natural. Esperanza.`}},
  {t:'El eco de 40 Eridani',d:'Viaja a 40 Eridani A y entra en su sistema.',chk:()=>HF('eri'),
   rw:()=>offerMember({...genMember(rng(4040),'ing','Erideano'),nm:'Eko de Erid',tr:'Veterano'},'El eco de 40 Eridani').trim(),story:'Una nave de diseño imposible se acerca. Su tripulante se comunica con acordes musicales. Tras días de intercambiar números y notas, pide unirse a la misión.'},
  {t:'Cartógrafo',d:'Registra 10 sistemas.',chk:()=>Object.keys(D.disc).length>=10,rw:()=>{D.st.min+=40;return'+40 t de minerales'},story:'La carta de Ad Astra crece. Cada punto nuevo es un lugar que nadie había nombrado.'},

@@ -1,13 +1,13 @@
 
 /* ═════════ Plan de viaje: paradas en orden con tareas en cada una ═════════ */
-const TASKS={fuel:'Recolectar astrófago',rest:'Descansar',rep:'Reparar casco',scanall:'Escanear todos los planetas',earth:'Reabastecer en la Tierra'};
+const TASKS={fuel:'Extraer materia',en:'Recolectar energía negativa',luz:'Cultivar con luz estelar',rest:'Descansar',rep:'Reparar casco',scanall:'Escanear todos los planetas',earth:'Reabastecer en la Tierra'};
 function getPlan(){if(NET&&NET.role==='client'){NET.myPlan=NET.myPlan||{stops:[]};return NET.myPlan}D.plan=D.plan&&Array.isArray(D.plan.stops)?D.plan:{stops:[]};return D.plan}
 const stopStar=s=>starFromSeed(s.s)||pointFromSeed(s.s);
 function taskLabel(t,st){if(t.startsWith('explore:')){const i=+t.split(':')[1],S=st&&!st.point?genSystem(st):null;return'Aterrizar y explorar '+(S&&S.planets[i]?S.planets[i].name:'planeta '+i)}
   if(t.startsWith('civ:')){const i=+t.split(':')[1],S=st&&!st.point?genSystem(st):null,c=S&&civInfo(S,i);return'Contactar '+(c?'a los '+c.name:'civilización')}return TASKS[t]||t}
 function taskOptions(st){
   if(!st||st.point)return[];const S=genSystem(st),o=[['rest',TASKS.rest],['rep',TASKS.rep],['scanall',TASKS.scanall]];
-  if(infected(st))o.unshift(['fuel',TASKS.fuel]);if(st.anchor&&st.anchor.id==='sol')o.push(['earth',TASKS.earth]);
+  if(!st.point){o.unshift(['fuel',TASKS.fuel],['luz',TASKS.luz]);if(destino(st))o.unshift(['en',TASKS.en])}if(st.anchor&&st.anchor.id==='sol')o.push(['earth',TASKS.earth]);
   S.planets.forEach((p,i)=>{if(p.kind!=='gas'&&p.kind!=='icegiant')o.push(['explore:'+i,'Aterrizar y explorar '+p.name]);const c=civInfo(S,i);if(c&&c.tech>0&&!c.home)o.push(['civ:'+i,'Contactar a los '+c.name])});
   return o;
 }
@@ -23,14 +23,14 @@ function simulatePlan(){
     const st=stopStar(stop);if(!st){out.push({stop,err:'Semilla no válida'});bad=bad||'Semilla no válida';continue}
     let legs=[],err='';
     if(!sameStar(from,st)){const path=planRoute(from,st);if(!path)err=`No hay ruta (máx. ${fmtLen(legMax(D.ship.d))} por salto en 400 al)`;else for(let i=0;i<path.length-1;i++)legs.push(legCalc(path[i],path[i+1]))}
-    for(const L of legs){if(err)break;tot.d+=L.d;tot.tau+=L.tau;tot.tE+=L.tE;tot.jumps++;const e=(()=>{if(L.d>legMax(D.ship.d)+1e-9&&!D.cr)return'salto demasiado largo';if(D.cr)return'';if(s.fuel+1e-9<L.fuel)return`faltará astrófago antes de ${starName(L.to)}`;if(sp.prov&&s.prov+1e-9<L.prov)return`faltarán provisiones antes de ${starName(L.to)}`;return''})();
-      if(e){err=e;break}if(!D.cr){s.fuel-=L.fuel;s.prov-=L.prov}if(sp.solar)s.fuel=sp.tank}
+    for(const L of legs){if(err)break;tot.d+=L.d;tot.tau+=L.tau;tot.tE+=L.tE;tot.jumps++;const e=(()=>{if(L.d>legMax(D.ship.d)+1e-9&&!D.cr)return'salto demasiado largo';if(D.cr)return'';if(s.fuel+1e-9<L.fuel)return`faltará energía negativa antes de ${starName(L.to)}`;if((s.mat||0)+1e-9<L.mat)return`faltará materia antes de ${starName(L.to)}`;if(sp.prov&&s.prov+1e-9<L.prov)return`faltarán provisiones antes de ${starName(L.to)}`;return''})();
+      if(e){err=e;break}if(!D.cr){s.fuel-=L.fuel;s.mat-=L.mat;s.prov-=L.prov}if(sp.solar)s.fuel=Math.max(s.fuel,ENC()*.5)}
     if(!err)for(const t of stop.a){const c=crewCount();
-      if(t==='fuel'&&infected(st)){s.fuel=Math.min(sp.tank,s.fuel+sp.tank*.35);s.prov-=c*30}
+      if(t==='fuel'){s.mat=Math.min(MATC(),s.mat+MATC()*.25);s.prov-=c*15}else if(t==='en'&&destino(st)){s.fuel=Math.min(ENC(),s.fuel+ENC()*FATE[destino(st)].en);s.prov-=c*20}else if(t==='luz'){s.prov=Math.min(sp.prov,s.prov+sp.prov*.08);s.prov-=c*15}
       else if(t==='rest')s.prov-=c*10;else if(t==='rep')s.prov-=c*5;else if(t==='scanall')s.prov-=c*8;
-      else if(t==='earth'){s.fuel=sp.tank;s.prov=sp.prov}else if(t.startsWith('explore:'))s.prov-=c*15;else if(t.startsWith('civ:'))s.prov-=c*5;
+      else if(t==='earth'){s.fuel=ENC();s.mat=MATC();s.prov=sp.prov}else if(t.startsWith('explore:'))s.prov-=c*15;else if(t.startsWith('civ:'))s.prov-=c*5;
       if(sp.prov)s.prov=Math.max(0,s.prov)}
-    out.push({stop,st,legs,err,fuel:s.fuel,prov:s.prov});if(err&&!bad)bad=`Parada ${k+1}: ${err}`;from=st;
+    out.push({stop,st,legs,err,fuel:s.fuel,mat:s.mat||0,prov:s.prov});if(err&&!bad)bad=`Parada ${k+1}: ${err}`;from=st;
   }
   return{rows:out,tot,bad};
 }
@@ -69,13 +69,13 @@ function exploreAll(i){
 function renderPlan(){
   const el=$('#p-plan'),P=getPlan(),sim=simulatePlan(),client=NET&&NET.role==='client';ACTS=[];
   let h=`<div class="kick">PLAN DE VIAJE</div><h2>${P.stops.length?P.stops.length+' parada'+(P.stops.length>1?'s':''):'Sin paradas'}</h2>
-  <p class="note">Selecciona una estrella en la carta y pulsa «+ Añadir al plan». En cada parada eliges qué hacer: recolectar astrófago, aterrizar y explorar un planeta, contactar una civilización, descansar… El plan calcula las rutas entre paradas y estima los recursos.</p>`;
+  <p class="note">Selecciona una estrella en la carta y pulsa «+ Añadir al plan». En cada parada eliges qué hacer: extraer materia, recolectar energía negativa en estrellas muertas, cultivar con luz, aterrizar y explorar un planeta, contactar una civilización, descansar… El plan calcula las rutas entre paradas y estima los recursos.</p>`;
   if(planRun)h+=`<p class="ok">▶ Ejecutando: parada ${planRun.i+1} de ${D.plan.stops.length}.</p><div class="row">${A('■ Detener el plan',()=>stopPlan('Plan detenido por la tripulación.'),0,'pri')}</div>`;
   if(P.stops.length){
     h+=`<div class="calc"><span>Distancia</span><span>${fmtLen(sim.tot.d)} · ${sim.tot.jumps} salto${sim.tot.jumps===1?'':'s'}</span><span>Tiempo a bordo</span><span>${fmtT(sim.tot.tau)}</span><span>Tiempo en la Tierra</span><span>${fmtT(sim.tot.tE)}</span><span>Viabilidad</span><span class="${sim.bad?'bad':'ok'}">${sim.bad?esc(sim.bad):'✓ Viable con las tareas previstas'}</span></div>`;
     h+=`<div class="lst">`;
     sim.rows.forEach((r,k)=>{const st=r.st,opts=taskOptions(st);
-      h+=`<div class="item col ${r.err?'err':''}"><div class="rowi"><span class="dim">${k+1}</span><div class="m"><b>${st?esc(starName(st)):'?'}</b><i>${r.legs&&r.legs.length?r.legs.length+' salto'+(r.legs.length>1?'s':'')+' · '+fmtLen(r.legs.reduce((a,l)=>a+l.d,0)):'ya en el destino'}${!r.err&&st?` · llegas con ${r.fuel.toFixed(0)} t y ${fmtI(r.prov)} d-p`:''}${r.err?' · '+esc(r.err):''}</i></div>
+      h+=`<div class="item col ${r.err?'err':''}"><div class="rowi"><span class="dim">${k+1}</span><div class="m"><b>${st?esc(starName(st)):'?'}</b><i>${r.legs&&r.legs.length?r.legs.length+' salto'+(r.legs.length>1?'s':'')+' · '+fmtLen(r.legs.reduce((a,l)=>a+l.d,0)):'ya en el destino'}${!r.err&&st?` · llegas con ${r.fuel.toFixed(0)} ${EN_U}, ${fmtI(r.mat)} t de materia y ${fmtI(r.prov)} d-p`:''}${r.err?' · '+esc(r.err):''}</i></div>
         ${A('↑',()=>{if(k>0){[P.stops[k-1],P.stops[k]]=[P.stops[k],P.stops[k-1]];saveD();renderPlan()}},k===0)}${A('↓',()=>{if(k<P.stops.length-1){[P.stops[k+1],P.stops[k]]=[P.stops[k],P.stops[k+1]];saveD();renderPlan()}},k===P.stops.length-1)}${A('✕',()=>{P.stops.splice(k,1);saveD();renderPlan()})}</div>
         <div class="hzl">${r.stop.a.map((t,j)=>`<span class="tag">${esc(taskLabel(t,st))} ${A('✕',()=>{r.stop.a.splice(j,1);saveD();renderPlan()})}</span>`).join('')||'<span class="note">Sin tareas: sólo pasar por aquí.</span>'}</div>
         ${opts.length?`<div class="row"><select data-k="${k}"><option value="">+ Añadir tarea…</option>${opts.filter(o=>!r.stop.a.includes(o[0])).map(o=>`<option value="${esc(o[0])}">${esc(o[1])}</option>`).join('')}</select></div>`:''}</div>`});

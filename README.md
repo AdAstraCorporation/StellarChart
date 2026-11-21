@@ -60,6 +60,44 @@ En *Settings → Pages* la fuente debe ser **GitHub Actions**.
 - **Estadísticas altas:** si una barra pasa de 12 se vuelve a llenar encima con otro color y marca ×2, ×3…
 - **◈ Holograma:** el mapa en 4 vistas giradas hacia el centro, para una pirámide holográfica casera.
 
+## Motor de curvatura
+- Cada salto gasta **materia** (t) y **energía negativa** (EN). La materia se extrae en cualquier sistema (⛏, 15 días; más con
+  planetas y cinturones). La energía negativa sale de **estrellas muertas** (enanas blancas, estrellas de neutrones) y
+  **agujeros negros** (20 días), de los **contratos** (cada uno paga EN además de minerales), de algunos eventos y de las
+  **estaciones de comercio**. Saltar desde o hacia un **agujero negro no gasta nada**.
+- **Aditamentos** (se compran e instalan en las estaciones; de 1 a 4 huecos según la nave): tanque de energía ampliado, bodega
+  de materia, bobinas de curvatura afinadas (−20 % de consumo), colector de materia, invernadero estelar, blindaje reforzado,
+  reciclador de provisiones, sensores de largo alcance y módulo de hábitat adaptable.
+- **Estaciones de comercio** en uno de cada cuatro sistemas (y en la Tierra): compran y venden con minerales energía negativa,
+  materia y provisiones, e instalan aditamentos. Los precios cambian por estación.
+- **Cultivar con luz estelar** (🌱, 15 días): comida según la luminosidad de la estrella y los planetas con atmósfera.
+- **Encuentros con otras naves:** mercantes que proponen trueques, piratas, naves en apuros, exploradores científicos y naves a la deriva con aditamentos.
+
+## Plaga, estrellas muertas y supernovas
+- La **plaga** se configura al crear la partida: se puede desactivar y cambiarle el nombre (por defecto, Astrófago).
+- Se **propaga en tiempo real** (cada 10 s reales avanzan 2 días de su ciclo, además de los días a bordo). Su población y la de
+  su **depredador** se controlan entre sí (Lotka-Volterra) y oscilan; donde vive el depredador no prospera y algunos sistemas son
+  **inmunes** (como Tau Ceti). La pestaña Carta muestra las dos poblaciones; «Petrova» pinta las estrellas infectadas.
+- **Supernovas:** de vez en cuando (por tiempo real y por días a bordo) una estrella masiva cercana colapsa y explota. Si estáis
+  cerca la onda de choque daña la nave; deja una estrella de neutrones o un agujero negro.
+- **Agujeros negros** (⚫ con disco) y estrellas muertas se ven en la carta y en el sistema.
+
+## Tripulación y rol
+- **Bonos de rol:** cada tripulante tiene +1 en la estadística de su rol, y cada rol activo aporta a la nave (Pilotaje: menos
+  consumo; Ingeniería: reparaciones y casco; Ciencia: extracción; Medicina: curación; Seguridad: encuentros hostiles;
+  Diplomacia: precios). Se ven en la pestaña Nave.
+- **Tolerancias:** cada nave acomoda mejor a unas especies (p. ej. el caza no va bien para osos, dragones, ciervos y tigres).
+  Quien viaja incómodo tiene −1 en todo y pierde moral; el módulo de hábitat lo arregla.
+- **Pestaña «Mi ficha»:** tu personaje en tiempo real (salud, moral, XP, estadísticas, equipo, días de vuelo).
+- **Recién llegados:** quien se une con la ronda en marcha espera en el sistema más cercano de la facción dominante de la nave;
+  sube a bordo al llegar allí.
+- **Hambruna:** sin comida, sólo el capitán puede proponer una medida de emergencia (sacrificar a un tripulante para alimentar
+  al resto). Se vota y sólo se aplica si se aprueba.
+
+## Vistas 3D
+- **Sistema estelar en 3D:** órbitas inclinadas, plano de referencia y perspectiva. Arrastrar gira y la rueda acerca.
+- **Escáner de terreno al aterrizar:** malla 3D del relieve con un barrido de escáner; los puntos de interés y la nave se posan sobre ella.
+
 ## Fin de misión → Credenciales
 Al cerrar una misión, la Carta muestra **un QR general** (enlace `credenciales/#X…`, versión 2). Cada jugador lo escanea
 desde Credenciales («Actualizar → Escanear QR de la misión») y después su credencial: se renueva con estadísticas, nivel,
@@ -71,13 +109,13 @@ tiempo de vuelo (`fv`) y misiones (`ms`); cada misión (`mi`) sólo se aplica un
 
 Simulador de rol espacial en un único `index.html` estático, sin servidor ni cuenta. La estética sigue la carta
 «Hail Mary – Stellar Navigation Chart» (valhovey.github.io/gaia-mary): fondo de cielo completo con la Vía Láctea,
-rejillas en perspectiva, nombres en mayúsculas con línea guía, trayectorias en arco y modo Petrova (estrellas con astrófago en rojo).
+rejillas en perspectiva, nombres en mayúsculas con línea guía, trayectorias en arco y modo Petrova (estrellas con la plaga en rojo).
 Las estrellas se generan de forma determinista; el vecindario del Sol usa RA/Dec/distancia reales (eclíptica J2000).
 
 ## Carta
 - Cámara libre y suave: arrastrar = orbitar · Shift/botón derecho/dos dedos = desplazar · rueda/pellizco = zoom
   (1 al – 3 000 al) · WASD/flechas = volar · Q/E = bajar/subir · Inicio = tu nave · M = panel · Intro = viajar.
-- Interruptores Navegación (líneas de visión), Color (espectral) y Petrova (marca las estrellas con astrófago).
+- Interruptores Navegación (líneas de visión), Color (espectral) y Petrova (marca las estrellas con la plaga).
 - Movimiento libre: «⌖ Destino» fija como destino cualquier punto del espacio (la retícula central) y «✈ Pilotar» (F) mueve la nave a mano con WASD, Q/E y Shift. La nave puede detenerse en el espacio profundo. En modo creativo no hay límite de distancia por salto.
 - Vistas: Sistema Solar, Trayectoria (ruta hacia Tau Ceti), Tau Ceti y Galáctica.
 - Semillas `CABECERA-DETALLE`: la cabecera (A…Z, AA, AB…) numera sectores de 240 al en capas alrededor del Sol, sin borde;
@@ -85,7 +123,7 @@ Las estrellas se generan de forma determinista; el vecindario del Sol usa RA/Dec
 
 ## Viaje
 - Cálculo relativista con aceleración constante y volteo a mitad de camino: tiempo a bordo, tiempo en la Tierra,
-  velocidad máxima y factor γ. El astrófago consumido depende de la distancia; las provisiones, de la tripulación y del
+  velocidad máxima y factor γ. La materia y la energía negativa consumidas dependen de la distancia; las provisiones, de la tripulación y del
   tiempo a bordo (×0,15 con hibernación en cápsulas de coma, con riesgo al despertar).
 - Rutas automáticas con A* cuando el destino supera el alcance por salto (hasta 400 al por plan).
 - 8 naves con tamaño real (de 7 m a 2,4 km), comparadas con objetos conocidos; astillero en el Sistema Solar.
@@ -93,14 +131,14 @@ Las estrellas se generan de forma determinista; el vecindario del Sol usa RA/Dec
 ## Rol
 - Tripulación con especie, rol, seis estadísticas, rasgo, salud, moral, experiencia, nivel y biografía.
 - Eventos aleatorios con decisiones y tiradas (1d10 + habilidad contra dificultad) en tránsito y al llegar.
-- Sistemas: recolectar astrófago (sólo en estrellas infectadas), descansar, reparar, escanear planetas y reabastecer en la Tierra.
+- Sistemas: extraer materia, recolectar energía negativa (estrellas muertas y agujeros negros), cultivar con luz estelar, comerciar en estaciones, descansar, reparar, escanear planetas y reabastecer en la Tierra.
 - Aterrizaje (o lanzadera en naves grandes): atmósfera, gravedad, temperatura, condiciones anómalas y puntos de interés;
   expediciones con equipo elegido, botín, heridas y experiencia.
 - Misiones con historia: Primer salto → La línea Petrova → Destino: Tau Ceti → Superficie de Adrian → El eco de 40 Eridani…
 - Modo creativo y rescate si te quedas varado.
 
 ## Plan de viaje
-Pestaña «Plan»: paradas en orden (estrellas o puntos libres) con tareas en cada una: recolectar astrófago, descansar,
+Pestaña «Plan»: paradas en orden (estrellas o puntos libres) con tareas en cada una: extraer materia, recolectar energía negativa, cultivar con luz estelar, descansar,
 reparar, escanear, aterrizar y explorar un planeta, contactar una civilización o reabastecer en la Tierra. Calcula las rutas
 entre paradas, estima combustible y provisiones con las tareas incluidas y lo ejecuta solo (pausando en los eventos).
 
@@ -132,8 +170,8 @@ comerciar, aprender y reclutar según la reputación. Cada sistema tiene además
 - Todo lo que hay a bordo, en la bodega o encima de alguien, puede delataros. La Manada registra bodega y bolsillos.
 
 ## Bases, colonias y logística
-- Se construyen desde el panel de un planeta en órbita: mina, refinería de astrófago, granja hidropónica o puesto avanzado. Cuestan 40 t y 20 días, y llegan hasta nivel 3.
-- Producen con el tiempo de a bordo según la riqueza del planeta (minerales, astrófago, alimento), que sale de la semilla y **puede ser nula**.
+- Se construyen desde el panel de un planeta en órbita: mina, extractor de materia, granja hidropónica o puesto avanzado. Cuestan 40 t y 20 días, y llegan hasta nivel 3.
+- Producen con el tiempo de a bordo según la riqueza del planeta (minerales, materia, alimento), que sale de la semilla y **puede ser nula**.
 - Los **envíos** viajan en tiempo real a **1 año luz cada 5 segundos** (mínimo 5 s): de una base a la nave o de una base a otra.
 - Las **rutas automáticas** envían recursos de X a Y cada N días a bordo o cada N minutos reales, por ejemplo para que una colonia te mande recursos con regularidad. Se ven en el mapa y en la pestaña **Bases**.
 

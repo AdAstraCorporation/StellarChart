@@ -192,8 +192,8 @@ select{background:rgba(0,0,0,.5);border:1px solid var(--line);color:inherit;padd
   <div class="ov" id="tip"></div>
 </section>
 <aside id="drawer">
-  <div class="tabs"><button id="drawerX" title="Cerrar panel" aria-label="Cerrar panel">✕</button><button data-t="carta" class="on">Carta</button><button data-t="plan">Plan</button><button data-t="ship">Nave</button><button data-t="crew">Tripul.</button><button data-t="fac">Facciones</button><button data-t="base">Bases</button><button data-t="sess">Sesión</button><button data-t="hist">Bitácora</button><button data-t="nav">Navegar</button><button data-t="share">Partida</button></div>
-  <div class="pane on" id="p-carta"></div><div class="pane" id="p-plan"></div><div class="pane" id="p-ship"></div><div class="pane" id="p-crew"></div><div class="pane" id="p-fac"></div><div class="pane" id="p-base"></div><div class="pane" id="p-sess"></div><div class="pane" id="p-hist"></div><div class="pane" id="p-nav"></div><div class="pane" id="p-share"></div>
+  <div class="tabs"><button id="drawerX" title="Cerrar panel" aria-label="Cerrar panel">✕</button><button data-t="carta" class="on">Carta</button><button data-t="plan">Plan</button><button data-t="ship">Nave</button><button data-t="yo">Mi ficha</button><button data-t="crew">Tripul.</button><button data-t="fac">Facciones</button><button data-t="base">Bases</button><button data-t="sess">Sesión</button><button data-t="hist">Bitácora</button><button data-t="nav">Navegar</button><button data-t="share">Partida</button></div>
+  <div class="pane on" id="p-carta"></div><div class="pane" id="p-plan"></div><div class="pane" id="p-ship"></div><div class="pane" id="p-crew"></div><div class="pane" id="p-fac"></div><div class="pane" id="p-base"></div><div class="pane" id="p-sess"></div><div class="pane" id="p-yo"></div><div class="pane" id="p-hist"></div><div class="pane" id="p-nav"></div><div class="pane" id="p-share"></div>
 </aside>
 </div>
 <div id="dmBox" class="dm"><div class="dmh"><b>📜 Registro de la partida</b><span><button id="dmCopy" class="sm" title="Copiar">⧉</button><button id="dmMin" class="sm" title="Minimizar">–</button><button id="dmX" class="sm" title="Ocultar">✕</button></span></div><div id="dmL"></div></div>
@@ -2843,7 +2843,7 @@ const gd=(a,b)=>Math.hypot(a.gx-b.gx,a.gy-b.gy,a.gz-b.gz);
 const sameStar=(a,b)=>!!(a&&b&&a.h===b.h&&a.gx===b.gx&&a.gy===b.gy);
 const sSeed=st=>seedStr(starLoc(st,14));
 function starFromSeed(s){const p=parseSeed(s);return p.loc?starInCell(cellOf(p.loc)):null}
-const cleanShip=s=>({d:SHIPS[s.d]?s.d:'corbeta',n:String(s.n||'').slice(0,24),c1:/^#[0-9a-f]{6}$/i.test(s.c1)?s.c1:DEF_SHIP.c1,c2:/^#[0-9a-f]{6}$/i.test(s.c2)?s.c2:DEF_SHIP.c2});
+const cleanShip=s=>({d:SHIPS[s.d]?s.d:'corbeta',n:String(s.n||'').slice(0,24),c1:/^#[0-9a-f]{6}$/i.test(s.c1)?s.c1:DEF_SHIP.c1,c2:/^#[0-9a-f]{6}$/i.test(s.c2)?s.c2:DEF_SHIP.c2,mods:Array.isArray(s.mods)?[...new Set(s.mods.filter(k=>/^[a-z]{3,12}$/.test(k)))].slice(0,4):[]});
 
 /* ═════════ Rejilla global de estrellas (celdas de 8 al, con caché) ═════════ */
 const gridCache=new Map();
@@ -2863,7 +2863,7 @@ function starsNear(x,y,z,r,fn){
 }
 
 /* ═════════ Estado del juego ═════════ */
-function freshState(d){const s=SPEC[d];return{fuel:s.tank,prov:s.prov,extra:0,hull:100,min:20,days:0,yrs:0,jumps:0,ly:0}}
+function freshState(d){const s=SPEC[d];return{fuel:s.tank,mat:s.tank*2,prov:s.prov,extra:0,hull:100,min:20,days:0,yrs:0,jumps:0,ly:0}}
 let D={v:3,n:'',h:[],base:'',anon:false,ship:{...DEF_SHIP},sp:'',st:null,crew:null,hib:0,cr:0,ex:{},scan:{},disc:{},q:0,qf:{},cm:null,op:null,c:''};
 try{const raw=localStorage.getItem(LS_KEY);if(raw)Object.assign(D,JSON.parse(raw));else{const o=localStorage.getItem('adastra.explorer.v2');if(o){const j=JSON.parse(o);for(const k of['n','h','base','anon','ship'])if(j[k]!=null)D[k]=j[k]}}}catch(e){}
 const saveD=()=>{if(NET&&NET.role==='client')return;try{localStorage.setItem(LS_KEY,JSON.stringify(D))}catch(e){}if(NET&&NET.role==='host')netSync()};
@@ -3021,12 +3021,12 @@ function drawMap(now){
       if(opt.fac&&R<220){const t=facOf(s);if(t){ctx.globalAlpha=a*(t.core?.75:.45);ctx.strokeStyle=FAC[t.f].c;ctx.lineWidth=1;ctx.beginPath();ctx.arc(x,y,r+2.5,0,7);ctx.stroke()}}
       if(R<45&&!s.anchor&&df<R*.8){const sc=Math.log10(lum+.001)-df/R*2;if(labels.length<9||sc>labels[labels.length-1][0]){labels.push([sc,s,x,y,inf]);labels.sort((p,q)=>q[0]-p[0]);if(labels.length>9)labels.pop()}}
     }
-    ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
+    ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';drawRemanentes(vis,R);
     if(opt.fac&&R<400){const i0=Math.floor(fx/HUBG),j0=Math.floor(fy/HUBG),k0=Math.floor(fz/(HUBG*.35)),n=Math.ceil(R/HUBG)+1;for(let i=i0-n;i<=i0+n;i++)for(let j=j0-n;j<=j0+n;j++)for(let k=k0-1;k<=k0+1;k++){const h=hubAt(i,j,k);if(!h||!proj(h.x,h.y,h.z))continue;labelAt(_p[0],_p[1],FAC[h.f].ic+' '+h.name.toUpperCase(),FAC[h.f].c,9)}}
     for(const [,s,x,y,inf] of labels)labelAt(x,y,starName(s),inf?'rgba(255,59,92,.85)':'rgba(220,228,240,.62)',9);
   }
   // líneas de navegación (visuales desde la nave)
-  const sp=SPEC[D.ship.d],ml=legMax(D.ship.d),rng0=D.cr?ml:D.st.fuel/sp.burn;
+  const sp=SPEC[D.ship.d],ml=legMax(D.ship.d),rng0=D.cr?ml:alcance();
   if(opt.nav&&proj(P0[0],P0[1],P0[2])){const sx=_p[0],sy=_p[1];ctx.strokeStyle=AMB;ctx.lineWidth=.8;
     for(const s of ANCHSTARS){if(sameStar(s,ship)||(R>150&&s.anchor.id!=='sol'))continue;if(!proj(s.gx,s.gy,s.gz))continue;ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(_p[0],_p[1]);ctx.stroke()}}
   // anclas
@@ -3112,18 +3112,19 @@ if(!Array.isArray(D.crew)){const n=newCrew(D.ship.d);D.crew=n.c;D.st.extra=n.ext
 /* Estados: ok · susp (animación suspendida: fuera de la ronda, a bordo) · perdido */
 const alive=()=>D.crew.filter(m=>m.st!=='perdido'&&m.st!=='susp');
 const aboard=()=>D.crew.filter(m=>m.st!=='perdido');
-const suspended=()=>D.crew.filter(m=>m.st==='susp'&&!m.bz); // en criosueño a bordo
+const suspended=()=>D.crew.filter(m=>m.st==='susp'&&!m.bz&&!m.esp); // en criosueño a bordo
+const esperando=()=>D.crew.filter(m=>m.st==='susp'&&m.esp); // nuevos: esperan en un sistema a que la nave los recoja
 const enBase=()=>D.crew.filter(m=>m.st==='susp'&&m.bz); // destinados en una base o colonia: fuera de la nave y de la ronda
 const crewCount=()=>alive().length+(D.st.extra|0);
-const eaters=()=>crewCount()+suspended().length*.15; // en criosueño comen un 15 %
-const eff=(m,k)=>m.s[k]+((TRAITS[m.tr]||{m:{}}).m[k]||0)+Math.floor((m.lv-1)/2)+(m.hp<50?-2:0)+(m.mor<30?-1:0)+(typeof gearB==='function'?gearB(m,k):0);
+const eaters=()=>(crewCount()+suspended().length*.15)*(hasMod('reciclador')?.8:1); // en criosueño comen un 15 %
+const eff=(m,k)=>(m.role===k?1:0)-(incomodo(m)?1:0)+m.s[k]+((TRAITS[m.tr]||{m:{}}).m[k]||0)+Math.floor((m.lv-1)/2)+(m.hp<50?-2:0)+(m.mor<30?-1:0)+(typeof gearB==='function'?gearB(m,k):0);
 const okImg=s=>typeof s==='string'&&/^(data:image\/(webp|jpeg);base64,[A-Za-z0-9+/=]+|https:\/\/[^\s"'<>]+)$/.test(s);
 const portrait=m=>m?(okImg(m.ph)?`<span class="pt"><img src="${esc(m.ph)}" alt="${esc(m.nm)}"></span>`:`<span class="pt" title="${esc(m.sp)}">${SPEMO[m.sp]||'🐾'}</span>`):'<span class="pt">🤖</span>';
 const AI={nm:'IA de a bordo',sp:'IA',s:{pil:5,ing:5,cie:5,med:3,seg:3,soc:3},tr:'',lv:1,hp:100,mor:100};
 function best(k,team){const c=(team&&team.length?team:alive().filter(m=>m.hp>0));if(!c.length)return{m:AI,v:AI.s[k]};let b=c[0],v=eff(b,k);for(const m of c){const e=eff(m,k);if(e>v){v=e;b=m}}return{m:b,v}}
 const chance=(k,dc,team,luck)=>{const b=best(k,team).v+((team&&team.length>1)?team.length-1:0)+(luck|0);return clamp((11-(dc-b))/10,0,1)};
 function roll(k,dc,team,luck){
-  luck=luck|0;const b=best(k,team),bonus=(team&&team.length>1)?team.length-1:0,d=1+(Math.random()*10|0),tot=b.v+d+bonus+luck,ok=tot>=dc;
+  luck=(luck|0)+(hasMod('sensores')&&(k==='cie'||k==='pil')?2:0)+(k==='seg'&&!team?Math.round(rolF('seg',.5,3)/3):0);const b=best(k,team),bonus=(team&&team.length>1)?team.length-1:0,d=1+(Math.random()*10|0),tot=b.v+d+bonus+luck,ok=tot>=dc;
   return{ok,crit:d===10,fumble:d===1,m:b.m,line:`🎲 ${d} + ${b.v} (${esc(b.m.nm)}, ${STATN[k]})${bonus?` + ${bonus} equipo`:''}${luck?` ${luck>0?'+':'−'} ${Math.abs(luck)} fortuna`:''} = ${tot} vs ${dc} ${ok?'✓':'✗'}`};
 }
 function gainXp(m,n){if(!m||m===AI||m.st==='perdido'||m.st==='susp')return'';m.xp+=n;let out='';while(m.xp>=30*m.lv){m.xp-=30*m.lv;m.lv++;m.s[m.role]=Math.min(12,m.s[m.role]+1);out+=` ${m.nm} sube a nivel ${m.lv}.`}return out}
@@ -3157,12 +3158,12 @@ const POI={
  'Señal enterrada':{k:'soc',dc:12,days:4,lo:{xp:20,lore:1},tx:'Una baliza todavía emite un patrón regular.'},
  'Nido de fauna':{k:'seg',dc:14,days:5,lo:{prov:[.1,.2],xp:20},tx:'Criaturas grandes y nerviosas.'},
  'Hielo puro':{k:'ing',dc:8,days:3,lo:{prov:[.04,.08]},tx:'Glaciares de agua casi pura.'},
- 'Cristales de astrófago':{k:'cie',dc:13,days:5,lo:{fuel:[.1,.25]},tx:'Depósitos oscuros que absorben la luz: astrófago latente.'},
+ 'Cristales exóticos':{k:'cie',dc:13,days:5,lo:{fuel:[.1,.25]},tx:'Depósitos oscuros que doblan la luz: energía negativa atrapada en la roca.'},
  'Asentamiento':{k:'soc',dc:9,days:3,lo:{crew:1,mor:12,prov:[.05,.1]},tx:'Una colonia pequeña que recibe visitas con recelo.'},
  'Géiser de lava':{k:'pil',dc:12,days:3,lo:{min:[25,50]},tx:'Hay que volar entre columnas de roca fundida.'}};
 const KPOI={lava:['Géiser de lava','Depósito mineral','Restos de una nave','Ruinas antiguas'],desert:['Ruinas antiguas','Depósito mineral','Restos de una nave','Señal enterrada','Cueva profunda'],
  ocean:['Flora comestible','Nido de fauna','Fuente termal','Ruinas antiguas'],temperate:['Flora comestible','Nido de fauna','Ruinas antiguas','Cueva profunda','Fuente termal','Señal enterrada'],
- ice:['Hielo puro','Cueva profunda','Restos de una nave','Señal enterrada'],frozen:['Hielo puro','Cristales de astrófago','Restos de una nave'],barren:['Depósito mineral','Cristales de astrófago','Restos de una nave','Cueva profunda']};
+ ice:['Hielo puro','Cueva profunda','Restos de una nave','Señal enterrada'],frozen:['Hielo puro','Cristales exóticos','Restos de una nave'],barren:['Depósito mineral','Cristales exóticos','Restos de una nave','Cueva profunda']};
 const LORE=['Los grabados muestran una estrella que se oscurece y una flota que parte hacia otra.','La baliza repite coordenadas que apuntan a Tau Ceti, una y otra vez.',
  'Encuentran un mapa estelar tallado: el Sol aparece marcado con un círculo roto.','Los restos hablan de una especie que cosechaba la luz de su estrella.',
  'Un diario en un idioma desconocido termina con un dibujo de dos manos, de especies distintas, unidas.','La estructura canta cuando la atraviesa el viento: alguien la diseñó así.',
@@ -3189,9 +3190,9 @@ const EV=[
  {id:'meteoros',w:4,at:'leg',t:'Lluvia de micrometeoroides',tx:'El radar detecta una nube de polvo de alta velocidad justo en la trayectoria.',
   op:[{l:'Maniobrar a mano',k:'pil',dc:12,ok:()=>'Un pilotaje impecable. Ni un rasguño.',ko:()=>{const d=10+(Math.random()*12|0);D.st.hull=Math.max(1,D.st.hull-d);return`Impactos en el casco: −${d}%.`}},
       {l:'Reforzar blindaje (10 t minerales)',need:()=>D.st.min>=10,run:()=>{D.st.min-=10;return'Las placas extra absorben los impactos.'}}]},
- {id:'reactor',w:3,at:'leg',t:'Fluctuación en el motor de astrófago',tx:'La temperatura de los tanques sube. Si el astrófago se calienta demasiado, se pierde.',
-  op:[{l:'Reparar en caliente',k:'ing',dc:13,ok:()=>'Reparado. El motor suena mejor que nunca.',ko:()=>{const f=Math.round(D.st.fuel*.12);D.st.fuel-=f;return`Se ventean ${f} t de astrófago.`+hurt(pick(alive()),15)}},
-      {l:'Dejar que la IA estabilice',run:()=>{const f=Math.round(D.st.fuel*.06);D.st.fuel-=f;return`La IA purga ${f} t para enfriar los tanques.`}}]},
+ {id:'reactor',w:3,at:'leg',t:'Fluctuación en el motor de curvatura',tx:'La burbuja de curvatura oscila. Si el confinamiento falla, la energía negativa se escapa.',
+  op:[{l:'Reparar en caliente',k:'ing',dc:13,ok:()=>'Reparado. El motor suena mejor que nunca.',ko:()=>{const f=Math.round(D.st.fuel*.12);D.st.fuel-=f;return`Se pierden ${f} ${EN_U} de energía negativa.`+hurt(pick(alive()),15)}},
+      {l:'Dejar que la IA estabilice',run:()=>{const f=Math.round(D.st.fuel*.06);D.st.fuel-=f;return`La IA purga ${f} ${EN_U} para estabilizar la burbuja.`}}]},
  {id:'enfermedad',w:2,at:'arr',cond:()=>alive().length>=2,t:'Brote a bordo',tx:'Varios tripulantes tienen fiebre. Puede venir de las muestras recogidas.',
   op:[{l:'Tratarlo en la enfermería',k:'med',dc:12,ok:()=>{morAll(4);return'Diagnóstico rápido y tratamiento eficaz. Moral +4.'},ko:()=>{let s='';for(const m of alive())if(Math.random()<.5)s+=hurt(m,15);return'El tratamiento tarda.'+s}},
       {l:'Cuarentena (15 días)',run:()=>{passDays(15);return'Quince días de aislamiento. Nadie más enferma.'}}]},
@@ -3212,28 +3213,31 @@ const EV=[
   op:[{l:'Aceptarle en la tripulación',run:()=>addMember()},{l:'Ponerle en hibernación hasta volver',run:()=>'Duerme en una cápsula de repuesto.'}]},
  {id:'mercader',w:2,at:'arr',t:'Mercader errante',tx:'Una nave comercial independiente propone un trueque.',
   op:[{l:'20 t minerales → provisiones',need:()=>D.st.min>=20,run:()=>{const sp=SPEC[D.ship.d];D.st.min-=20;D.st.prov=Math.min(sp.prov,D.st.prov+sp.prov*.2);return'Trato hecho.'}},
-      {l:'20 t minerales → astrófago',need:()=>D.st.min>=20,run:()=>{const sp=SPEC[D.ship.d];D.st.min-=20;D.st.fuel=Math.min(sp.tank,D.st.fuel+sp.tank*.15);return'Trato hecho.'}},
-      {l:'Regatear',k:'soc',dc:12,ok:()=>{const sp=SPEC[D.ship.d];D.st.fuel=Math.min(sp.tank,D.st.fuel+sp.tank*.1);return'Te regala astrófago por la conversación.'},ko:()=>'Se ofende y se marcha.'}]},
+      {l:'20 t minerales → 60 t de materia',need:()=>D.st.min>=20,run:()=>{D.st.min-=20;D.st.mat=Math.min(MATC(),D.st.mat+60);return'Trato hecho.'}},
+      {l:'Regatear',k:'soc',dc:12,ok:()=>{D.st.fuel=Math.min(ENC(),D.st.fuel+3);return`Te regala 3 ${EN_U} por la conversación.`},ko:()=>'Se ofende y se marcha.'}]},
  {id:'fiesta',w:2,at:'leg',cond:()=>alive().length>=2&&!D.hib,t:'Aniversario de la misión',tx:'Alguien recuerda que hoy se cumple otro año desde el despegue.',
   op:[{l:'Celebrar (gasta provisiones)',run:()=>{D.st.prov=Math.max(0,D.st.prov-crewCount()*5);morAll(15);return'Música, comida y anécdotas. Moral +15.'}},{l:'Seguir trabajando',run:()=>{morAll(-3);return'Un día más.'}}]},
  {id:'criogenia',w:3,at:'leg',cond:()=>D.hib&&SPEC[D.ship.d].hib&&alive().length>0,t:'Fallo de criogenia',tx:'Una cápsula de coma marca una caída de constantes vitales.',
   op:[{l:'Despertar a la médica de guardia',k:'med',dc:13,ok:()=>'Estabilizado a tiempo.',ko:()=>{const m=pick(alive());return hurt(m,40)}},{l:'Confiar en la IA',k:'med',dc:15,ok:()=>'La IA lo logra.',ko:()=>{const who=loseRandom();return who?`${who} no despertó del coma.`:''}}]},
  {id:'mascota',w:1,at:'leg',t:'Algo se mueve en la bodega',tx:'Ruidos en los conductos. Las muestras de un planeta parecen haberse… escapado.',
   op:[{l:'Atraparlo',k:'seg',dc:10,ok:()=>{morAll(10);return'Es pequeño, peludo y ronronea. Ahora es la mascota de la nave. Moral +10.'},ko:()=>hurt(pick(alive()),8)+' Muerde.'},{l:'Sellar la bodega',run:()=>'Silencio… por ahora.'}]},
- {id:'lluvia',w:1,at:'arr',cond:c=>c.star&&PETROVA.has(c.star.P.k),t:'Nube de astrófago',tx:'La nave atraviesa una corriente de astrófago migrando hacia la estrella.',
-  op:[{l:'Abrir los colectores',k:'pil',dc:10,ok:()=>{const sp=SPEC[D.ship.d];D.st.fuel=Math.min(sp.tank,D.st.fuel+sp.tank*.2);return'Tanques +20%.'},ko:()=>'Demasiado rápida. Se escapa.'}]}];
-function pickEvent(at,c){if(typeof facEvent==='function'&&Math.random()<.38){const fe=facEvent(at,c);if(fe&&fe.op.length)return fe}const pool=EV.filter(e=>(e.at===at||e.at==='any')&&(!e.cond||e.cond(c)));let w=pool.reduce((a,e)=>a+e.w,0)*Math.random();for(const e of pool){w-=e.w;if(w<=0)return e}return null}
+ {id:'lluvia',w:1,at:'arr',cond:c=>PLG().on&&c.star&&infectado(c.star),t:'Nube de la plaga',tx:()=>`La nave atraviesa una corriente de ${pln()} migrando hacia la estrella.`,
+  op:[{l:'Esquivarla',k:'pil',dc:11,ok:()=>'La dejáis atrás sin un rasguño.',ko:()=>{morAll(-6);const v=Math.min(D.st.mat,20);D.st.mat-=v;return`Se adhiere al casco y devora ${fmtI(v)} t de materia de las bodegas. Moral −6.`}},
+      {l:'Tomar muestras',k:'cie',dc:12,ok:(c,r)=>'Muestras valiosas para estudiar la plaga.'+gainXp(r.m,20),ko:()=>hurt(pick(alive()),10)+' La muestra se escapa del contenedor.'}]}];
+function pickEvent(at,c){if(typeof facEvent==='function'&&Math.random()<.38){const fe=facEvent(at,c);if(fe&&fe.op.length)return fe}
+  if(Math.random()<.3){const ns=eventosNaves().filter(e=>e.at===at||e.at==='any');let w=ns.reduce((a,e)=>a+e.w,0)*Math.random();for(const e of ns){w-=e.w;if(w<=0)return e}}
+  const pool=EV.filter(e=>(e.at===at||e.at==='any')&&(!e.cond||e.cond(c)));let w=pool.reduce((a,e)=>a+e.w,0)*Math.random();for(const e of pool){w-=e.w;if(w<=0)return e}return null}
 
 /* ═════════ Misiones e historia ═════════ */
 const QUESTS=[
  {t:'Primer salto',d:'Sal del Sistema Solar y llega a otra estrella.',chk:()=>HF('salto'),
   rw:()=>{D.st.min+=20;return'+20 t de minerales'},story:'Por primera vez, el Sol es sólo una estrella más en la ventanilla. La tripulación se queda mirando un buen rato sin decir nada.'},
- {t:'La línea Petrova',d:'Recolecta astrófago en la corona de una estrella.',chk:()=>HF('harv'),
-  rw:()=>{morAll(8);return'Moral +8'},story:'Los colectores brillan con un resplandor infrarrojo. Si el astrófago puede cultivarse aquí, podemos seguir avanzando.'},
+ {t:'La línea Petrova',d:'Extrae materia en un sistema para alimentar el motor de curvatura.',chk:()=>HF('harv'),
+  rw:()=>{morAll(8);return'Moral +8'},get story(){return`Los drones vuelven cargados. Con materia de cualquier sistema y energía negativa de las estrellas muertas, la ${pln()} no nos va a dejar varados.`}},
  {t:'Destino: Tau Ceti',d:'Llega al sistema de Tau Ceti (11,9 al).',chk:()=>HF('tceti'),
-  rw:()=>{const sp=SPEC[D.ship.d];D.st.prov=Math.min(sp.prov,D.st.prov+sp.prov*.2);return'+20% provisiones'},story:'Tau Ceti no se está apagando. Alrededor de la estrella, algo mantiene a raya al astrófago. La respuesta está en Adrian.'},
+  rw:()=>{const sp=SPEC[D.ship.d];D.st.prov=Math.min(sp.prov,D.st.prov+sp.prov*.2);return'+20% provisiones'},get story(){return`Tau Ceti no se está apagando. Alrededor de la estrella, algo mantiene a raya a la ${pln()}. La respuesta está en Adrian.`}},
  {t:'Superficie de Adrian',d:'Explora con éxito un punto de interés en Adrian.',chk:()=>HF('adrian'),
-  rw:()=>{for(const m of alive())gainXp(m,15);return'+15 XP a toda la tripulación'},story:'Las muestras de la atmósfera de Adrian contienen algo vivo que se alimenta del astrófago. Un depredador natural. Esperanza.'},
+  rw:()=>{for(const m of alive())gainXp(m,15);return'+15 XP a toda la tripulación'},get story(){return`Las muestras de la atmósfera de Adrian contienen algo vivo que se alimenta de la ${pln()}. Un depredador natural. Esperanza.`}},
  {t:'El eco de 40 Eridani',d:'Viaja a 40 Eridani A y entra en su sistema.',chk:()=>HF('eri'),
   rw:()=>offerMember({...genMember(rng(4040),'ing','Erideano'),nm:'Eko de Erid',tr:'Veterano'},'El eco de 40 Eridani').trim(),story:'Una nave de diseño imposible se acerca. Su tripulante se comunica con acordes musicales. Tras días de intercambiar números y notas, pide unirse a la misión.'},
  {t:'Cartógrafo',d:'Registra 10 sistemas.',chk:()=>Object.keys(D.disc).length>=10,rw:()=>{D.st.min+=40;return'+40 t de minerales'},story:'La carta de Ad Astra crece. Cada punto nuevo es un lugar que nadie había nombrado.'},
@@ -3251,6 +3255,177 @@ function questEvent(e){
   queueDialog({t:'Misión cumplida: '+q.t,who:pick(alive())||null,tx:q.story,res:'Recompensa: '+rw,next:QUESTS[D.q]?'Nueva misión: '+QUESTS[D.q].t:''});
   questEvent({type:'tick'});
 }
+
+/* ═════════ Motor de curvatura, plaga dinámica, estrellas muertas, agujeros negros, supernovas,
+   estaciones de comercio, aditamentos, bonos de rol, tolerancias de la nave y emergencias ═════════
+   · El motor de curvatura gasta MATERIA (t, se extrae en cualquier sistema) y ENERGÍA NEGATIVA (EN: estrellas
+     muertas, agujeros negros, contratos o comprándola). D.st.fuel es la energía negativa; D.st.mat, la materia.
+   · Saltar desde o hacia un agujero negro no gasta nada: la curvatura ya la pone él.                                  */
+const EN_N='Energía negativa',EN_U='EN',MAT_N='Materia';
+const EN_POR=.5; // EN por año luz = burn × 0,5; materia por año luz = burn
+/* ── Aditamentos de la nave ── */
+const MODS={
+  tanque:{n:'Tanque de energía ampliado',ic:'🔋',d:'+40 % de capacidad de energía negativa.',c:120},
+  bodega:{n:'Bodega de materia',ic:'📦',d:'+60 % de capacidad de materia.',c:80},
+  bobinas:{n:'Bobinas de curvatura afinadas',ic:'🌀',d:'−20 % de consumo por año luz.',c:220},
+  colector:{n:'Colector de materia',ic:'🧲',d:'+60 % al extraer materia y energía.',c:90},
+  invernadero:{n:'Invernadero estelar',ic:'🌱',d:'+60 % de comida al cultivar con luz estelar.',c:70},
+  blindaje:{n:'Blindaje reforzado',ic:'🛡',d:'−40 % de daño al casco.',c:110},
+  reciclador:{n:'Reciclador de provisiones',ic:'♻',d:'−20 % de consumo de provisiones.',c:100},
+  sensores:{n:'Sensores de largo alcance',ic:'📡',d:'+2 a las pruebas de Ciencia y Pilotaje en eventos.',c:60},
+  habitat:{n:'Módulo de hábitat adaptable',ic:'🏠',d:'Cualquier especie viaja cómoda en esta nave.',c:90}};
+const modSlots=()=>{const L=SPEC[D.ship.d].len;return L<20?1:L<60?2:L<400?3:4};
+const hasMod=k=>!!(D.ship.mods||[]).includes(k);
+const MATC=()=>Math.round(SPEC[D.ship.d].tank*2*(hasMod('bodega')?1.6:1));
+const ENC=()=>Math.round(SPEC[D.ship.d].tank*(hasMod('tanque')?1.4:1));
+function ensureSt(){if(!Array.isArray(D.ship.mods))D.ship.mods=[];D.ship.mods=D.ship.mods.filter(k=>MODS[k]);const s=D.st;if(!s)return;if(!isFinite(s.mat))s.mat=MATC()}
+ensureSt();
+/* ── Bonos de rol: cada rol activo a bordo aporta algo a la nave (y +1 a sus propias tiradas de su rol) ── */
+const rolMejor=k=>{let b=0;for(const m of alive())if(m.role===k&&m.st==='ok')b=Math.max(b,eff(m,k));return b};
+const rolF=(k,por,max)=>clamp((rolMejor(k)-4)*por,0,max);
+function bonosRol(){return[
+  ['pil',`Pilotaje: −${Math.round(rolF('pil',.025,.2)*100)} % de consumo en los saltos`],
+  ['ing',`Ingeniería: reparaciones +${Math.round(rolF('ing',.1,.8)*100)} % · −${Math.round(rolF('ing',.04,.3)*100)} % de daño al casco`],
+  ['cie',`Ciencia: +${Math.round(rolF('cie',.05,.5)*100)} % al extraer materia y energía`],
+  ['med',`Medicina: curación +${Math.round(rolF('med',.1,1)*100)} %`],
+  ['seg',`Seguridad: +${Math.round(rolF('seg',.5,3))} en encuentros hostiles`],
+  ['soc',`Diplomacia: −${Math.round(rolF('soc',.03,.3)*100)} % en los precios de las estaciones`]].filter(([k])=>rolMejor(k)>0)}
+const consumoMul=()=>(hasMod('bobinas')?.8:1)*(1-rolF('pil',.025,.2));
+const extraeMul=()=>(hasMod('colector')?1.6:1)*(1+rolF('cie',.05,.5));
+const precioMul=()=>1-rolF('soc',.03,.3);
+const cascoMul=()=>(hasMod('blindaje')?.6:1)*(1-rolF('ing',.04,.3));
+/* ── Tolerancias: cada nave acomoda mejor a unas especies que a otras ── */
+const INCOMODA={caza:['Oso','Dragón','Ciervo','Tigre'],velero:['Oso','Dragón','Tigre'],corbeta:['Dragón'],sonda:[],carguero:[],carguero2:['Murciélago'],generacional:[],plataforma:[]};
+const incomodo=m=>!!m&&m.st!=='perdido'&&!hasMod('habitat')&&(INCOMODA[D.ship.d]||[]).includes(m.sp);
+function tolTick(n){for(const m of alive())if(incomodo(m)){m.mor=Math.max(0,m.mor-n*.08);if(n>=20)m.hp=Math.max(10,m.hp-n*.02)}}
+
+/* ── Estrellas muertas, agujeros negros y supernovas ── */
+if(!D.nova||typeof D.nova!=='object')D.nova={};
+function destino(s){if(!s||s.point||s.anchor)return null;const n=D.nova[sSeed(s)];if(n)return n.f;const h=hash(s.h,77)%1000;return h<2?'bh':h<10?'ns':h<30?'wd':null}
+const FATE={bh:{n:'Agujero negro',ic:'⚫',en:.6},ns:{n:'Estrella de neutrones',ic:'✳',en:.35},wd:{n:'Enana blanca',ic:'◦',en:.2}};
+const esBH=s=>destino(s)==='bh';
+const muerta=s=>!!destino(s);
+/* Supernovas: de vez en cuando una estrella masiva cercana colapsa y explota; deja una estrella de neutrones o un agujero negro */
+function supernova(force){
+  if(NET.role==='client'||!D.st)return'';const sh=shipStar();const cand=[];
+  starsNear(sh.gx,sh.gy,sh.gz,70,s=>{if(!s.anchor&&!destino(s)&&!sameStar(s,sh)&&(force||'OBA'.includes(s.P.k)||s.P.mass>2))cand.push(s)});
+  if(!cand.length)return'';const s=cand[Math.random()*cand.length|0],seed=sSeed(s),d=gd(s,sh),f=s.P.mass>3||Math.random()<.3?'bh':'ns';
+  D.nova[seed]={f,d:+D.st.days.toFixed(1),rt:Date.now(),n:starName(s)};const ks=Object.keys(D.nova);if(ks.length>60)delete D.nova[ks[0]];
+  let t=`💥 Supernova: ${starName(s)} colapsa y explota a ${fmtLen(d)}. Deja ${f==='bh'?'un agujero negro':'una estrella de neutrones'}: fuente de ${EN_N.toLowerCase()}.`;
+  if(d<4){const dm=Math.round(25*cascoMul());D.st.hull=Math.max(1,D.st.hull-dm);for(const m of alive())hurt(m,12);morAll(-10);t+=` ¡La onda de choque alcanza la nave! Casco −${dm} %.`}
+  else if(d<15){morAll(-3);t+=' Su luz ilumina la cabina durante días.'}
+  logDM(t,'ev');toast(esc(t));if(NET.role==='host')bcast({t:'toast',h:esc(t)});saveD();return t}
+function drawRemanentes(vis,R){
+  const now=Date.now();for(const s of vis){if(s._f!==frameNo)continue;const f=destino(s);if(!f)continue;const x=s._x,y=s._y;
+    if(f==='bh'){ctx.fillStyle='#000';ctx.beginPath();ctx.arc(x,y,3.4,0,7);ctx.fill();ctx.strokeStyle='rgba(255,170,80,.8)';ctx.lineWidth=1.2;ctx.beginPath();ctx.ellipse(x,y,7,2.6,-.3,0,7);ctx.stroke();if(R<60)labelAt(x,y,'⚫ '+starName(s),'rgba(255,190,120,.85)',9)}
+    else if(R<(f==='wd'?50:120)){ctx.strokeStyle=f==='ns'?'rgba(160,200,255,.8)':'rgba(220,230,255,.5)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(x,y,f==='ns'?4.5:3.5,0,7);ctx.stroke()}
+    const n=D.nova[sSeed(s)];if(n&&n.rt&&now-n.rt<90000){const p=(now-n.rt)/90000,r=8+p*120;ctx.strokeStyle=`rgba(255,220,150,${(1-p)*.8})`;ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.stroke();ctx.fillStyle=`rgba(255,240,200,${(1-p)*.5})`;ctx.beginPath();ctx.arc(x,y,6+(1-p)*10,0,7);ctx.fill()}}}
+
+/* ── Plaga dinámica (nombre configurable, se puede desactivar) ──
+   Población global de la plaga (P) y de su depredador (Q), Lotka-Volterra: se controlan entre sí y oscilan.
+   Avanza con los días a bordo y también con el reloj real (cada 10 s ≈ 2 días), así la propagación se ve en directo.
+   Cada estrella se infecta según su susceptibilidad (semilla + un campo de ruido que se desplaza con el tiempo).
+   Algunos sistemas son inmunes; donde está el depredador, la plaga no prospera.                                     */
+function PLG(){if(!D.pl||typeof D.pl!=='object')D.pl={on:1,n:'Astrófago',P:.3,Q:.25,t:0};return D.pl}
+const PLN=()=>PLG().n||'Astrófago',pln=()=>`plaga «${PLN()}»`;
+function plagaPaso(dias){const p=PLG();if(!p.on)return;let P=p.P,Q=p.Q;const n=Math.max(1,Math.ceil(dias/5)),h=dias/n;
+  for(let i=0;i<n;i++){const dP=.004*P*(1-P)-.012*P*Q,dQ=.006*P*Q-.0016*Q;P=clamp(P+dP*h*(1+(Math.random()-.5)*.4),.03,.95);Q=clamp(Q+dQ*h,.02,.9)}p.P=+P.toFixed(4);p.Q=+Q.toFixed(4);p.t=(p.t||0)+dias}
+const inmune=s=>s.anchor?s.anchor.id==='tceti':hash(s.h,31)%6===0;
+const depredador=s=>!s.point&&(s.anchor?s.anchor.id==='tceti':(hash(s.h,29)%1000)/1000<PLG().Q*.3);
+function infectado(s){const p=PLG();if(!p.on||!s||s.point||muerta(s))return false;if(s.anchor)return INF.has(s.anchor.id)&&p.P>.08&&!inmune(s);
+  if(!PETROVA.has(s.P.k)||inmune(s)||depredador(s))return false;const w=(p.t||0)/400,u=.75*(hash(s.h,13)%1000)/1000+.25*vn3(s.gx/60+w,s.gy/60,s.gz/60,3);return u<p.P*1.4}
+function plagaTag(s){if(s.point)return'';if(infectado(s))return`<span class="tag pet">${esc(PLN())}</span>`;if(!PLG().on)return'';if(depredador(s))return'<span class="tag">depredador de la plaga</span>';if(inmune(s))return'<span class="tag">inmune</span>';return''}
+
+/* ── Estaciones de comercio ── */
+function estacion(s){if(!s||s.point)return null;if(s.anchor&&s.anchor.id==='sol')return{n:'Estación Lagrange · Tierra',f:'aa',r:rng(11)};if(s.anchor)return null;
+  if(hash(s.h,55)%4)return null;const r=rng(hash(s.h,56)),t=facOf(s);return{n:`Estación ${pick2(r,['Kepler','Halo','Mercado','Encrucijada','Faro','Bazar','Ancla','Muelle'])} ${genName(hash(s.h,57)).split(' ')[0]}`,f:t?t.f:null,r}}
+function preciosDe(s){const e=estacion(s);if(!e)return null;const r=rng(hash(s.anchor?7:s.h,58)),m=precioMul(),v=(a,b)=>+(lerp(a,b,r())*m).toFixed(2);
+  return{en:v(5,9),mat:v(.8,1.6),prov:v(.6,1.2),venta:+lerp(.5,.9,r()).toFixed(2),mods:Object.keys(MODS).filter((k,i)=>s.anchor||hash(s.h,60+i)%3!==0)}}
+function comprar(que,cant){const st=shipStar(),pr=preciosDe(st);if(!pr)return'Aquí no hay estación.';const s=D.st;cant=Math.max(0,+cant||0);
+  if(que==='en'){const c=Math.min(cant,ENC()-s.fuel),cost=Math.ceil(c*pr.en);if(c<=0)return'Los tanques de energía están llenos.';if(s.min<cost)return`Hacen falta ${cost} t de minerales.`;s.min-=cost;s.fuel+=c;saveD();return`Compras ${fmtI(c)} ${EN_U} por ${cost} t de minerales.`}
+  if(que==='mat'){const c=Math.min(cant,MATC()-s.mat),cost=Math.ceil(c*pr.mat);if(c<=0)return'La bodega de materia está llena.';if(s.min<cost)return`Hacen falta ${cost} t de minerales.`;s.min-=cost;s.mat+=c;saveD();return`Compras ${fmtI(c)} t de materia por ${cost} t de minerales.`}
+  if(que==='prov'){const sp=SPEC[D.ship.d],c=Math.min(cant*100,sp.prov-s.prov),cost=Math.ceil(c/100*pr.prov);if(c<=0)return'La despensa está llena.';if(s.min<cost)return`Hacen falta ${cost} t de minerales.`;s.min-=cost;s.prov+=c;saveD();return`Compras ${fmtI(c)} días-persona de provisiones por ${cost} t.`}
+  if(que==='vmat'){const c=Math.min(cant,s.mat),g=Math.floor(c*pr.venta);if(c<=0)return'';s.mat-=c;s.min=Math.min(SPEC[D.ship.d].cargo,s.min+g);saveD();return`Vendes ${fmtI(c)} t de materia por ${g} t de minerales.`}
+  if(que.startsWith('mod:')){const k=que.slice(4),M=MODS[k];if(!M||!pr.mods.includes(k))return'Ese aditamento no se vende aquí.';if(hasMod(k))return'Ya lo tenéis instalado.';
+    if(D.ship.mods.length>=modSlots())return`No quedan huecos (${modSlots()}): desmonta otro aditamento.`;const cost=Math.ceil(M.c*precioMul());if(s.min<cost)return`Hacen falta ${cost} t de minerales.`;
+    s.min-=cost;D.ship.mods.push(k);passDays(3);saveD();return`${M.ic} Instaláis ${M.n} (${cost} t, 3 días).`}
+  if(que.startsWith('desm:')){const k=que.slice(5);if(!hasMod(k))return'';D.ship.mods=D.ship.mods.filter(x=>x!==k);s.min=Math.min(SPEC[D.ship.d].cargo,s.min+Math.floor(MODS[k].c*.4));saveD();return`Desmontáis ${MODS[k].n} y lo vendéis por ${Math.floor(MODS[k].c*.4)} t.`}
+  return''}
+function estacionHtml(S){const e=estacion(S.star),pr=preciosDe(S.star);if(!e)return'';const cl=NET.role==='client',s=D.st;
+  const B=(lab,que,c,dis)=>A(lab,()=>cmd({k:'tienda',q:que,c},lab),cl||dis);
+  return`<h3>🛰 ${esc(e.n)}${e.f?` <span class="dim">· ${FAC[e.f].ic} ${esc(FAC[e.f].s)}</span>`:''}</h3><p class="note">Se paga con minerales (tenéis ${fmtI(s.min)} t).${precioMul()<1?` Vuestra diplomacia rebaja los precios un ${Math.round((1-precioMul())*100)} %.`:''}</p>
+  <div class="kv"><span>${EN_N}</span><span>${pr.en} t / ${EN_U}</span><span>Materia</span><span>${pr.mat} t / t · se compra a ${pr.venta}</span><span>Provisiones</span><span>${pr.prov} t / 100 días-persona</span></div>
+  <div class="row">${B('Comprar 10 '+EN_U,'en',10,s.min<Math.ceil(10*pr.en))}${B('Comprar 50 t de materia','mat',50,s.min<Math.ceil(50*pr.mat))}${B('Comprar 1 000 d-p','prov',10,s.min<Math.ceil(10*pr.prov))}${B('Vender 50 t de materia','vmat',50,s.mat<1)}</div>
+  <h3>Aditamentos (${D.ship.mods.length}/${modSlots()} huecos)</h3><div class="lst">${pr.mods.map(k=>{const M=MODS[k],c=Math.ceil(M.c*precioMul());return`<div class="item"><span>${M.ic}</span><div class="m"><b>${esc(M.n)}</b><i>${esc(M.d)} · ${c} t</i></div>${hasMod(k)?'<span class="tag">instalado</span>':B('Instalar','mod:'+k,0,s.min<c||D.ship.mods.length>=modSlots())}</div>`}).join('')}</div>`}
+
+/* ── Acciones nuevas en órbita: extraer materia, energía negativa y cultivar con luz estelar ── */
+function plnetasAtm(S){return S.planets.filter(p=>p.kind==='gas'||p.kind==='ocean'||p.kind==='temperate'||p.kind==='ice').length}
+function accionCurva(act,S,st,sk){const s=D.st,sp=SPEC[D.ship.d];
+  if(act==='mat'){if(s.mat>=MATC())return'La bodega de materia está llena.';const rico=1+.15*S.planets.length+.3*S.belts.length;
+    return orbitDo(sk+':mat',15,()=>{const v=Math.round(Math.min(MATC()-s.mat,MATC()*.18*rico*extraeMul()));s.mat+=v;questEvent({type:'harvest',what:'fuel'});return`Los drones de extracción cargan ${fmtI(v)} t de materia de los planetas y cinturones.`})}
+  if(act==='en'){const f=destino(st);if(!f)return'Sólo las estrellas muertas y los agujeros negros dan energía negativa.';if(s.fuel>=ENC())return'Los tanques de energía están llenos.';
+    return orbitDo(sk+':en',20,()=>{const v=+Math.min(ENC()-s.fuel,ENC()*FATE[f].en*extraeMul()).toFixed(1);s.fuel+=v;let t=`Los colectores de vacío capturan ${v} ${EN_U} de energía negativa junto ${f==='bh'?'al horizonte del agujero negro':'al remanente estelar'}.`;
+      if(f==='bh'&&Math.random()<.25){const dm=Math.round(10*cascoMul());s.hull=Math.max(1,s.hull-dm);t+=` Las mareas gravitatorias dañan el casco (−${dm} %).`}return t})}
+  if(act==='luz'){const P=S.P;if(P.lum<.02||muerta(st))return'Esta estrella no da luz suficiente para cultivar.';if(s.prov>=sp.prov)return'La despensa está llena.';
+    return orbitDo(sk+':luz',15,()=>{const v=Math.round(Math.min(sp.prov-s.prov,(sp.prov*.06+eaters()*25)*clamp(Math.sqrt(P.lum),.3,2)*(1+.2*plnetasAtm(S))*(infectado(st)?.5:1)*(hasMod('invernadero')?1.6:1)));s.prov+=v;
+      return`Los paneles y los cultivos aprovechan la luz de la estrella y los gases de sus planetas: +${fmtI(v)} días-persona de comida.${infectado(st)?` La ${pln()} se come parte de la luz.`:''}`})}
+  return''}
+
+/* ── Llegadas: tripulantes que esperan en un sistema de la facción dominante ── */
+function faccionNave(){const x=FX(),af=x.aff||['aa'];let b=af[0]||'aa',v=-1e9;for(const f of af){const r=(x.rep||{})[f]||0;if(r>v){v=r;b=f}}return b}
+function puntoDeEncuentro(){const sh=shipStar(),f=faccionNave();let best=null,bd=1e9;
+  starsNear(sh.gx,sh.gy,sh.gz,25,s=>{if(s.anchor||sameStar(s,sh))return;const t=facOf(s);if(!t||t.f!==f)return;const d=gd(s,sh);if(d<bd){bd=d;best=s}});return best}
+function recogerEsperando(st){const seed=sSeed(st);let out='';for(const m of D.crew)if(m.esp===seed&&m.st==='susp'){delete m.esp;m.st='ok';out+=`🤝 ${m.nm} os esperaba en ${starName(st)} y sube a bordo. `}if(out){logDM(out,'sys');saveD()}return out}
+
+/* ── Emergencia por hambruna: sólo la propone el capitán ── */
+function emergenciaHtml(){if(D.st.prov>0||!alive().length)return'';const cap=NET.role!=='client';
+  return`<div class="card" style="border-color:#ff6b6b"><div class="kick" style="color:#ff6b6b">HAMBRUNA</div><p class="note">No queda comida a bordo. La tripulación pierde salud y moral cada día.${cap?' Como capitán puedes proponer una medida de emergencia: la tripulación vota y, si se aprueba, se aplica.':' Sólo el capitán puede proponer una medida de emergencia.'}</p>${cap?A('⚠ Medida de emergencia…',abrirEmergencia,0,'pri'):''}</div>`}
+function abrirEmergencia(){const a=alive();if(!a.length)return;modalOpen=true;
+  showModal(`<div class="kick">MEDIDA DE EMERGENCIA</div><h2>Hambruna a bordo</h2><p class="story">Sin comida y sin rescate a la vista, el capitán plantea lo impensable: que uno de los tripulantes sirva de sustento al resto. La tripulación votará; si se rechaza, no ocurre.</p>
+  <div class="field"><label>¿Quién?</label><select id="emM">${a.map(m=>`<option value="${esc(m.id)}">${esc(m.nm)} · ${ROLES[m.role]}${m.pl?' · 👤 '+esc(m.pl):''}</option>`).join('')}<option value="sorteo">Que lo decida un sorteo</option></select></div>
+  <div class="row"><button class="pri" id="emOk">Someterlo a votación</button><button id="no">Cancelar</button></div>`);
+  $('#emOk').onclick=()=>{let id=$('#emM').value;if(id==='sorteo')id=a[Math.random()*a.length|0].id;const m=a.find(q=>q.id===id);modalOpen=false;closeModal();if(!m)return;const c={k:'emerg',id};
+    if(NET.role==='host'&&NET.conns.size)propose({kind:'cmd',title:`Emergencia: ¿sacrificar a ${m.nm} para alimentar al resto?`,opts:['A favor','En contra'],cmd:c});
+    else if(confirm(`¿Sacrificar a ${m.nm} para alimentar al resto?`)){const t=execCmd(c);if(t)toast(esc(t));refresh()}};
+  $('#no').onclick=()=>{modalOpen=false;closeModal()}}
+function emergencia(id){const m=alive().find(q=>q.id===id);if(!m||D.st.prov>0)return'';m.st='perdido';m.hp=0;const v=Math.round(Math.max(60,crewCount()*25));D.st.prov+=v;morAll(-30);
+  const t=`🕯 ${m.nm} da su vida para que el resto sobreviva. Nadie habla durante días. (+${fmtI(v)} días-persona · moral −30)`;logDM(t,'ev');saveD();return t}
+
+/* ── Encuentros con otras naves: trueque, piratas, naves en apuros, exploradores ── */
+const nombreNave=r=>pick2(r,['Albatros','Peregrina','Sexta Luna','Cortavientos','Brasa','Lince Errante','Medusa','Faro de Vega','Última Canción','Tres Colas']);
+function trato(dar,dk,recibir,rk){const s=D.st;if((dk==='mat'?s.mat:dk==='en'?s.fuel:dk==='prov'?s.prov:s.min)<dar)return'No tenéis suficiente.';
+  const sub=(k,v)=>{if(k==='mat')s.mat-=v;else if(k==='en')s.fuel-=v;else if(k==='prov')s.prov-=v;else s.min-=v},add=(k,v)=>{const sp=SPEC[D.ship.d];if(k==='mat')s.mat=Math.min(MATC(),s.mat+v);else if(k==='en')s.fuel=Math.min(ENC(),s.fuel+v);else if(k==='prov')s.prov=Math.min(sp.prov,s.prov+v);else s.min=Math.min(sp.cargo,s.min+v)};
+  sub(dk,dar);add(rk,recibir);return'Trueque hecho.'}
+const RN={mat:'t de materia',en:EN_U,prov:'días-persona',min:'t de minerales'};
+function eventosNaves(){return[
+ {id:'nave_trueque',w:4,at:'any',t:'Nave mercante',tx:()=>`La ${nombreNave(Math.random)} se acerca con las bodegas llenas y propone un trueque.`,
+  op:(()=>{const r=Math.random,a=Math.round(20+r()*30),b=Math.round(3+r()*5),c=Math.round(30+r()*40),p=Math.round(600+r()*900);return[
+   {l:`Dar ${a} t de minerales → ${b} ${EN_U}`,need:()=>D.st.min>=a,run:()=>trato(a,'min',b,'en')},
+   {l:`Dar ${c} t de materia → ${p} días-persona`,need:()=>D.st.mat>=c,run:()=>trato(c,'mat',p,'prov')},
+   {l:'Regatear',k:'soc',dc:12,ok:()=>trato(0,'min',Math.round(b*1.5),'en')+' Os regalan energía por la conversación.',ko:()=>'Se aburren y siguen su camino.'},
+   {l:'Seguir de largo',run:()=>'Intercambiáis saludos por radio.'}]})()},
+ {id:'nave_piratas',w:2,at:'leg',t:'Piratas',tx:()=>`Una nave sin bandera os corta el paso: «Las bodegas o el casco».`,
+  op:[{l:'Plantar cara',k:'seg',dc:13,ok:(c,r)=>{trato(0,'min',25,'min');return'Huyen dejando parte del botín: +25 t de minerales.'+gainXp(r.m,10)},ko:()=>{const dm=Math.round(20*cascoMul());D.st.hull=Math.max(1,D.st.hull-dm);return`Os acribillan antes de huir. Casco −${dm} %.`+hurt(pick(alive()),15)}},
+      {l:'Escapar a máxima curvatura',k:'pil',dc:12,ok:()=>'Los dejáis atrás.',ko:()=>{const v=Math.min(D.st.fuel,4);D.st.fuel-=v;return`Os alcanzan y se llevan ${fmtI(v)} ${EN_U}.`}},
+      {l:'Entregar 30 t de materia',need:()=>D.st.mat>=30,run:()=>{D.st.mat-=30;return'Se marchan satisfechos.'}}]},
+ {id:'nave_apuros',w:2,at:'any',t:'Nave en apuros',tx:()=>`Una señal de socorro: la ${nombreNave(Math.random)} tiene el motor de curvatura muerto.`,
+  op:[{l:'Ayudarles (cuesta 15 t de materia)',need:()=>D.st.mat>=15,k:'ing',dc:10,ok:(c,r)=>{D.st.mat-=15;D.st.fuel=Math.min(ENC(),D.st.fuel+6);morAll(8);return`Os dan las gracias con 6 ${EN_U}. Moral +8.`+gainXp(r.m,15)},ko:()=>{D.st.mat-=15;return'No hay forma de arrancar su motor. Os quedáis con su gratitud.'}},
+      {l:'Acoger a un superviviente',run:()=>'Uno de ellos prefiere seguir con vosotros.'+offerMember(null,'Superviviente de una nave averiada')},
+      {l:'Ignorar la señal',run:()=>{morAll(-6);return'Nadie habla de ello. Moral −6.'}}]},
+ {id:'nave_ciencia',w:2,at:'arr',t:'Exploradores científicos',tx:()=>`Una nave de investigación pide vuestros datos de navegación a cambio de muestras.`,
+  op:[{l:'Compartir los datos',run:()=>{D.st.fuel=Math.min(ENC(),D.st.fuel+3);return`+3 ${EN_U} y una charla interesante sobre la ${pln()}.`}},
+      {l:'Intercambiar conocimientos',k:'cie',dc:11,ok:(c,r)=>{for(const m of alive())gainXp(m,8);return'Aprendéis mucho: +8 XP a la tripulación.'+gainXp(r.m,8)},ko:()=>'Hablan demasiado rápido.'}]},
+ {id:'nave_fantasma',w:1,at:'leg',t:'Nave a la deriva',tx:()=>'Un casco antiguo, sin energía, gira lentamente. Sus sistemas parecen intactos.',
+  op:[{l:'Abordarla',k:'seg',dc:12,ok:(c,r)=>{const libres=Object.keys(MODS).filter(k=>!hasMod(k));if(libres.length&&D.ship.mods.length<modSlots()){const k=libres[Math.random()*libres.length|0];D.ship.mods.push(k);return`Recuperáis un aditamento en buen estado: ${MODS[k].ic} ${MODS[k].n}.`+gainXp(r.m,10)}trato(0,'min',40,'mat');return'Desmontáis lo útil: +40 t de materia.'},ko:()=>hurt(pick(alive()),18)+' Algo seguía vivo ahí dentro.'},
+      {l:'Dejarla',run:()=>'Sigue girando.'}]}]}
+
+/* ── Paso del tiempo y reloj real ── */
+let _plT=Date.now(),_novT=Date.now();
+setInterval(()=>{if(NET.role==='client'||!D.st||typeof RONDA!=='undefined'&&!RONDA)return;const n=Date.now();
+  if(n-_plT>10000){_plT=n;plagaPaso(2);if(NET.role==='host')netSync()}
+  if(n-_novT>240000){_novT=n;if(Math.random()<.35)supernova()}},2000);
+/* Alcance con lo que hay en los tanques (energía negativa y materia), sin pasar del máximo por salto */
+function alcance(){const sp=SPEC[D.ship.d],k=Math.max(1e-9,sp.burn*consumoMul());return Math.min(D.st.fuel/(k*EN_POR),(D.st.mat||0)/k)}
 
 /* ═════════ Civilizaciones y lore procedural (todo derivado de las semillas) ═════════ */
 const CIVSP={temperate:['mamíferos de seis patas','aves sin alas','reptiles de sangre caliente','insectoides sociales','simbiontes vegetales'],ocean:['cefalópodos','cetáceos cantores','arrecifes pensantes','anfibios'],
@@ -3299,7 +3474,7 @@ function doCiv(i,a){
       if(!r.ok&&c.disp>=4){const dmg=8+(Math.random()*12|0);s.hull=Math.max(1,s.hull-dmg);out+=` Disparan: casco −${dmg}%.`}out+=' '+r.line}
     questEvent({type:'contact',civ:c.name})}
   else if(a==='trade'){if(rep<20)return`Los ${c.name} todavía no confían en vosotros.`;if(s.min<15)return'Necesitas al menos 15 t de minerales para comerciar.';passDays(4);s.min-=15;
-    if(c.tech>=5&&s.fuel<sp.tank){const v=+(sp.tank*.2).toFixed(1);s.fuel=Math.min(sp.tank,s.fuel+v);out=`Intercambias minerales por ${v} t de combustible.`}else{const v=Math.round(sp.prov*.2);s.prov=Math.min(sp.prov,s.prov+v);out=`Intercambias minerales por ${fmtI(v)} días-persona de comida.`}rep+=3}
+    if(c.tech>=5&&s.fuel<ENC()){const v=+(ENC()*.15).toFixed(1);s.fuel=Math.min(ENC(),s.fuel+v);out=`Intercambias minerales por ${v} ${EN_U} de energía negativa.`}else{const v=Math.round(sp.prov*.2);s.prov=Math.min(sp.prov,s.prov+v);out=`Intercambias minerales por ${fmtI(v)} días-persona de comida.`}rep+=3}
   else if(a==='recruit'){if(rep<40)return`Hace falta más confianza (${repLab(rep)}).`;if(D.ex[c.key+':rec'])return'Ya se unió alguien de esta civilización.';if(crewCount()>=sp.crew[1])return'No hay sitio a bordo.';
     passDays(3);D.ex[c.key+':rec']=1;const m=genMember(rng(hash(c.key.length,rep,9)),null,c.name);m.bio=`Voluntario de los ${c.name}, ${c.sp}. Valora ${c.val}.`;out=addMember(m)}
   else if(a==='learn'){if(rep<20)return'No compartirán su saber con desconocidos.';if(D.ex[c.key+':learn'])return'Ya aprendiste lo que podían enseñarte.';passDays(10);D.ex[c.key+':learn']=1;
@@ -3318,7 +3493,7 @@ var FAC={
    who:'Un convoy de la Liga',enc:'Un convoy de cargueros de la Liga de Comerciantes Libres os llama por radio.'},
  mh:{n:'Manada de Hierro',s:'la Manada',ic:'⛨',c:'#ff6b6b',w:3,tipo:'hegemonía militar',val:'el orden y la jerarquía',k:['seg','pil'],
    who:'Una patrulla de la Manada',enc:'Una corbeta de la Manada de Hierro se coloca a vuestro lado y ordena detener motores.'},
- ce:{n:'Círculo de la Estrella Oscura',s:'el Círculo',ic:'☾',c:'#b48cff',w:2,tipo:'culto del astrófago',val:'el apagado de las estrellas como renacimiento',k:['soc','cie'],
+ ce:{n:'Círculo de la Estrella Oscura',s:'el Círculo',ic:'☾',c:'#b48cff',w:2,get tipo(){return'culto de la '+pln()},val:'el apagado de las estrellas como renacimiento',k:['soc','cie'],
    who:'Una nave del Círculo',enc:'Una nave negra del Círculo de la Estrella Oscura emite cánticos en todas las frecuencias.'},
  cv:{n:'Corsarios del Vacío',s:'los Corsarios',ic:'☠',c:'#ff9f43',w:2,tipo:'confederación pirata',val:'la libertad y el botín',k:['pil','seg'],
    who:'Una banda de corsarios',enc:'Tres cazas sin matrícula salen de la sombra de un asteroide: Corsarios del Vacío.'},
@@ -3426,7 +3601,7 @@ function facEvent(at,ctx){
     op.push({l:'Pagar para que os dejen en paz (25 t)',need:()=>D.st.min>=25,run:()=>{D.st.min-=25;return'Aceptan el pago y se alejan.'+addRep(O,1)}});
     if(K.some(k=>Object.keys(x.inv).concat(...aboard().map(m=>Object.keys(m.inv||{}))).some(i=>i.startsWith(k.f+'.'))))op.push({l:'Arrojar al espacio lo que os delata',run:()=>`Los objetos flotan hacia el vacío.${giveUp()} Sin pruebas, os dejan marchar.`});
   }else if(tone==='ami'){
-    op.push({l:'Pedir suministros',run:()=>{const s=sp(),a=Math.round(s.prov*.1),f=+(s.tank*.08).toFixed(1);D.st.prov=Math.min(s.prov,D.st.prov+a);D.st.fuel=Math.min(s.tank,D.st.fuel+f);return`Comparten ${fmtI(a)} días-persona de comida y ${f} t de astrófago.`+addRep(O,1)}});
+    op.push({l:'Pedir suministros',run:()=>{const s=sp(),a=Math.round(s.prov*.1),f=+(ENC()*.08).toFixed(1);D.st.prov=Math.min(s.prov,D.st.prov+a);D.st.fuel=Math.min(ENC(),D.st.fuel+f);return`Comparten ${fmtI(a)} días-persona de comida y ${f} t de astrófago.`+addRep(O,1)}});
     op.push({l:'Aceptar un encargo',run:()=>{const m=genMission(O,shipStar(),hash(Date.now()|0,D.st.jumps,77));if(!m)return'No tienen nada para vosotros ahora.';if(x.mis.length>=5)return'Ya tenéis demasiados contratos.';acceptMission(m);return`Nuevo contrato: ${m.tx}`}});
     op.push({l:'Intercambiar cartas estelares',k:'cie',dc:9,ok:(c,r)=>`Os pasan rutas y nombres de sistemas.`+gainXp(r.m,12)+addRep(O,2),ko:()=>'Los formatos no son compatibles.'});
   }else{
@@ -3434,7 +3609,7 @@ function facEvent(at,ctx){
       const bad=all.filter(k=>{const[f,t]=k.split('.');return f!=='gen'&&(t==='contra'||rel('mh',f)<=-1)});
       if(!bad.length)return'Registran la bodega y cachean a la tripulación. No encuentran nada ilegal.'+addRep('mh',3);let s='';for(const k of bad)s+=dropItem(k,totalOf(k),1);return`Registran bodega y bolsillos. Confiscan lo que no les gusta.${s}`+addRep('mh',-4)}});
     if(O==='lc')op.push({l:'Comprar equipo (10 t)',need:()=>D.st.min>=10,run:()=>{D.st.min-=10;return'Un comerciante os vende material de calidad.'+giveItem('gen.'+pick(Object.values(GEAR)))+addRep('lc',1)}});
-    if(O==='lc'||O==='cv')op.push({l:'Comerciar: 20 t minerales → astrófago',need:()=>D.st.min>=20,run:()=>{const s=sp();D.st.min-=20;D.st.fuel=Math.min(s.tank,D.st.fuel+s.tank*.14);return'Trato hecho.'+addRep(O,2)}});
+    if(O==='lc'||O==='cv')op.push({l:`Comerciar: 20 t minerales → 3 ${EN_U}`,need:()=>D.st.min>=20,run:()=>{D.st.min-=20;D.st.fuel=Math.min(ENC(),D.st.fuel+3);return'Trato hecho.'+addRep(O,2)}});
     if(O==='cv'||O==='ce')op.push({l:'Comprar «mercancía especial» (15 t)',need:()=>D.st.min>=15,run:()=>{D.st.min-=15;return'Os entregan un paquete sin etiqueta. Vale mucho… y delata mucho.'+giveItem(O+'.contra')+addRep(O,2)}});
     if(O==='ca')op.push({l:'Compartir vuestra bitácora',run:()=>`Los Custodios archivan ${Object.keys(D.disc).length} sistemas a vuestro nombre.`+addRep('ca',Math.min(6,1+Object.keys(D.disc).length/5|0))});
     op.push({l:'Hacerse pasar por otra facción',k:'soc',dc:13,ok:(c,r)=>{const f=pick(FK.filter(q=>rel(O,q)>=1&&q!==O))||O;return`Os creen gente de ${FAC[f].s}. Os desean buen viaje.`+gainXp(r.m,10)},ko:()=>{x.wnt[O]=1;return'Descubren el engaño y os anotan en sus registros.'+addRep(O,-6)}});
@@ -3492,7 +3667,7 @@ function doMission(id){
     if(!r.ok){let extra='';if(m.ty==='sabotaje'&&m.e){x.wnt[m.e]=1;extra=addRep(m.e,-20)+` ${cap(FAC[m.e].s)} sabe quién fue.`}if(m.ty==='caza'||m.ty==='rescate'){const d=8+(Math.random()*10|0);D.st.hull=Math.max(1,D.st.hull-d);extra+=` Casco −${d}%.`+hurt(pick(alive()),12)}
       failMission(m,'la tirada salió mal');saveD();logDM(`Contrato ${m.id} fallido.${extra}`,'ev');toast(esc(`Contrato fallido.${extra}`));return''}
     if(m.ty==='sabotaje'&&m.e)res+=addRep(m.e,-5);if(m.ty==='diplomacia')for(const f of FK)if(rel(m.g,f)>=1)res+=addRep(f,2)}
-  const s=D.st,sp=SPEC[D.ship.d];s.min=Math.min(sp.cargo,s.min+m.rw.min);res=`+${m.rw.min} t de minerales.`+addRep(m.g,m.rw.rep)+res;
+  const s=D.st,sp=SPEC[D.ship.d],en=Math.max(2,Math.round(m.rw.min*.06));s.min=Math.min(sp.cargo,s.min+m.rw.min);s.fuel=Math.min(ENC(),s.fuel+en);res=`+${m.rw.min} t de minerales y ${en} ${EN_U} de energía negativa.`+addRep(m.g,m.rw.rep)+res;
   for(const f of FK)if(f!==m.g&&rel(m.g,f)<=-2)res+=addRep(f,-2);
   if(m.rw.it)res+=giveItem(m.rw.it);for(const p of alive())gainXp(p,m.rw.xp);res+=` +${m.rw.xp} XP a la tripulación.`;
   x.mis=x.mis.filter(q=>q!==m);x.dn.push(m.id);x.done[m.g]=(x.done[m.g]||0)+1;saveD();
@@ -3563,14 +3738,14 @@ function boardHtml(S){
 const BSPEED=5000,BMAX=8,WH={min:1000,fuel:300,prov:60000},RMAX=12;
 const BTY={
  mina:{n:'Mina',ic:'⛏',r:'min',rate:25,cap:400,d:'Extrae minerales del subsuelo.'},
- refineria:{n:'Refinería de astrófago',ic:'⚗',r:'fuel',rate:10,cap:120,d:'Cultiva y refina astrófago.'},
+ refineria:{n:'Extractor de materia',ic:'⚗',r:'fuel',rate:30,cap:400,d:'Extrae y compacta materia para el motor de curvatura.'},
  granja:{n:'Granja hidropónica',ic:'🌱',r:'prov',rate:1500,cap:30000,d:'Produce comida para la tripulación.'},
  puesto:{n:'Puesto avanzado',ic:'⛺',r:null,rate:0,cap:0,d:'Un poco de todo y refugio: +2 moral al visitarlo.'}};
-const RESN={min:['Minerales','t'],fuel:['Astrófago','t'],prov:['Provisiones','días-persona']};
+const RESN={min:['Minerales','t'],fuel:['Materia','t'],prov:['Provisiones','días-persona']}; // en las bases «fuel» es materia para el motor de curvatura
 function baseRes(S,i){
   const info=planetInfo(S,i),p=info.p,r=rng(hash(S.star.h,i,1312));if(info.gas)return null;const has=n=>info.pois.includes(n);
   let min=({lava:1.2,desert:1,barren:1,ice:.5,frozen:.6,temperate:.6,ocean:.3})[p.kind]??.5;if(has('Depósito mineral'))min+=.8;if(has('Géiser de lava'))min+=.5;min*=.4+r();if(r()<.12)min=0;
-  let fuel=(has('Cristales de astrófago')?1.2:0)+(infected(S.star)?.6:0);fuel*=.5+r();
+  let fuel=(has('Cristales exóticos')?1.2:0)+.4+(S.belts.length?.4:0);fuel*=.5+r();
   let prov=(p.hz?.8:0)+(has('Flora comestible')?.8:0)+(info.breath?.3:0)+(has('Hielo puro')?.25:0);if(p.T<150||p.T>420)prov*=.25;prov*=.5+r()*.8;
   return{min:+min.toFixed(2),fuel:+fuel.toFixed(2),prov:+prov.toFixed(2),info}}
 const richLab=v=>v<=0?'nula':v<.4?'pobre':v<.9?'media':v<1.5?'rica':'muy rica';
@@ -3645,7 +3820,7 @@ function convTick(){
   D.conv=D.conv.filter(c=>now<c.eta);const sp=SPEC[D.ship.d],s=D.st;
   for(const c of done){const lost=[],db=c.dst&&c.dst!=='nave'?baseById(c.dst):null;if(c.dst&&c.dst!=='nave'&&!db){logDM(`📦 El envío de ${c.bn} no encontró su base de destino.`,'sys');continue}
     if(db)baseTick();
-    for(const k in c.amt){const cap=db?whCap(db,k):({min:sp.cargo,fuel:sp.tank,prov:sp.prov})[k],cur=db?(db.stk[k]||0):s[k],v=Math.max(0,Math.min(cap-cur,c.amt[k]));if(db)db.stk[k]=cur+v;else s[k]+=v;if(v<c.amt[k])lost.push(`${fmtI(c.amt[k]-v)} ${RESN[k][1]}`)}
+    for(const k in c.amt){const sk=k==='fuel'?'mat':k,cap=db?whCap(db,k):({min:sp.cargo,fuel:MATC(),prov:sp.prov})[k],cur=db?(db.stk[k]||0):(s[sk]||0),v=Math.max(0,Math.min(cap-cur,c.amt[k]));if(db)db.stk[k]=cur+v;else s[sk]=cur+v;if(v<c.amt[k])lost.push(`${fmtI(c.amt[k]-v)} ${RESN[k][1]}`)}
     const m=`📦 Llega a ${db?esc(db.n):'la nave'} el envío de ${c.bn}: ${resTxt(c.amt)}.${lost.length?' No cabe todo: se pierde '+lost.join(', ')+'.':''}`;toast(esc(m));if(NET&&NET.role==='host')bcast({t:'toast',h:esc(m)})}
   saveD();refresh()}
 setInterval(()=>{if(!(NET&&NET.role==='client')){routeTick();convTick()}if(tab==='base'&&((D.conv||[]).length||(D.rutas||[]).length)&&!(document.activeElement&&document.activeElement.closest&&document.activeElement.closest('#p-base')))renderBases()},1000);
@@ -3658,7 +3833,7 @@ function normRutas(a){return(Array.isArray(a)?a:[]).slice(0,RMAX).filter(r=>r&&r
 function openSend(id){const b=baseById(id);if(!b)return;baseTick();modalOpen=true;const others=(D.bases||[]).filter(q=>q.id!==id);
   showModal(`<div class="kick">ENVIAR RECURSOS</div><h2>${BTY[b.ty].ic} ${esc(b.n)}</h2><p class="note">En almacén: ${['min','fuel','prov'].map(k=>`${RESN[k][0]} ${fmtI(b.stk[k]||0)}`).join(' · ')}. Viajan a 1 año luz cada 5 segundos reales.</p>
   <div class="field"><label>Destino</label><select id="sdD"><option value="nave">🚀 La nave (donde esté al salir el envío)</option>${others.map(q=>{const a=baseStar(b),z=baseStar(q),d=a&&z?gd(a,z):0;return`<option value="${q.id}">${BTY[q.ty].ic} ${esc(q.n)} · ${fmtLen(d)} · ${fmtDur(Math.max(5000,d*BSPEED))}</option>`}).join('')}</select></div>
-  <div class="field"><label>Recurso</label><select id="sdR"><option value="all">Todo lo almacenado</option><option value="min">Minerales</option><option value="fuel">Astrófago</option><option value="prov">Provisiones</option></select></div>
+  <div class="field"><label>Recurso</label><select id="sdR"><option value="all">Todo lo almacenado</option><option value="min">Minerales</option><option value="fuel">Materia</option><option value="prov">Provisiones</option></select></div>
   <div class="field"><label>Cantidad máx.</label><input id="sdQ" type="number" min="0" step="1" value="0" title="0 = todo"></div>
   <label class="chk"><input type="checkbox" id="sdRep"> Repetir automáticamente</label>
   <div class="field"><label>Cada</label><input id="sdE" type="number" min="1" value="30" style="width:80px"> <select id="sdU"><option value="d">días a bordo</option><option value="m">minutos reales</option></select></div>
@@ -3690,7 +3865,7 @@ function baseCardHtml(S,i,here){
   if(b){baseTick();const rt=baseRate(b),cp=baseCap(b);return`<div class="card"><div class="kick">BASE · NIVEL ${b.lv}</div><b>${BTY[b.ty].ic} ${esc(b.n)}</b>
     <div class="note">${Object.keys(cp).map(k=>`${RESN[k][0]}: ${fmtI(b.stk[k]||0)}/${fmtI(cp[k])} ${RESN[k][1]} (+${fmtI(rt[k]||0)} cada 100 d)`).join(' · ')}</div>
     <div class="row">${A('🚚 Enviar…',()=>openSend(b.id),cl)}${here&&b.lv<3?A(`Mejorar (${50*b.lv} t · 15 d)`,()=>cmd({k:'base',a:'up',id:b.id},'Mejorar '+b.n),cl||D.st.min<50*b.lv&&!D.cr):''}</div></div>`}
-  return`<div class="note">Recursos del suelo: minerales ${richLab(rs.min)} · astrófago ${richLab(rs.fuel)} · alimento ${richLab(rs.prov)}</div>${here?`<div class="row">${A('🏗 Construir base (40 t · 20 d)',()=>openBuild(S,i),cl||D.st.min<40&&!D.cr||(D.bases||[]).length>=BMAX)}</div>`:''}`}
+  return`<div class="note">Recursos del suelo: minerales ${richLab(rs.min)} · materia ${richLab(rs.fuel)} · alimento ${richLab(rs.prov)}</div>${here?`<div class="row">${A('🏗 Construir base (40 t · 20 d)',()=>openBuild(S,i),cl||D.st.min<40&&!D.cr||(D.bases||[]).length>=BMAX)}</div>`:''}`}
 function openBuild(S,i){
   const rs=baseRes(S,i);modalOpen=true;
   showModal(`<div class="kick">CONSTRUIR BASE</div><h2>${esc(S.planets[i].name)}</h2><p class="note">Coste: 40 t de minerales y 20 días. Producción por cada 100 días a bordo (nivel 1). Los envíos viajan a 1 año luz cada 5 segundos.</p>
@@ -3762,33 +3937,36 @@ function nextDialog(){
     resolveOpt(+b.dataset.o)});
 }
 function passDays(n){
-  const s=D.st,c=crewCount();if(!D.cr)s.prov=Math.max(0,s.prov-eaters()*n);s.days+=n;s.yrs+=n/365.25;const med=best('med').v;
+  const s=D.st,c=crewCount();if(!D.cr)s.prov=Math.max(0,s.prov-eaters()*n);s.days+=n;s.yrs+=n/365.25;const med=best('med').v*(1+rolF('med',.1,1));
+  plagaPaso(n);tolTick(n);if(Math.random()<n/600)setTimeout(()=>supernova(),50);
   for(const m of alive()){m.hp=Math.min(100,m.hp+n*(.3+med*.08));if(s.prov<=0&&c){m.hp=Math.max(5,m.hp-n*.8);m.mor=Math.max(0,m.mor-n*.6)}}
 }
 
-/* ═════════ Astrófago: estrellas infectadas (modo Petrova) ═════════ */
+/* ═════════ Plaga: estrellas infectadas (modo Petrova). La dinámica vive en b13_curva.js ═════════ */
 const INF=new Set(['sol','tceti','eeri','40eri','acen']);
-const infected=s=>s.point?false:s.anchor?INF.has(s.anchor.id):PETROVA.has(s.P.k)&&hash(s.h,13)%4===0;
+const infected=s=>infectado(s);
 
 /* ═════════ Cálculo de viaje (relativista, aceleración constante con volteo a mitad de camino) ═════════ */
-function legCalc(a,b){
+function legCalc(a,b){ensureSt();
   const sp=SPEC[D.ship.d],d=gd(a,b),acc=sp.acc*1.0323,x=d/2,tE=2*Math.sqrt(x*x+2*x/acc),ph=Math.acosh(1+acc*x),tau=2*ph/acc,days=tau*365.25;
   const prov=sp.prov?eaters()*days*(D.hib&&sp.hib?.15:1)*(1-(sp.farm||0)):0;
-  return{from:a,to:b,d,tE,tau,v:Math.tanh(ph),g:Math.cosh(ph),days,fuel:d*sp.burn,prov};
+  const free=esBH(a)||esBH(b),k=free?0:d*sp.burn*consumoMul(); /* motor de curvatura: energía negativa y materia; un agujero negro la pone gratis */
+  return{from:a,to:b,d,tE,tau,v:Math.tanh(ph),g:Math.cosh(ph),days,fuel:k*EN_POR,mat:k,free,prov};
 }
 function legErr(L,s){
   const sp=SPEC[D.ship.d],ml=legMax(D.ship.d);
   if(L.d>ml+1e-9&&!D.cr)return`el salto de ${fmtLen(L.d)} supera el alcance máximo (${fmtLen(ml)})`;
   if(crewCount()<sp.crew[0])return'tripulación insuficiente para operar la nave';
   if(s.hull<=0)return'casco destruido';if(D.cr)return'';
-  if(s.fuel+1e-9<L.fuel)return`falta astrófago (${L.fuel.toFixed(1)} t necesarias, hay ${s.fuel.toFixed(1)} t)`;
+  if(s.fuel+1e-9<L.fuel)return`falta energía negativa (${L.fuel.toFixed(1)} ${EN_U} necesarias, hay ${s.fuel.toFixed(1)})`;
+  if((s.mat||0)+1e-9<L.mat)return`falta materia (${fmtI(L.mat)} t necesarias, hay ${fmtI(s.mat||0)} t)`;
   if(sp.prov&&s.prov+1e-9<L.prov)return`faltan provisiones (${fmtI(L.prov)} días-persona, hay ${fmtI(s.prov)})`+(sp.hib&&!D.hib?'; activa la hibernación':'');
   return'';
 }
 function buildLegs(stars){
-  const legs=[],tot={d:0,tau:0,tE:0,fuel:0,prov:0},s={...D.st},sp=SPEC[D.ship.d];let bad=false;
+  const legs=[],tot={d:0,tau:0,tE:0,fuel:0,mat:0,prov:0},s={...D.st},sp=SPEC[D.ship.d];let bad=false;
   for(let i=0;i<stars.length-1;i++){const L=legCalc(stars[i],stars[i+1]);for(const k in tot)tot[k]+=L[k];
-    if(bad)L.pend=1;else{L.err=legErr(L,s);if(L.err)bad=true;else{if(!D.cr){s.fuel-=L.fuel;s.prov-=L.prov}if(sp.solar)s.fuel=sp.tank}}legs.push(L)}
+    if(bad)L.pend=1;else{L.err=legErr(L,s);if(L.err)bad=true;else{if(!D.cr){s.fuel-=L.fuel;s.mat-=L.mat;s.prov-=L.prov}if(sp.solar)s.fuel=Math.max(s.fuel,ENC()*.5)}}legs.push(L)}
   return{stars,legs,tot,ok:!bad};
 }
 /* Ruta con A* sobre las estrellas de un corredor alrededor de la línea recta */
@@ -3844,12 +4022,12 @@ function stepTravel(now){
 function arrive(L){
   if(travel.ghost){D.sp=seedOf(L.to);_sp='';travel.pos=null;travel.i++;travel.t0=0;if(travel.i>=travel.legs.length)endTravel();return}
   const s=D.st,sp=SPEC[D.ship.d],hib=D.hib&&sp.hib;
-  if(!D.cr){s.fuel=Math.max(0,s.fuel-L.fuel);if(sp.prov)s.prov=Math.max(0,s.prov-L.prov)}
-  s.days+=L.days;s.yrs+=L.tE;s.jumps++;s.ly+=L.d;if(sp.solar)s.fuel=sp.tank;
+  if(!D.cr){s.fuel=Math.max(0,s.fuel-L.fuel);s.mat=Math.max(0,(s.mat||0)-L.mat);if(sp.prov)s.prov=Math.max(0,s.prov-L.prov)}
+  s.days+=L.days;s.yrs+=L.tE;s.jumps++;s.ly+=L.d;if(sp.solar)s.fuel=Math.max(s.fuel,ENC()*.5);plagaPaso(L.days);tolTick(L.days);if(L.free)toast('⚫ El agujero negro curva el espacio por vosotros: salto sin gasto.');
   if(!hib)morAll(-Math.min(18,L.days/80));
   else{const risk=.025+(alive().some(m=>m.tr==='Insomne')?.03:0)-best('med').v*.002;if(Math.random()<risk){const w=loseRandom();if(w)queueDialog({t:'Despertar',who:pick(alive())||null,tx:`Al abrir las cápsulas, ${w} no despierta del coma inducido. La tripulación despide a su compañero en silencio.`,res:''})}}
   D.sp=seedOf(L.to);ping=performance.now();travel.pos=null;record('j',D.sp,true);travel.i++;travel.t0=0;
-  questEvent({type:'arrive',star:L.to});facTick();
+  questEvent({type:'arrive',star:L.to});facTick();{const r=recogerEsperando(L.to);if(r)toast(esc(r))}if(Math.random()<.05)supernova();
   if(travel.i>=travel.legs.length){
     const st=L.to;endTravel();selStar=st;
     if(st.point)toast(`Llegada al espacio profundo · ${fmtT(L.tau)} a bordo`);else toast(`Llegada a <b>${esc(starName(st))}</b> · ${fmtT(L.tau)} a bordo`,'Entrar al sistema',()=>enterSystem(st));
@@ -3859,7 +4037,7 @@ function arrive(L){
 }
 function endTravel(msg){travel=null;$('#travel').classList.remove('show');if(msg)toast(esc(msg));saveD();refresh()}
 function rescue(why){
-  const s=D.st,sp=SPEC[D.ship.d];if(typeof pilot!=='undefined')pilot=null;D.sp=sSeed(SOL);s.fuel=sp.tank*.5;s.prov=Math.max(s.prov,sp.prov*.5);s.hull=Math.max(s.hull,60);s.min=0;s.days+=365;s.yrs+=10;
+  const s=D.st,sp=SPEC[D.ship.d];if(typeof pilot!=='undefined')pilot=null;D.sp=sSeed(SOL);s.fuel=ENC()*.5;s.mat=Math.max(s.mat||0,MATC()*.5);s.prov=Math.max(s.prov,sp.prov*.5);s.hull=Math.max(s.hull,60);s.min=0;s.days+=365;s.yrs+=10;
   if(travel){travel=null;$('#travel').classList.remove('show')}mode='map';SYS=null;surf=null;selStar=null;route=null;
   const p=shipStar();flyTo(p.gx,p.gy,p.gz,20);saveD();
   queueDialog({t:'Rescate',who:null,tx:(why?why+' ':'')+'Una nave de la Corporación Ad Astra remolca la tuya hasta la Tierra. Diez años perdidos y la bodega vacía, pero seguís con vida.',res:'Combustible al 50%, casco reparado al 60%.'});refresh();
@@ -3875,7 +4053,7 @@ function enterSystem(st){
   saveD();refresh();
 }
 function exitToMap(){mode='map';SYS=null;surf=null;selPlanet=null;refresh()}
-function drawSystem(now){
+function drawSystem2D(now){
   const ent=RM?1:ease(clamp((now-sysT0)/1000,0,1)),S=SYS,P=S.P,cx=W/2,cy=H/2,Rmax=(Math.min(W,H)/2-40)*(.35+.65*ent),t=now/1000,here=sameStar(S.star,shipStar());
   ctx.letterSpacing='1.6px';ctx.globalAlpha=.15+.85*ent;const starPx=clamp(6+Math.log10(P.rad+1)*14,7,34);
   drawSky(now);
@@ -3913,7 +4091,7 @@ function land(i){if(rondaBloquea({k:'exp'})){toast(esc(MSG_RONDA));return}
   const info=planetInfo(SYS,i),sp=SPEC[D.ship.d];if(info.gas){toast('No hay superficie sólida.');return}
   if(!D.scan[info.key]){D.scan[info.key]=1}if(!(NET&&NET.role==='client'))passDays(sp.land?1:2);mode='surface';surf={i,info,t0:performance.now()};if(!RM)warp={t0:performance.now(),dur:600};saveD();refresh();
 }
-function drawSurface(now){
+function drawSurface2D(now){
   ctx.letterSpacing='1.6px';const {info}=surf,p=info.p,k=p.kind,sky=SKY[k]||SKY.barren,t=now/1000,ent=RM?1:ease(clamp((now-surf.t0)/1200,0,1));
   const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,sky[0]);g.addColorStop(.75,sky[1]);ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
   if(!info.breath){ctx.fillStyle='rgba(255,255,255,.7)';const r=rng(5);for(let i=0;i<140;i++)ctx.fillRect(r()*W,r()*H*.6,1,1)}
@@ -3962,7 +4140,7 @@ function applyLoot(lo,mult){
   const sp=SPEC[D.ship.d],s=D.st,out=[],rr=a=>lerp(a[0],a[1],Math.random())*mult;
   if(lo.min){const v=Math.round(rr(lo.min));s.min=Math.min(sp.cargo,s.min+v);out.push(`+${v} t minerales`)}
   if(lo.prov&&sp.prov){const v=Math.round(sp.prov*rr(lo.prov));s.prov=Math.min(sp.prov,s.prov+v);out.push(`+${fmtI(v)} días-persona de provisiones`)}
-  if(lo.fuel){const v=+(sp.tank*rr(lo.fuel)).toFixed(1);s.fuel=Math.min(sp.tank,s.fuel+v);out.push(`+${v} t de astrófago`)}
+  if(lo.fuel){const v=+(ENC()*rr(lo.fuel)).toFixed(1);s.fuel=Math.min(ENC(),s.fuel+v);out.push(`+${v} ${EN_U}`)}if(lo.mat){const v=Math.round(MATC()*rr(lo.mat));s.mat=Math.min(MATC(),s.mat+v);out.push(`+${v} t de materia`)}
   if(lo.mor){morAll(lo.mor);out.push(`moral +${lo.mor}`)}
   if(lo.crew&&crewCount()<sp.crew[1])out.push(offerMember(null,'Superviviente en la expedición').trim());
   if(lo.lore)out.push('«'+pick(LORE)+'»');
@@ -3992,27 +4170,113 @@ function orbitDo(key,days,fn,limit=3){
 function doOrbit(act,i){
   const st=shipStar();if(st.point)return'No hay ningún sistema aquí.';
   const S=genSystem(st),sk=sSeed(st),sp=SPEC[D.ship.d],s=D.st;
-  if(act==='fuel'){if(!infected(st))return'Esta estrella no tiene astrófago.';if(s.fuel>=sp.tank)return'Los tanques ya están llenos.';
-    return orbitDo(sk+':-1',30,()=>{const v=+(Math.min(sp.tank-s.fuel,sp.tank*.35)).toFixed(1);s.fuel+=v;questEvent({type:'harvest',what:'fuel'});return`Los colectores capturan ${v} t de astrófago en la línea Petrova.`})}
+  if(act==='fuel')act='mat'; // planes antiguos: «recolectar astrófago» pasa a ser extraer materia
+  if(act==='mat'||act==='en'||act==='luz')return accionCurva(act,S,st,sk);
   if(act==='rest')return orbitDo(sk+':rest',10,()=>{morAll(12);return'La tripulación descansa. Moral +12.'},0);
   if(act==='rep'){if(s.min<10)return'Faltan minerales para reparar.';if(s.hull>=100)return'El casco está intacto.';return orbitDo(sk+':rep',5,()=>{s.min-=10;s.hull=Math.min(100,s.hull+12);return'Casco reparado +12%.'},0)}
-  if(act==='earth'){if(!(st.anchor&&st.anchor.id==='sol'))return'Sólo se puede reabastecer en la Tierra.';return orbitDo(sk+':earth',60,()=>{s.fuel=sp.tank;s.prov=sp.prov;s.hull=100;morAll(20);for(const m of alive())m.hp=100;return'Tanques llenos, despensa completa, casco nuevo.'},0)}
+  if(act==='earth'){if(!(st.anchor&&st.anchor.id==='sol'))return'Sólo se puede reabastecer en la Tierra.';return orbitDo(sk+':earth',60,()=>{s.fuel=ENC();s.mat=MATC();s.prov=sp.prov;s.hull=100;morAll(20);for(const m of alive())m.hp=100;return'Tanques llenos, despensa completa, casco nuevo.'},0)}
   if(act==='scan'){const info=planetInfo(S,i);return orbitDo(info.key+':scan',2,()=>{D.scan[info.key]=1;return`Escaneo de ${info.p.name} completado.`},0)}
   if(act==='scanall'){const n=S.planets.filter((p,k)=>!D.scan[planetInfo(S,k).key]).length;if(!n)return'Todos los planetas ya están escaneados.';return orbitDo(sk+':scanall',2*n,()=>{S.planets.forEach((p,k)=>D.scan[planetInfo(S,k).key]=1);return`${n} planeta${n>1?'s':''} escaneado${n>1?'s':''}.`},0)}
-  if(act==='gas'){const info=planetInfo(S,i);return orbitDo(info.key+':gas',4,()=>{const r=roll('cie',10);if(r.ok){s.fuel=Math.min(sp.tank,s.fuel+sp.tank*.1);return'La sonda atmosférica recoge volátiles: +10% de combustible.'+gainXp(r.m,10)}return'La sonda se pierde en las tormentas.'},1)}
+  if(act==='gas'){const info=planetInfo(S,i);return orbitDo(info.key+':gas',4,()=>{const r=roll('cie',10);if(r.ok){const v=Math.round(MATC()*.15*extraeMul());s.mat=Math.min(MATC(),s.mat+v);return`La sonda atmosférica recoge gases: +${v} t de materia.`+gainXp(r.m,10)}return'La sonda se pierde en las tormentas.'},1)}
   return'';
 }
 function orbitAct(act,i,label){cmd({k:'orbit',act,i},label)}
 
+/* ═════════ Vistas 3D: sistema estelar y escáner de terreno al aterrizar ═════════
+   Arrastrar = girar · rueda/pellizco = acercar. La vista 2D antigua queda como drawSystem2D/drawSurface2D. */
+const V3={yaw:.5,pitch:.55,z:1};
+function p3(x,y,z,cx,cy,f){const cy_=Math.cos(V3.yaw),sy=Math.sin(V3.yaw),cp=Math.cos(V3.pitch),sp=Math.sin(V3.pitch);
+  const x1=x*cy_-z*sy,z1=x*sy+z*cy_,y1=y*cp-z1*sp,z2=y*sp+z1*cp,k=f/(f+z2);return[cx+x1*k,cy-y1*k,k,z2]}
+function drawSystem(now){
+  const ent=RM?1:ease(clamp((now-sysT0)/1000,0,1)),S=SYS,P=S.P,cx=W/2,cy=H/2+20,t=now/1000,here=sameStar(S.star,shipStar()),f=Math.max(W,H)*1.3;
+  if(!drag)V3.yaw+=.0006;
+  const Rmax=(Math.min(W,H)/2-30)*(.35+.65*ent)*V3.z;ctx.letterSpacing='1.6px';drawSky(now);ctx.globalAlpha=.15+.85*ent;
+  const all=S.planets.map(p=>p.a).concat(S.belts.flat());const amax=Math.max(...all,S.hz[1],.5)*1.12,a0=Math.min(...all,S.hz[0])*.55,starPx=clamp(6+Math.log10(P.rad+1)*14,7,34);
+  const rp=a=>starPx+14+(Rmax-starPx-14)*Math.log(1+Math.max(a,0)/a0)/Math.log(1+amax/a0);
+  const inc=i=>((hash(S.star.h,i,91)%1000)/1000-.5)*.18,pt=(r,ang,i)=>{const c=Math.cos(ang),s=Math.sin(ang),ti=inc(i);return p3(c*r,s*r*Math.sin(ti),s*r*Math.cos(ti),cx,cy,f)};
+  const ring=(r,i,col,lw,dash)=>{ctx.strokeStyle=col;ctx.lineWidth=lw;if(dash)ctx.setLineDash(dash);ctx.beginPath();for(let k=0;k<=72;k++){const q=pt(r,k/72*6.2832,i);k?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1])}ctx.stroke();ctx.setLineDash([])};
+  // plano de referencia (rejilla polar tenue)
+  for(let k=1;k<=4;k++)ring(Rmax*k/4,-1,'rgba(120,220,255,.05)',1);
+  for(let k=0;k<12;k++){const a=k/12*6.2832,q0=pt(starPx*1.5,a,-1),q1=pt(Rmax,a,-1);ctx.strokeStyle='rgba(120,220,255,.04)';ctx.beginPath();ctx.moveTo(q0[0],q0[1]);ctx.lineTo(q1[0],q1[1]);ctx.stroke()}
+  // zona habitable
+  ctx.globalAlpha*=1;const hzr=(rp(S.hz[0])+rp(S.hz[1]))/2;ring(hzr,-1,'rgba(126,231,135,.14)',Math.max(2,(rp(S.hz[1])-rp(S.hz[0]))*.6));
+  // cinturones
+  for(const [a,b] of S.belts){const r=rng(hash(S.star.h,a*100|0));ctx.fillStyle='rgba(200,200,200,.55)';for(let k=0;k<220;k++){const q=pt(lerp(rp(a),rp(b),r()),r()*6.283+t*.02,-1),h=(r()-.5)*6;ctx.fillRect(q[0],q[1]-h*q[2],1.3,1.3)}}
+  // órbitas
+  S.planets.forEach((p,i)=>ring(rp(p.a),i,p===selPlanet?'rgba(88,208,255,.7)':'rgba(190,205,235,.16)',1));
+  // estrella (o remanente)
+  const fate=destino(S.star),c0=p3(0,0,0,cx,cy,f);
+  if(fate==='bh'){ctx.fillStyle='#000';ctx.beginPath();ctx.arc(c0[0],c0[1],starPx*.9,0,7);ctx.fill();for(let k=0;k<3;k++){ctx.strokeStyle=`rgba(255,${150+k*30},80,${.6-k*.15})`;ctx.lineWidth=3-k;ctx.beginPath();for(let j=0;j<=60;j++){const q=pt(starPx*(1.6+k*.5),j/60*6.283+t*(1-k*.2),-1);j?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1])}ctx.stroke()}}
+  else{const col=fate?'#bcd4ff':P.col,g=ctx.createRadialGradient(c0[0],c0[1],0,c0[0],c0[1],starPx*3.2);g.addColorStop(0,col);g.addColorStop(.35,col+'88');g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(c0[0],c0[1],starPx*(fate?1.6:3.2),0,7);ctx.fill();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(c0[0],c0[1],starPx*(fate?.35:.7),0,7);ctx.fill();
+    if(fate==='ns'){ctx.strokeStyle='rgba(180,210,255,.5)';ctx.lineWidth=2;const a=t*3;ctx.beginPath();ctx.moveTo(c0[0]-Math.cos(a)*Rmax*.5,c0[1]-Math.sin(a)*Rmax*.2);ctx.lineTo(c0[0]+Math.cos(a)*Rmax*.5,c0[1]+Math.sin(a)*Rmax*.2);ctx.stroke()}}
+  if(infected(S.star))ring(starPx*2.4,-1,'rgba(255,59,92,.6)',1.2,[4,4]);
+  // planetas (de atrás hacia delante)
+  sysHits=[];let shipP=null;
+  const items=S.planets.map((p,i)=>{const R=rp(p.a),w=Math.min(1.2,.3*Math.pow(Math.max(p.a,.03),-.75)),q=pt(R,p.phase+t*w*.5,i);return{p,i,x:q[0],y:q[1],k:q[2],z:q[3]}}).sort((a,b)=>b.z-a.z);
+  for(const {p,x,y,k} of items){
+    const pr=clamp((2.5+Math.log2(p.r+.5)*2.6)*k,2,16),col=KIND[p.kind][1],sh=ctx.createRadialGradient(x-pr*.4,y-pr*.4,pr*.1,x,y,pr);sh.addColorStop(0,col);sh.addColorStop(1,'#05070c');
+    // sombra hacia el plano
+    ctx.strokeStyle='rgba(120,220,255,.12)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,y+pr);ctx.lineTo(x,y+pr+6*k);ctx.stroke();
+    ctx.fillStyle=sh;ctx.beginPath();ctx.arc(x,y,pr,0,7);ctx.fill();
+    if(p.ring){ctx.strokeStyle='rgba(230,210,170,.7)';ctx.lineWidth=1.3;ctx.beginPath();ctx.ellipse(x,y,pr*1.9,pr*.55*(.4+Math.abs(Math.sin(V3.pitch))),-.3,0,7);ctx.stroke()}
+    if(p.hz){ctx.strokeStyle='#7ee787';ctx.lineWidth=1;ctx.beginPath();ctx.arc(x,y,pr+3,0,7);ctx.stroke()}
+    if(p===selPlanet){ctx.strokeStyle='#58d0ff';ctx.lineWidth=1.5;ctx.setLineDash([3,3]);ctx.lineDashOffset=-now/50;ctx.beginPath();ctx.arc(x,y,pr+7,0,7);ctx.stroke();ctx.setLineDash([]);shipP=[x+pr+14+Math.cos(t*2)*3,y-pr-10+Math.sin(t*2)*3]}
+    ctx.font='10px ui-monospace,Menlo,monospace';ctx.fillStyle=p===selPlanet?'#58d0ff':`rgba(205,215,235,${clamp(.35+k*.4,.35,.85)})`;ctx.textAlign='left';ctx.textBaseline='middle';
+    ctx.fillText(spaced(p.name.replace(S.name+' ','').toUpperCase()),x+pr+6,y);sysHits.push({x,y,r:Math.max(12,pr+6),planet:p});
+  }
+  if(!shipP){const q=pt(starPx+30,-1.2+t*.2,-1);shipP=[q[0],q[1]-14]}
+  ctx.globalAlpha=1;
+  if(here){drawShip3D(ctx,shipP[0],shipP[1],30,t*.9,.5,D.ship,t);ctx.font='9px ui-monospace,Menlo,monospace';ctx.fillStyle='rgba(205,230,255,.75)';ctx.textAlign='center';ctx.fillText(spaced((D.ship.n||SHIPS[D.ship.d].n).toUpperCase()),shipP[0],shipP[1]+22)}
+  ctx.font='10px ui-monospace,Menlo,monospace';ctx.textAlign='left';ctx.fillStyle='rgba(126,231,135,.7)';ctx.fillText(spaced('▮ ZONA HABITABLE · ARRASTRA PARA GIRAR'),70,H-60);
+  if(estacion(S.star)){ctx.fillStyle='rgba(120,220,255,.8)';ctx.fillText(spaced('🛰 '+estacion(S.star).n.toUpperCase()),70,H-76)}
+  if(fate){ctx.fillStyle='rgba(255,190,120,.85)';ctx.fillText(spaced(FATE[fate].ic+' '+FATE[fate].n.toUpperCase()+' · FUENTE DE ENERGÍA NEGATIVA'),70,H-92)}
+  if(!here){ctx.fillStyle='rgba(255,180,84,.8)';ctx.fillText(spaced('VISTA REMOTA · DATOS DE SONDEO'),70,H-44)}
+  ctx.letterSpacing='0px';
+}
+/* Escáner de terreno: malla 3D del relieve con un barrido del escáner */
+const _mesh=new Map();
+function malla(key,p,seed){let m=_mesh.get(key);if(m)return m;const N=44,h=[];const amp=p.g>1.5?.55:p.kind==='ocean'?.35:1;
+  for(let j=0;j<N;j++){h[j]=[];for(let i=0;i<N;i++){const x=i/N,y=j/N;h[j][i]=(vn3(x*4+seed,y*4,1,5)*.65+vn3(x*11+seed,y*11,2,7)*.25+vn3(x*29,y*29+seed,3,9)*.1)*amp}}
+  m={N,h};if(_mesh.size>12)_mesh.clear();_mesh.set(key,m);return m}
+function drawSurface(now){
+  ctx.letterSpacing='1.6px';const {info}=surf,p=info.p,k=p.kind,sky=SKY[k]||SKY.barren,t=now/1000,ent=RM?1:ease(clamp((now-surf.t0)/1200,0,1));
+  const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,sky[0]);g.addColorStop(.6,sky[1]);g.addColorStop(1,'#020305');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  if(!info.breath){ctx.fillStyle='rgba(255,255,255,.7)';const r=rng(5);for(let i=0;i<140;i++)ctx.fillRect(r()*W,r()*H*.45,1,1)}
+  const P=SYS.P,sx=W*.78,sy=H*.14,sg=ctx.createRadialGradient(sx,sy,0,sx,sy,50);sg.addColorStop(0,P.col);sg.addColorStop(.2,P.col+'aa');sg.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=sg;ctx.beginPath();ctx.arc(sx,sy,50,0,7);ctx.fill();
+  if(!drag)V3.yaw+=.0008;
+  const seed=hash(SYS.star.h,surf.i,321)%1000/10,M=malla(info.key,p,seed),N=M.N,S=Math.min(W,H)*.95*V3.z,cx=W/2,cy=H*.62,f=Math.max(W,H)*1.2,hgt=S*.16*(.3+.7*ent);
+  const P3=(i,j)=>p3((i/(N-1)-.5)*S,M.h[j][i]*hgt-hgt*.4,(j/(N-1)-.5)*S,cx,cy,f);
+  const pts=[];for(let j=0;j<N;j++){pts[j]=[];for(let i=0;i<N;i++)pts[j][i]=P3(i,j)}
+  const quads=[];for(let j=0;j<N-1;j++)for(let i=0;i<N-1;i++){const a=pts[j][i],b=pts[j][i+1],c=pts[j+1][i+1],d=pts[j+1][i];quads.push([a,b,c,d,(a[3]+c[3])/2,(M.h[j][i]+M.h[j+1][i+1])/2,i,j])}
+  quads.sort((q,r)=>r[4]-q[4]);
+  const base=GROUND[k]||'#2a2826',scan=((t*.18)%1.2)-.1;
+  for(const [a,b,c,d,z,h,i,j] of quads){const sh=clamp(.35+h*.9,.2,1.25),u=i/(N-1),near=Math.abs(u-scan)<.025;
+    ctx.fillStyle=near?'rgba(120,230,255,.55)':shade(base,sh);ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.lineTo(c[0],c[1]);ctx.lineTo(d[0],d[1]);ctx.closePath();ctx.fill();
+    ctx.strokeStyle=near?'rgba(160,240,255,.9)':'rgba(120,220,255,.13)';ctx.lineWidth=near?1.2:.6;ctx.stroke()}
+  // condiciones anómalas visibles
+  for(const h of info.hz){if(!h[4])continue;if(h[0]==='Tormenta de iones'&&Math.random()<.05){ctx.fillStyle='rgba(180,220,255,.15)';ctx.fillRect(0,0,W,H)}if(h[0]==='Niebla de esporas'){ctx.fillStyle='rgba(140,220,120,.06)';ctx.fillRect(0,H*.4,W,H*.6)}}
+  // nave posada y puntos de interés sobre la malla
+  const at=(i,j)=>pts[clamp(j,0,N-1)][clamp(i,0,N-1)],sp=at(N*.3|0,N*.55|0),shPx=clamp(SPEC[D.ship.d].len*.6,22,120)*sp[2];
+  drawShip3D(ctx,sp[0],sp[1]-shPx*.3-(1-ent)*H*.5,shPx,.9,.15,D.ship,t,ent<1);
+  info.pois.forEach((n,j)=>{const r=rng(hash(seed*100|0,j,77)),q=at(6+(r()*(N-12)|0),6+(r()*(N-12)|0)),x=q[0],y=q[1],done=D.ex[info.key+':'+n];
+    ctx.strokeStyle=done?'rgba(126,231,135,.9)':'rgba(255,180,84,.95)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x,y-38);ctx.stroke();
+    ctx.fillStyle=ctx.strokeStyle;ctx.beginPath();ctx.moveTo(x,y-44);ctx.lineTo(x+5,y-39);ctx.lineTo(x,y-34);ctx.lineTo(x-5,y-39);ctx.closePath();ctx.fill();
+    ctx.beginPath();ctx.ellipse(x,y,7,3,0,0,7);ctx.stroke();ctx.font='9px ui-monospace,Menlo,monospace';ctx.textAlign='center';ctx.fillText(spaced(n.toUpperCase()),x,y-52)});
+  ctx.font='10px ui-monospace,Menlo,monospace';ctx.textAlign='left';ctx.fillStyle='rgba(160,240,255,.85)';ctx.fillText(spaced('ESCÁNER DE TERRENO · ARRASTRA PARA GIRAR'),70,H-60);
+  ctx.fillStyle='rgba(230,235,245,.8)';ctx.fillText(spaced(`${p.name.toUpperCase()} · ${Math.round(p.T-273)} °C · ${p.g.toFixed(2)} G · ${info.atm.toUpperCase()}`),70,H-44);
+  ctx.letterSpacing='0px';
+}
+function shade(hex,k){const n=parseInt(hex.slice(1),16),r=Math.min(255,((n>>16)&255)*k|0),g=Math.min(255,((n>>8)&255)*k|0),b=Math.min(255,(n&255)*k|0);return`rgb(${r},${g},${b})`}
+
 /* ═════════ Plan de viaje: paradas en orden con tareas en cada una ═════════ */
-const TASKS={fuel:'Recolectar astrófago',rest:'Descansar',rep:'Reparar casco',scanall:'Escanear todos los planetas',earth:'Reabastecer en la Tierra'};
+const TASKS={fuel:'Extraer materia',en:'Recolectar energía negativa',luz:'Cultivar con luz estelar',rest:'Descansar',rep:'Reparar casco',scanall:'Escanear todos los planetas',earth:'Reabastecer en la Tierra'};
 function getPlan(){if(NET&&NET.role==='client'){NET.myPlan=NET.myPlan||{stops:[]};return NET.myPlan}D.plan=D.plan&&Array.isArray(D.plan.stops)?D.plan:{stops:[]};return D.plan}
 const stopStar=s=>starFromSeed(s.s)||pointFromSeed(s.s);
 function taskLabel(t,st){if(t.startsWith('explore:')){const i=+t.split(':')[1],S=st&&!st.point?genSystem(st):null;return'Aterrizar y explorar '+(S&&S.planets[i]?S.planets[i].name:'planeta '+i)}
   if(t.startsWith('civ:')){const i=+t.split(':')[1],S=st&&!st.point?genSystem(st):null,c=S&&civInfo(S,i);return'Contactar '+(c?'a los '+c.name:'civilización')}return TASKS[t]||t}
 function taskOptions(st){
   if(!st||st.point)return[];const S=genSystem(st),o=[['rest',TASKS.rest],['rep',TASKS.rep],['scanall',TASKS.scanall]];
-  if(infected(st))o.unshift(['fuel',TASKS.fuel]);if(st.anchor&&st.anchor.id==='sol')o.push(['earth',TASKS.earth]);
+  if(!st.point){o.unshift(['fuel',TASKS.fuel],['luz',TASKS.luz]);if(destino(st))o.unshift(['en',TASKS.en])}if(st.anchor&&st.anchor.id==='sol')o.push(['earth',TASKS.earth]);
   S.planets.forEach((p,i)=>{if(p.kind!=='gas'&&p.kind!=='icegiant')o.push(['explore:'+i,'Aterrizar y explorar '+p.name]);const c=civInfo(S,i);if(c&&c.tech>0&&!c.home)o.push(['civ:'+i,'Contactar a los '+c.name])});
   return o;
 }
@@ -4028,14 +4292,14 @@ function simulatePlan(){
     const st=stopStar(stop);if(!st){out.push({stop,err:'Semilla no válida'});bad=bad||'Semilla no válida';continue}
     let legs=[],err='';
     if(!sameStar(from,st)){const path=planRoute(from,st);if(!path)err=`No hay ruta (máx. ${fmtLen(legMax(D.ship.d))} por salto en 400 al)`;else for(let i=0;i<path.length-1;i++)legs.push(legCalc(path[i],path[i+1]))}
-    for(const L of legs){if(err)break;tot.d+=L.d;tot.tau+=L.tau;tot.tE+=L.tE;tot.jumps++;const e=(()=>{if(L.d>legMax(D.ship.d)+1e-9&&!D.cr)return'salto demasiado largo';if(D.cr)return'';if(s.fuel+1e-9<L.fuel)return`faltará astrófago antes de ${starName(L.to)}`;if(sp.prov&&s.prov+1e-9<L.prov)return`faltarán provisiones antes de ${starName(L.to)}`;return''})();
-      if(e){err=e;break}if(!D.cr){s.fuel-=L.fuel;s.prov-=L.prov}if(sp.solar)s.fuel=sp.tank}
+    for(const L of legs){if(err)break;tot.d+=L.d;tot.tau+=L.tau;tot.tE+=L.tE;tot.jumps++;const e=(()=>{if(L.d>legMax(D.ship.d)+1e-9&&!D.cr)return'salto demasiado largo';if(D.cr)return'';if(s.fuel+1e-9<L.fuel)return`faltará energía negativa antes de ${starName(L.to)}`;if((s.mat||0)+1e-9<L.mat)return`faltará materia antes de ${starName(L.to)}`;if(sp.prov&&s.prov+1e-9<L.prov)return`faltarán provisiones antes de ${starName(L.to)}`;return''})();
+      if(e){err=e;break}if(!D.cr){s.fuel-=L.fuel;s.mat-=L.mat;s.prov-=L.prov}if(sp.solar)s.fuel=Math.max(s.fuel,ENC()*.5)}
     if(!err)for(const t of stop.a){const c=crewCount();
-      if(t==='fuel'&&infected(st)){s.fuel=Math.min(sp.tank,s.fuel+sp.tank*.35);s.prov-=c*30}
+      if(t==='fuel'){s.mat=Math.min(MATC(),s.mat+MATC()*.25);s.prov-=c*15}else if(t==='en'&&destino(st)){s.fuel=Math.min(ENC(),s.fuel+ENC()*FATE[destino(st)].en);s.prov-=c*20}else if(t==='luz'){s.prov=Math.min(sp.prov,s.prov+sp.prov*.08);s.prov-=c*15}
       else if(t==='rest')s.prov-=c*10;else if(t==='rep')s.prov-=c*5;else if(t==='scanall')s.prov-=c*8;
-      else if(t==='earth'){s.fuel=sp.tank;s.prov=sp.prov}else if(t.startsWith('explore:'))s.prov-=c*15;else if(t.startsWith('civ:'))s.prov-=c*5;
+      else if(t==='earth'){s.fuel=ENC();s.mat=MATC();s.prov=sp.prov}else if(t.startsWith('explore:'))s.prov-=c*15;else if(t.startsWith('civ:'))s.prov-=c*5;
       if(sp.prov)s.prov=Math.max(0,s.prov)}
-    out.push({stop,st,legs,err,fuel:s.fuel,prov:s.prov});if(err&&!bad)bad=`Parada ${k+1}: ${err}`;from=st;
+    out.push({stop,st,legs,err,fuel:s.fuel,mat:s.mat||0,prov:s.prov});if(err&&!bad)bad=`Parada ${k+1}: ${err}`;from=st;
   }
   return{rows:out,tot,bad};
 }
@@ -4074,13 +4338,13 @@ function exploreAll(i){
 function renderPlan(){
   const el=$('#p-plan'),P=getPlan(),sim=simulatePlan(),client=NET&&NET.role==='client';ACTS=[];
   let h=`<div class="kick">PLAN DE VIAJE</div><h2>${P.stops.length?P.stops.length+' parada'+(P.stops.length>1?'s':''):'Sin paradas'}</h2>
-  <p class="note">Selecciona una estrella en la carta y pulsa «+ Añadir al plan». En cada parada eliges qué hacer: recolectar astrófago, aterrizar y explorar un planeta, contactar una civilización, descansar… El plan calcula las rutas entre paradas y estima los recursos.</p>`;
+  <p class="note">Selecciona una estrella en la carta y pulsa «+ Añadir al plan». En cada parada eliges qué hacer: extraer materia, recolectar energía negativa en estrellas muertas, cultivar con luz, aterrizar y explorar un planeta, contactar una civilización, descansar… El plan calcula las rutas entre paradas y estima los recursos.</p>`;
   if(planRun)h+=`<p class="ok">▶ Ejecutando: parada ${planRun.i+1} de ${D.plan.stops.length}.</p><div class="row">${A('■ Detener el plan',()=>stopPlan('Plan detenido por la tripulación.'),0,'pri')}</div>`;
   if(P.stops.length){
     h+=`<div class="calc"><span>Distancia</span><span>${fmtLen(sim.tot.d)} · ${sim.tot.jumps} salto${sim.tot.jumps===1?'':'s'}</span><span>Tiempo a bordo</span><span>${fmtT(sim.tot.tau)}</span><span>Tiempo en la Tierra</span><span>${fmtT(sim.tot.tE)}</span><span>Viabilidad</span><span class="${sim.bad?'bad':'ok'}">${sim.bad?esc(sim.bad):'✓ Viable con las tareas previstas'}</span></div>`;
     h+=`<div class="lst">`;
     sim.rows.forEach((r,k)=>{const st=r.st,opts=taskOptions(st);
-      h+=`<div class="item col ${r.err?'err':''}"><div class="rowi"><span class="dim">${k+1}</span><div class="m"><b>${st?esc(starName(st)):'?'}</b><i>${r.legs&&r.legs.length?r.legs.length+' salto'+(r.legs.length>1?'s':'')+' · '+fmtLen(r.legs.reduce((a,l)=>a+l.d,0)):'ya en el destino'}${!r.err&&st?` · llegas con ${r.fuel.toFixed(0)} t y ${fmtI(r.prov)} d-p`:''}${r.err?' · '+esc(r.err):''}</i></div>
+      h+=`<div class="item col ${r.err?'err':''}"><div class="rowi"><span class="dim">${k+1}</span><div class="m"><b>${st?esc(starName(st)):'?'}</b><i>${r.legs&&r.legs.length?r.legs.length+' salto'+(r.legs.length>1?'s':'')+' · '+fmtLen(r.legs.reduce((a,l)=>a+l.d,0)):'ya en el destino'}${!r.err&&st?` · llegas con ${r.fuel.toFixed(0)} ${EN_U}, ${fmtI(r.mat)} t de materia y ${fmtI(r.prov)} d-p`:''}${r.err?' · '+esc(r.err):''}</i></div>
         ${A('↑',()=>{if(k>0){[P.stops[k-1],P.stops[k]]=[P.stops[k],P.stops[k-1]];saveD();renderPlan()}},k===0)}${A('↓',()=>{if(k<P.stops.length-1){[P.stops[k+1],P.stops[k]]=[P.stops[k],P.stops[k+1]];saveD();renderPlan()}},k===P.stops.length-1)}${A('✕',()=>{P.stops.splice(k,1);saveD();renderPlan()})}</div>
         <div class="hzl">${r.stop.a.map((t,j)=>`<span class="tag">${esc(taskLabel(t,st))} ${A('✕',()=>{r.stop.a.splice(j,1);saveD();renderPlan()})}</span>`).join('')||'<span class="note">Sin tareas: sólo pasar por aquí.</span>'}</div>
         ${opts.length?`<div class="row"><select data-k="${k}"><option value="">+ Añadir tarea…</option>${opts.filter(o=>!r.stop.a.includes(o[0])).map(o=>`<option value="${esc(o[0])}">${esc(o[1])}</option>`).join('')}</select></div>`:''}</div>`});
@@ -4121,14 +4385,16 @@ function execCmd(c){
   if(c.k==='fac')return doFac(c);
   if(c.k==='base')return doBase(c);
   if(c.k==='crew')return setSusp(String(c.id),c.a==='susp');
+  if(c.k==='tienda')return comprar(String(c.q),+c.c||0);
+  if(c.k==='emerg')return emergencia(String(c.id));
   return'';
 }
 /* Animación suspendida: el tripulante sigue a bordo pero no participa (no tira, no vota por su rol, no recibe daño ni XP) */
-function setSusp(id,on){const m=D.crew.find(q=>q.id===id&&q.st!=='perdido');if(!m)return'';if(on===(m.st==='susp'))return'';if(!on&&m.bz){const b=baseById(m.bz);return`${m.nm} está en ${b?b.n:'una base'}: id allí a recogerlo.`}
+function setSusp(id,on){const m=D.crew.find(q=>q.id===id&&q.st!=='perdido');if(!m)return'';if(on===(m.st==='susp'))return'';if(!on&&m.bz){const b=baseById(m.bz);return`${m.nm} está en ${b?b.n:'una base'}: id allí a recogerlo.`}if(!on&&m.esp){const s=starFromSeed(m.esp);return`${m.nm} os espera en ${s?starName(s):'otro sistema'}: id a recogerlo.`}
   if(on&&crewCount()-1<SPEC[D.ship.d].crew[0]&&!D.cr)return`Sin ${m.nm} no queda tripulación suficiente para operar la nave.`;
   m.st=on?'susp':'ok';if(!on)m.mor=Math.max(m.mor,60);saveD();const t=on?`❄ ${m.nm} entra en animación suspendida: la partida sigue sin ${m.pl?m.pl:'su jugador'}.`:`☀ ${m.nm} despierta y vuelve a la ronda.`;logDM(t,'sys');return t}
 function changeShip(k){
-  const s=D.ship,st=D.st;if(!SHIPS[k]||k===s.d)return'';const nsp=SPEC[k];D.ship.d=k;Object.assign(st,{fuel:nsp.tank,prov:nsp.prov,hull:100,min:Math.min(st.min,nsp.cargo)});
+  const s=D.ship,st=D.st;if(!SHIPS[k]||k===s.d)return'';const nsp=SPEC[k];D.ship.d=k;Object.assign(st,{fuel:ENC(),mat:MATC(),prov:nsp.prov,hull:100,min:Math.min(st.min,nsp.cargo)});D.ship.mods=(D.ship.mods||[]).slice(0,modSlots());
   const a=alive();if(a.length>nsp.crew[1])a.slice(nsp.crew[1]).forEach(m=>m.st='perdido');st.extra=clamp(nsp.c0-Math.min(8,alive().length),0,Math.max(0,nsp.crew[1]-alive().length));
   while(crewCount()<nsp.crew[0]&&alive().length<6)addMember();if(crewCount()<nsp.crew[0])st.extra+=nsp.crew[0]-crewCount();saveD();return'Nueva nave: '+SHIPS[k].n;
 }
@@ -4202,10 +4468,15 @@ function addCardLocally(card,pid,pl,dv){setCrewLogo(card);
   if(ex){if(ex.pid&&ex.pid!==pid&&NET.role==='host'&&(ex.pid===NET.me||NET.conns.has(ex.pid))){const old=NET.players[ex.pid];
       /* Mismo dispositivo que vuelve (recargó la página): la conexión vieja se cierra; otra persona con la misma ficha, no entra */
       if(ex.pid!==NET.me&&old&&dv&&old.dv===dv)dropPeer(ex.pid,true);else{const r=new String(`${ex.nm} ya está a bordo y lo maneja ${ex.pl||'otro jugador'}: no se puede subir la misma ficha dos veces.`);r.rej=1;return r}}
+    if(ex.esp){const s=starFromSeed(ex.esp);ex.pid=pid;ex.pl=pl;saveD();return tras+`${ex.nm} os espera en ${s?starName(s):'otro sistema'}: id a recogerlo.`}
     if(ex.bz){const b=baseById(ex.bz);ex.pid=pid;ex.pl=pl;saveD();return tras+`${ex.nm} está en ${b?b.n:'una base'}: recogedlo allí para que vuelva a la ronda.`}
     ex.pid=pid;ex.pl=pl;if(card.c)ex.crewName=card.c;const w=ex.st==='susp';if(w)ex.st='ok';saveD();return tras+(w?`${ex.nm} despierta de la animación suspendida: vuelve a la partida con ${pl}.`:`${ex.nm} ya estaba a bordo: ahora lo maneja ${pl}.`)}
   const ocup=ocupadas();if(ocup>=sp.crew[1]&&D.st.extra>0)D.st.extra--;else if(ocup>=sp.crew[1])return'No queda sitio en la nave.';
-  const m=memberFromCard(card);m.n0=card.n;m.pid=pid;m.pl=pl;D.crew.push(m);saveD();return`${m.nm} (${m.sp}, ${ROLES[m.role]}) sube a bordo.`;
+  const m=memberFromCard(card);m.n0=card.n;m.pid=pid;m.pl=pl;
+  /* Recién llegado con la ronda en marcha: espera en el sistema más cercano de la facción dominante de la nave */
+  const pe=typeof RONDA!=='undefined'&&RONDA&&!travel?puntoDeEncuentro():null;
+  if(pe){m.st='susp';m.esp=sSeed(pe);D.crew.push(m);saveD();const f=FAC[faccionNave()];return`${m.nm} (${m.sp}, ${ROLES[m.role]}) se une y os espera en ${starName(pe)} (${f.ic} ${f.s}, a ${fmtLen(gd(pe,shipStar()))}). Id a recogerlo.`}
+  D.crew.push(m);saveD();return`${m.nm} (${m.sp}, ${ROLES[m.role]}) sube a bordo.`;
 }
 /* Fin de misión: un único QR/enlace #X (v2) con el resultado de toda la tripulación con ficha */
 async function missionLink(){
@@ -4291,7 +4562,7 @@ function followView(v){if(travel||!Array.isArray(v.c)||v.c.length!==6||!v.c.ever
   if(v.m==='map'){if(mode!=='map')exitToMap();[tg.fx,tg.fy,tg.fz,tg.R,tg.yaw,tg.pitch]=v.c;return}
   if(v.s&&(mode!=='system'||!SYS||!SYS.star||sSeed(SYS.star)!==v.s)){const st=starFromSeed(String(v.s));if(st)enterSystem(st)}}
 function applyRemote(st){
-  const g=st.game;if(!g)return;D.st=g;D.crew=st.crew;D.hib=st.flags.hib;D.cr=st.flags.cr;D.q=st.flags.q;D.hf=st.hf||{};D.ex=st.ex;D.scan=st.scan;D.disc=st.disc;D.h=st.h;
+  const g=st.game;if(!g)return;D.st=g;D.crew=st.crew;D.hib=st.flags.hib;D.cr=st.flags.cr;D.q=st.flags.q;D.hf=st.hf||{};if(st.pl)D.pl=st.pl;D.nova=st.nova||{};D.ex=st.ex;D.scan=st.scan;D.disc=st.disc;D.h=st.h;
   if(st.ship)D.ship=st.ship;if(st.sp&&!travel){D.sp=st.sp;_sp=''}if(st.n)D.n=D.n||st.n;D.plan=st.plan||D.plan;D.rep=st.rep||D.rep;if(st.fx)D.fx=st.fx;RONDA=!!st.flags.ronda;D.bases=st.bases||[];D.conv=st.conv||[];D.rutas=st.rutas||[];
 }
 function propose(v){
@@ -4491,7 +4762,7 @@ function frame(now){
       if(keys.has('w')||keys.has('arrowup'))my++;if(keys.has('s')||keys.has('arrowdown'))my--;if(keys.has('a')||keys.has('arrowleft'))mx--;if(keys.has('d')||keys.has('arrowright'))mx++;if(keys.has('e'))mz++;if(keys.has('q'))mz--;
       if(mx||my||mz){const v=[(CP.cy*mx+CP.sy*my)*s,(-CP.sy*mx+CP.cy*my)*s,mz*s];lastInput=now;idleDone=false;
         if(pilot){const k2=keys.has('shift')?4:1;v[0]*=k2;v[1]*=k2;v[2]*=k2;const d=Math.hypot(...v);
-          if(pilotConsume(d)){pilot.pos[0]+=v[0];pilot.pos[1]+=v[1];pilot.pos[2]+=v[2];pilot.dir=v.map(q=>q/d);pilot.moved+=d}else if(!pilot.warned){pilot.warned=1;toast('Sin astrófago para seguir avanzando. Busca una estrella con astrófago o activa el modo creativo.')}}
+          if(pilotConsume(d)){pilot.pos[0]+=v[0];pilot.pos[1]+=v[1];pilot.pos[2]+=v[2];pilot.dir=v.map(q=>q/d);pilot.moved+=d}else if(!pilot.warned){pilot.warned=1;toast('Sin energía negativa o materia para seguir avanzando. Extrae materia en un sistema, consigue energía negativa o activa el modo creativo.')}}
         else{tg.fx+=v[0];tg.fy+=v[1];tg.fz+=v[2]}}}
     if(pilot){tg.fx=cam.fx=pilot.pos[0];tg.fy=cam.fy=pilot.pos[1];tg.fz=cam.fz=pilot.pos[2]}
     if(opt.spin&&!pilot&&mode==='map'&&!drag&&now-lastInput>4000)tg.yaw+=dt*.04;
@@ -4520,7 +4791,7 @@ function pickPlanet(mx,my){for(const k of sysHits)if(Math.hypot(k.x-mx,k.y-my)<k
 cv.addEventListener('contextmenu',e=>e.preventDefault());
 cv.addEventListener('pointerdown',e=>{
   cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,[e.clientX,e.clientY]);lastInput=performance.now();idleDone=false;
-  drag={x:e.clientX,y:e.clientY,moved:0,yaw:tg.yaw,pitch:tg.pitch,pan:e.shiftKey||e.button===2,f:[tg.fx,tg.fy,tg.fz]};
+  drag={x:e.clientX,y:e.clientY,moved:0,yaw:tg.yaw,pitch:tg.pitch,v3y:V3.yaw,v3p:V3.pitch,pan:e.shiftKey||e.button===2,f:[tg.fx,tg.fy,tg.fz]};
   if(ptrs.size===2){const a=[...ptrs.values()];drag.pinch={d0:Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]),R0:tg.R,m:[(a[0][0]+a[1][0])/2,(a[0][1]+a[1][1])/2],f:[tg.fx,tg.fy,tg.fz]};drag.moved=99}
 });
 function panFrom(f,dx,dy){if(!CP)return;const s=CP.dist/CP.F;tg.fx=f[0]-CP.cy*dx*s+CP.sp*CP.sy*dy*s;tg.fy=f[1]+CP.sy*dx*s+CP.sp*CP.cy*dy*s;tg.fz=f[2]+CP.cp*dy*s}
@@ -4530,12 +4801,13 @@ cv.addEventListener('pointermove',e=>{
     if(drag.pinch&&ptrs.size===2){const a=[...ptrs.values()],d=Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]),m=[(a[0][0]+a[1][0])/2,(a[0][1]+a[1][1])/2];tg.R=clamp(drag.pinch.R0*drag.pinch.d0/Math.max(20,d),1,3000);if(mode==='map')panFrom(drag.pinch.f,m[0]-drag.pinch.m[0],m[1]-drag.pinch.m[1]);return}
     const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.moved=Math.max(drag.moved,Math.hypot(dx,dy));
     if(drag.moved>4&&mode==='map'){tip.style.display='none';if(drag.pan)panFrom(drag.f,dx,dy);else{tg.yaw=drag.yaw-dx*.006;tg.pitch=clamp(drag.pitch+dy*.006,-1.45,1.45)}}
+    else if(drag.moved>4){tip.style.display='none';V3.yaw=drag.v3y-dx*.008;V3.pitch=clamp(drag.v3p+dy*.006,.08,1.45)}
     return}
   if(mode==='system'){const p=pickPlanet(mx,my);cv.style.cursor=p?'pointer':'default';if(p)showTip(`${esc(p.name)} · ${KIND[p.kind][0]}`,mx,my);else tip.style.display='none';return}
   if(mode!=='map'){tip.style.display='none';return}
   hoverStar=pickStar(mx,my);
-  if(hoverStar){cv.style.cursor='pointer';const d=gd(shipStar(),hoverStar),sp=SPEC[D.ship.d],ok=d<=D.st.fuel/sp.burn||D.cr;
-    showTip(`<b>${esc(starName(hoverStar))}</b> · ${hoverStar.P.k}<br><span class="dim">${fmtLen(d)} de tu nave · ${ok?'<span class="ok">al alcance</span>':d<=legMax(D.ship.d)?'falta astrófago':'requiere ruta'}${opt.pet&&infected(hoverStar)?' · <span style="color:#ff3b5c">astrófago</span>':''}</span>`,mx,my)}
+  if(hoverStar){cv.style.cursor='pointer';const d=gd(shipStar(),hoverStar),sp=SPEC[D.ship.d],ok=d<=alcance()||D.cr;
+    showTip(`<b>${esc(starName(hoverStar))}</b> · ${hoverStar.P.k}<br><span class="dim">${fmtLen(d)} de tu nave · ${ok?'<span class="ok">al alcance</span>':d<=legMax(D.ship.d)?'falta energía o materia':'requiere ruta'}${opt.pet&&infected(hoverStar)?' · <span style="color:#ff3b5c">astrófago</span>':''}</span>`,mx,my)}
   else if(shipHit&&Math.hypot(shipHit.x-mx,shipHit.y-my)<shipHit.r){cv.style.cursor='pointer';showTip('Tu nave · clic para centrar',mx,my)}
   else{cv.style.cursor=drag?'grabbing':'grab';tip.style.display='none'}
 });
@@ -4548,7 +4820,7 @@ cv.addEventListener('pointerup',e=>{
 });
 cv.addEventListener('pointercancel',e=>{ptrs.delete(e.pointerId);drag=null});
 cv.addEventListener('dblclick',e=>{if(mode!=='map')return;const s=pickStar(...pos(e));if(s)selectStar(s,true)});
-cv.addEventListener('wheel',e=>{e.preventDefault();lastInput=performance.now();idleDone=false;tg.R=clamp(tg.R*Math.exp(clamp(e.deltaY,-200,200)*.0013),1,3000)},{passive:false});
+cv.addEventListener('wheel',e=>{e.preventDefault();lastInput=performance.now();idleDone=false;if(mode!=='map'){V3.z=clamp(V3.z*Math.exp(-clamp(e.deltaY,-200,200)*.0013),.5,2.6);return}tg.R=clamp(tg.R*Math.exp(clamp(e.deltaY,-200,200)*.0013),1,3000)},{passive:false});
 const KEYS=new Set(['w','a','s','d','q','e','shift','arrowup','arrowdown','arrowleft','arrowright']);
 document.addEventListener('keydown',e=>{
   if(e.target.matches('input,textarea,select'))return;if(e.ctrlKey||e.metaKey||e.altKey)return;const k=e.key.toLowerCase();
@@ -4566,8 +4838,8 @@ document.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));addEventL
 
 /* ═════════ Pilotaje libre: la nave va a cualquier punto del espacio ═════════ */
 function pilotConsume(d){
-  if(!d)return true;if(D.cr){D.st.ly+=d;return true}const sp=SPEC[D.ship.d],s=D.st,need=d*sp.burn;if(s.fuel<need)return false;
-  s.fuel-=need;const days=d*365.25*.32;s.days+=days;s.yrs+=d*1.05;s.ly+=d;if(sp.prov)s.prov=Math.max(0,s.prov-eaters()*days*(D.hib&&sp.hib?.15:1)*(1-(sp.farm||0)));return true;
+  if(!d)return true;if(D.cr){D.st.ly+=d;return true}const sp=SPEC[D.ship.d],s=D.st,k=d*sp.burn*consumoMul(),need=k*EN_POR;if(s.fuel<need||(s.mat||0)<k)return false;
+  s.fuel-=need;s.mat-=k;const days=d*365.25*.32;s.days+=days;s.yrs+=d*1.05;s.ly+=d;if(sp.prov)s.prov=Math.max(0,s.prov-eaters()*days*(D.hib&&sp.hib?.15:1)*(1-(sp.farm||0)));return true;
 }
 function togglePilot(){if(!pilot&&rondaBloquea({k:'travel'})){toast(esc(MSG_RONDA));return}
   if(travel)return;if(NET.role==='client'){toast('En la sesión compartida sólo el anfitrión pilota a mano. Propón un destino.');return}if(pilot){stopPilot();return}if(mode!=='map')exitToMap();
@@ -4606,7 +4878,7 @@ function updateHud(){
   const sp=SPEC[D.ship.d],s=D.st,c=crewCount(),aliveC=alive(),mor=aliveC.length?aliveC.reduce((a,m)=>a+m.mor,0)/aliveC.length:100,auton=sp.prov&&c?s.prov/(c*(D.hib&&sp.hib?.15:1)*(1-(sp.farm||0))):Infinity;
   let near=0;for(const v of vis)if(v._f===frameNo&&Math.hypot(v.gx-cam.fx,v.gy-cam.fy,v.gz-cam.fz)<=cam.R)near++;
   $('#info').innerHTML=`<div><span>RANGO</span><b>${fmtLen(cam.R)}</b></div><div><span>CAMPO CERCANO</span><b>${mode==='map'?fmtI(near):'—'}</b></div><div><span>SECTOR</span><b>${esc(focusLoc(0).head)}</b></div><div><span>DESTINO</span><b>${selStar?esc(starName(selStar)):'—'}</b></div>`;
-  $('#hud').innerHTML=`<div><span>ASTRÓFAGO</span><b>${s.fuel.toFixed(1)} / ${sp.tank} t</b>${meter(s.fuel,sp.tank,'#e0aa46')}<em>alcance ${fmtLen(s.fuel/sp.burn)}</em></div>
+  $('#hud').innerHTML=`<div><span>ENERGÍA NEG.</span><b>${s.fuel.toFixed(1)} / ${ENC()} ${EN_U}</b>${meter(s.fuel,ENC(),'#b48cff')}<em>materia ${fmtI(s.mat||0)} / ${fmtI(MATC())} t</em>${meter(s.mat||0,MATC(),'#e0aa46')}<em>alcance ${fmtLen(alcance())}</em></div>
    <div><span>PROVISIONES</span><b>${sp.prov?fmtI(s.prov)+' d-p':'—'}</b>${sp.prov?meter(s.prov,sp.prov,'#7ee787'):''}<em>${sp.prov?(isFinite(auton)?fmtI(auton)+' días':'∞'):'nave no tripulada'}${D.hib&&sp.hib?' · hibernación':''}</em></div>
    <div><span>TRIPULACIÓN</span><b>${c} / ${sp.crew[1]}</b>${meter(mor,100,mor<35?'#ff6b6b':'#78dcff')}<em>moral ${Math.round(mor)}%</em></div>
    <div><span>CASCO</span><b>${Math.round(s.hull)}%</b>${meter(s.hull,100,s.hull<35?'#ff6b6b':'#cfd6e2')}<em>minerales ${Math.round(s.min)} t</em></div>
@@ -4626,7 +4898,7 @@ $('#drawerX').onclick=()=>toggleDrawer(false);
 let _shareT=0;
 function renderPanel(){if(tab==='sess'&&$('#sessDyn')){renderSessDyn();return}
   const ae=document.activeElement,pane=$('#p-'+tab);if(ae&&pane&&pane.contains(ae)&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))return;
-  if(tab==='share'){if(Date.now()-_shareT<3000&&$('#shareBody'))return;_shareT=Date.now()}({carta:renderCarta,plan:renderPlan,ship:renderShip,crew:renderCrew,fac:renderFac,base:renderBases,sess:renderSess,hist:renderHist,nav:renderNav,share:renderShare})[tab]()}
+  if(tab==='share'){if(Date.now()-_shareT<3000&&$('#shareBody'))return;_shareT=Date.now()}({carta:renderCarta,plan:renderPlan,ship:renderShip,crew:renderCrew,yo:renderYo,fac:renderFac,base:renderBases,sess:renderSess,hist:renderHist,nav:renderNav,share:renderShare})[tab]()}
 let ACTS=[];const A=(label,fn,dis,cls)=>{ACTS.push(fn);return`<button class="sm ${cls||''}" data-a="${ACTS.length-1}" ${dis?'disabled':''}>${label}</button>`};
 const bindActs=el=>el.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>ACTS[+b.dataset.a]());
 function starKV(st){const P=st.P,ship=shipStar();return`<div class="kv"><span>Clase</span><span>${P.k} · ${esc(P.lab)}</span><span>Temperatura</span><span>${fmtI(P.T)} K</span><span>Luminosidad</span><span>${P.lum<.01?P.lum.toExponential(1):P.lum.toFixed(2)} L☉</span>
@@ -4635,12 +4907,13 @@ function renderCarta(){
   const el=$('#p-carta');ACTS=[];
   if(mode==='system')return systemPanel(el);if(mode==='surface')return surfacePanel(el);
   const ship=shipStar(),sp=SPEC[D.ship.d],ml=legMax(D.ship.d);let h='';
+  {const p=PLG();if(p.on)h+=`<div class="card"><div class="kick" style="color:#ff3b5c">PLAGA · ${esc(PLN().toUpperCase())}</div><div class="res"><span>Población</span><span>${Math.round(p.P*100)} %</span></div>${meter(p.P,1,'#ff3b5c')}<div class="res"><span>Depredador</span><span>${Math.round(p.Q*100)} %</span></div>${meter(p.Q,1,'#7ee787')}<p class="note">Se propaga en tiempo real; donde vive su depredador no prospera y algunos sistemas son inmunes. Actívalo con «Petrova» para verla en la carta.</p></div>`}
   if(travel){h+=`<div class="kick">EN TRÁNSITO</div><h2>Rumbo a ${esc(starName(travel.legs[travel.legs.length-1].to))}</h2><p class="note">Salto ${travel.i+1} de ${travel.legs.length}.${D.hib&&sp.hib?' La tripulación duerme en las cápsulas.':''}</p>${travel.legs.length>travel.i+1?A('Detenerse tras este salto',()=>{travel.legs.length=travel.i+1;renderPanel()}):''}`;el.innerHTML=h;bindActs(el);return}
   if(pilot){
     let nb=null,nd=1e9;starsNear(pilot.pos[0],pilot.pos[1],pilot.pos[2],12,(s,d)=>{if(d<nd){nd=d;nb=s}});
     h+=`<div class="kick">PILOTAJE LIBRE</div><h2>${esc(D.ship.n||SHIPS[D.ship.d].n)}</h2><p class="note">Mueve la nave a cualquier lugar: WASD/flechas, Q/E para bajar o subir, Shift para turbo. La velocidad depende del zoom.${D.cr?' Modo creativo: sin consumo.':' Consume '+sp.burn+' t de astrófago por año luz.'}</p>
     <div class="kv"><span>Posición</span><span>${pilot.pos.map(v=>v.toFixed(2)).join(', ')} al</span><span>Recorrido</span><span>${fmtLen(pilot.moved)}</span><span>Estrella más cercana</span><span>${nb?esc(starName(nb))+' · '+fmtLen(nd):'ninguna a menos de 12 al'}</span></div>
-    <div class="row">${A('■ Detener la nave aquí',stopPilot,0,'pri')}${nb?A('Ir hasta '+esc(starName(nb)),()=>{pilot.pos=[nb.gx,nb.gy,nb.gz-.01];stopPilot()},!D.cr&&D.st.fuel<nd*sp.burn):''}</div>`;
+    <div class="row">${A('■ Detener la nave aquí',stopPilot,0,'pri')}${nb?A('Ir hasta '+esc(starName(nb)),()=>{pilot.pos=[nb.gx,nb.gy,nb.gz-.01];stopPilot()},!D.cr&&alcance()<nd):''}</div>`;
     el.innerHTML=h;bindActs(el);return;
   }
   if(selStar&&selStar.point){
@@ -4648,7 +4921,7 @@ function renderCarta(){
   }
   if(selStar){
     const s=selStar,here=sameStar(s,ship),inf=infected(s);
-    if(!s.point)h+=`<div class="kick">SISTEMA ESTELAR</div><h2 style="color:${opt.pet&&inf?'#ff3b5c':'#fff'}">${esc(starName(s))}</h2><div class="row">${s.anchor?'<span class="tag fx">mapa de la película</span>':''}${inf?'<span class="tag pet">astrófago</span>':''}${D.disc[sSeed(s)]?'<span class="tag hz">registrado</span>':''}</div>
+    if(!s.point)h+=`<div class="kick">SISTEMA ESTELAR</div><h2 style="color:${opt.pet&&inf?'#ff3b5c':'#fff'}">${esc(starName(s))}</h2><div class="row">${s.anchor?'<span class="tag fx">mapa de la película</span>':''}${plagaTag(s)}${destino(s)?`<span class="tag">${FATE[destino(s)].ic} ${FATE[destino(s)].n}</span>`:''}${estacion(s)?'<span class="tag hz">🛰 estación</span>':''}${D.disc[sSeed(s)]?'<span class="tag hz">registrado</span>':''}</div>
     ${s.anchor?`<p class="note">${esc(s.anchor.blurb)}</p>`:''}${starKV(s)}`;
     if(here)h+=`<p class="ok">Tu nave está en este sistema.</p><div class="row">${A('Entrar al sistema',()=>enterSystem(s),0,'pri')}</div>`;
     else if(!route||route.none)h+=`<p class="bad">No hay ruta con saltos de hasta ${fmtLen(ml)} dentro de un corredor razonable${gd(ship,s)>400?' (máx. 400 al por plan)':''}. Usa el <b>pilotaje libre</b> (tecla F), el modo creativo o un destino intermedio.</p><div class="row">${A('✈ Pilotar libremente',togglePilot,0,'pri')}${A('+ Añadir al plan',()=>addToPlan(s))}${s.point?'':A('Ver sistema (sondeo remoto)',()=>enterSystem(s))}</div>`;
@@ -4657,7 +4930,7 @@ function renderCarta(){
       h+=`<h3>Cálculo de navegación</h3><div class="calc"><span>Distancia</span><span>${fmtLen(t.d)} · ${route.legs.length} salto${route.legs.length>1?'s':''}</span>
       <span>Perfil</span><span>${sp.acc} g, volteo a mitad de camino</span><span>Velocidad máx.</span><span>${vmax.toFixed(vmax>.99?4:3)} c (γ ${Math.max(...route.legs.map(l=>l.g)).toFixed(1)})</span>
       <span>Tiempo a bordo</span><span>${fmtT(t.tau)}</span><span>Tiempo en la Tierra</span><span>${fmtT(t.tE)} · llegada ${(2026+D.st.yrs+t.tE).toFixed(1)}</span>
-      <span>Astrófago</span><span class="${D.cr||t.fuel<=D.st.fuel?'ok':'bad'}">${t.fuel.toFixed(1)} t de ${D.st.fuel.toFixed(1)} t</span>
+      <span>Energía negativa</span><span class="${D.cr||t.fuel<=D.st.fuel?'ok':'bad'}">${t.fuel.toFixed(1)} de ${D.st.fuel.toFixed(1)} ${EN_U}</span><span>Materia</span><span class="${D.cr||t.mat<=D.st.mat?'ok':'bad'}">${fmtI(t.mat)} de ${fmtI(D.st.mat||0)} t</span>${route.legs.some(l=>l.free)?'<span>Agujero negro</span><span class="ok">⚫ saltos sin gasto</span>':''}
       <span>Provisiones</span><span class="${!sp.prov||D.cr||t.prov<=D.st.prov?'ok':'bad'}">${sp.prov?fmtI(t.prov)+' de '+fmtI(D.st.prov)+' días-persona':'no aplica'}</span></div>
       ${sp.hib?`<label class="chk"><input type="checkbox" id="hibT" ${D.hib?'checked':''}> Hibernación en cápsulas de coma (provisiones ×0,15, riesgo al despertar)</label>`:''}
       ${err?`<p class="bad">✗ ${esc(cap(err.err))}${route.legs.indexOf(err)>0?` (salto ${route.legs.indexOf(err)+1})`:''}</p>`:'<p class="ok">✓ Todo listo para el salto.</p>'}
@@ -4670,7 +4943,7 @@ function renderCarta(){
     h+=`<div class="kick">REGIÓN</div><h2>${esc(regionName(fl))}</h2><div class="seed">${esc(seedStr(fl))}</div>
     <div class="kv"><span>Sector</span><span>${esc(fl.head)} · (${fl.sx}, ${fl.sy}, ${fl.sz})</span><span>Foco (x, y, z)</span><span>${[cam.fx,cam.fy,cam.fz].map(v=>v.toFixed(2)).join(', ')} al</span><span>Desde el Sol</span><span>${fmtLen(Math.hypot(cam.fx,cam.fy,cam.fz))}</span><span>Densidad</span><span>${Math.round(density(cam.fx,cam.fy,cam.fz)*100)}%</span></div>
     <div class="row">${A('⌖ Fijar destino en el foco',()=>selectStar(pointAt(cam.fx,cam.fy,cam.fz)),0,'pri')}${A('✈ Pilotar',togglePilot)}${A('Copiar semilla',()=>copy(seedStr(fl),'Semilla copiada'))}${A('Copiar enlace',()=>copy(baseUrl()+'#s='+encodeURIComponent(seedStr(fl)),'Enlace copiado'))}</div>
-    <h3>Sistemas a un salto de ${esc(starName(ship))} (máx. ${fmtLen(ml)})</h3><div class="lst">${list.slice(0,14).map(([d,s],i)=>{ACTS.push(()=>selectStar(s,true));const ok=D.cr||d*sp.burn<=D.st.fuel;
+    <h3>Sistemas a un salto de ${esc(starName(ship))} (máx. ${fmtLen(ml)})</h3><div class="lst">${list.slice(0,14).map(([d,s],i)=>{ACTS.push(()=>selectStar(s,true));const ok=D.cr||d<=alcance();
       return`<div class="item" data-a="${ACTS.length-1}"><span style="color:${opt.pet&&infected(s)?'#ff3b5c':s.P.col}">●</span><div class="m"><b>${esc(starName(s))}</b><i>${s.P.k} · ${fmtLen(d)}${D.disc[sSeed(s)]?' · registrado':''}</i></div><span class="${ok?'ok':'bad'}">${ok?'✓':'✗'}</span></div>`}).join('')||'<p class="note">Ninguna estrella al alcance. Recolecta astrófago o cambia de nave.</p>'}</div>
     <p class="note">Clic en una estrella para calcular el salto · «Fijar destino» viaja a cualquier punto (la retícula del centro) · «Pilotar» (F) mueve la nave libremente.</p>`;
   }
@@ -4684,15 +4957,17 @@ function systemPanel(el){
   h+=`<p class="note story">${sysLore(S).map(esc).join(' ')}</p>`;
   if(here){
     const used=D.ex[sk+':-1']||0;h+=`<h3>Acciones en órbita</h3><div class="row">`;
-    if(infected(S.star))h+=A(`Recolectar astrófago · 30 d (${3-used}/3)`,()=>orbitAct('fuel',0,'Recolectar astrófago en '+S.name),s.fuel>=sp.tank||used>=3,'pri');
-    else h+=`<span class="note">Esta estrella no tiene astrófago.</span>`;
+    const u=k=>D.ex[sk+':'+k]||0;
+    h+=A(`⛏ Extraer materia · 15 d (${3-u('mat')}/3)`,()=>orbitAct('mat',0,'Extraer materia en '+S.name),(s.mat||0)>=MATC()||u('mat')>=3,'pri');
+    if(destino(S.star))h+=A(`${FATE[destino(S.star)].ic} Recolectar energía negativa · 20 d (${3-u('en')}/3)`,()=>orbitAct('en',0,'Recolectar energía negativa en '+S.name),s.fuel>=ENC()||u('en')>=3,'pri');
+    h+=A(`🌱 Cultivar con luz estelar · 15 d (${3-u('luz')}/3)`,()=>orbitAct('luz',0,'Cultivar con la luz de '+S.name),s.prov>=sp.prov||u('luz')>=3||S.P.lum<.02);
     h+=A('Descansar · 10 d',()=>orbitAct('rest',0,'Descansar 10 días en '+S.name));
     h+=A('Reparar casco · 5 d (10 t)',()=>orbitAct('rep',0,'Reparar el casco'),s.min<10||s.hull>=100);
     h+=A('Escanear todo',()=>orbitAct('scanall',0,'Escanear todos los planetas de '+S.name));
     if(S.star.anchor&&S.star.anchor.id==='sol')h+=A('Reabastecer en la Tierra · 60 d',()=>orbitAct('earth',0,'Reabastecer en la Tierra (60 días)'),0,'pri');
     h+=`</div>`;
     const due=FX().mis.filter(m=>misHere(m,S.star));if(due.length)h+=`<h3>Contratos aquí</h3><div class="row">${due.map(m=>A(`${MTY[m.ty].ic} Cumplir: ${esc(MTY[m.ty].n)} (${esc(FAC[m.g].s)})`,()=>cmd({k:'fac',a:'do',id:m.id},'Cumplir el contrato '+m.id),NET.role==='client','pri')).join('')}</div>`;
-    h+=boardHtml(S);
+    h+=estacionHtml(S);h+=boardHtml(S);
   }else h+=`<p class="note">Datos de sondeo remoto. Viaja hasta aquí para escanear, aterrizar y recolectar.</p>`;
   h+=`<div class="row">${A('+ Añadir este sistema al plan',()=>addToPlan(S.star))}</div>`;
   h+=`<h3>Planetas</h3><div class="lst">`;
@@ -4740,15 +5015,20 @@ function renderShip(){
   <div class="kick">${esc(S.n.toUpperCase())}</div><h2>${esc(s.n||S.n)}</h2><p class="note">${esc(S.d)}</p>
   <h3>Escala real</h3>${[[`${s.n||S.n}`,sp.len,1],...refs.map(r=>[r[0],r[1],0])].sort((a,b)=>a[1]-b[1]).map(([n,v,me])=>`<div class="scale-row ${me?'me':''}"><span>${esc(n)}</span><i style="width:${Math.max(1,v/mx*100)}%"></i><span>${fmtI(v)} m</span></div>`).join('')}
   ${sp.extra?`<p class="note">Más ${esc(sp.extra)}.</p>`:''}<p class="note">En la carta la nave es un símbolo: a escala real mediría una diez billonésima de píxel.</p>
-  <h3>Especificaciones</h3><div class="kv"><span>Eslora</span><span>${fmtI(sp.len)} m</span><span>Masa seca</span><span>${fmtI(sp.mass)} t</span><span>Motor</span><span>Astrófago · ${sp.acc} g</span><span>Tanque</span><span>${fmtI(sp.tank)} t (${sp.burn} t/al)</span><span>Salto máximo</span><span>${fmtLen(legMax(s.d))}</span><span>Bodega</span><span>${fmtI(sp.cargo)} t</span><span>Tripulación</span><span>${sp.crew[0]}–${sp.crew[1]}</span><span>Extras</span><span>${[sp.hib&&'cápsulas de coma',sp.land&&'aterriza',!sp.land&&'lanzadera',sp.solar&&'recarga solar',sp.farm&&'granjas'].filter(Boolean).join(', ')}</span></div>
+  <h3>Especificaciones</h3><div class="kv"><span>Eslora</span><span>${fmtI(sp.len)} m</span><span>Masa seca</span><span>${fmtI(sp.mass)} t</span><span>Motor</span><span>Curvatura · ${sp.acc} g</span><span>Energía negativa</span><span>${fmtI(ENC())} ${EN_U} (${+(sp.burn*EN_POR*consumoMul()).toFixed(2)}/al)</span><span>Materia</span><span>${fmtI(MATC())} t (${+(sp.burn*consumoMul()).toFixed(2)} t/al)</span><span>Salto máximo</span><span>${fmtLen(legMax(s.d))}</span><span>Bodega</span><span>${fmtI(sp.cargo)} t</span><span>Tripulación</span><span>${sp.crew[0]}–${sp.crew[1]}</span><span>Extras</span><span>${[sp.hib&&'cápsulas de coma',sp.land&&'aterriza',!sp.land&&'lanzadera',sp.solar&&'recarga solar',sp.farm&&'granjas'].filter(Boolean).join(', ')}</span></div>
   <h3>Estado</h3>
-  <div class="res"><span>Astrófago</span><span>${st.fuel.toFixed(1)} / ${sp.tank} t</span></div>${meter(st.fuel,sp.tank,'#e0aa46')}
+  <div class="res"><span>Energía negativa</span><span>${st.fuel.toFixed(1)} / ${ENC()} ${EN_U}</span></div>${meter(st.fuel,ENC(),'#b48cff')}
+  <div class="res"><span>Materia</span><span>${fmtI(st.mat||0)} / ${fmtI(MATC())} t</span></div>${meter(st.mat||0,MATC(),'#e0aa46')}
   <div class="res"><span>Provisiones</span><span>${sp.prov?fmtI(st.prov)+' / '+fmtI(sp.prov):'—'}</span></div>${sp.prov?meter(st.prov,sp.prov,'#7ee787'):''}
   <div class="res"><span>Casco</span><span>${Math.round(st.hull)}%</span></div>${meter(st.hull,100,'#cfd6e2')}
   <div class="res"><span>Minerales</span><span>${Math.round(st.min)} / ${fmtI(sp.cargo)} t</span></div>${meter(st.min,sp.cargo,'#9b9186')}
   ${sp.hib?`<label class="chk"><input type="checkbox" id="hib" ${D.hib?'checked':''}> Hibernar a la tripulación durante los saltos</label>`:''}
   <label class="chk"><input type="checkbox" id="cre" ${D.cr?'checked':''}> Modo creativo (sin consumo de recursos)</label>
   <div class="row">${A('Reparar casco (10 t → +12%)',()=>orbitAct('rep',0,'Reparar el casco'),st.min<10||st.hull>=100||shipStar().point)}${A('📡 Pedir rescate',()=>{if(confirm('Una nave de Ad Astra remolcará la tuya hasta la Tierra. Pierdes la carga y pasan 10 años. ¿Continuar?'))cmd({k:'rescue'},'Pedir rescate a la Tierra')},!!travel)}</div>
+  ${emergenciaHtml()}
+  <h3>Aditamentos (${(D.ship.mods||[]).length}/${modSlots()} huecos)</h3>${(D.ship.mods||[]).length?`<div class="lst">${D.ship.mods.map(k=>`<div class="item"><span>${MODS[k].ic}</span><div class="m"><b>${esc(MODS[k].n)}</b><i>${esc(MODS[k].d)}</i></div>${estacion(shipStar())?A('Desmontar',()=>cmd({k:'tienda',q:'desm:'+k},'Desmontar '+MODS[k].n),NET.role==='client'):''}</div>`).join('')}</div>`:'<p class="note">Ninguno. Se compran e instalan en las estaciones de comercio.</p>'}
+  <h3>Bonos de rol</h3>${bonosRol().length?`<ul class="note">${bonosRol().map(([,t])=>`<li>${esc(t)}</li>`).join('')}</ul>`:'<p class="note">Nadie a bordo con un rol activo.</p>'}<p class="note">Además, cada tripulante tiene +1 en la estadística de su rol.</p>
+  <h3>Comodidad de la tripulación</h3><p class="note">${(INCOMODA[D.ship.d]||[]).length&&!hasMod('habitat')?`Esta nave no está pensada para: ${esc(INCOMODA[D.ship.d].join(', '))}. Viajan incómodos (−1 a todo y pierden moral).`:'Todas las especies viajan cómodas en esta nave.'}${alive().filter(incomodo).length?` A bordo: ${esc(alive().filter(incomodo).map(m=>m.nm).join(', '))}.`:''}</p>
   ${holdHtml()}
   <h3>Astillero ${atSol||D.cr?'':'<span class="dim">(sólo en el Sistema Solar o en modo creativo)</span>'}</h3>
   <div class="ships">${Object.entries(SHIPS).map(([k,v])=>`<button data-k="${k}" class="${k===s.d?'on':''}" ${atSol||D.cr||k===s.d?'':'disabled'}>${shipImg(k,s.c1,s.c2,52)}<span>${v.n}</span><span class="dim">${fmtI(SPEC[k].len)} m</span></button>`).join('')}</div>
@@ -4777,6 +5057,21 @@ function drawPreview(now){
 /* Barra de estadística: si pasa de 12 se vuelve a llenar por encima con otro color (×2, ×3…) para no salirse */
 const LAPC=['#cfd6e2','#e0aa46','#ff7b72','#d2a8ff','#7ee787'];
 function statBar(v){v=Math.max(0,v);const lap=v>12?Math.floor((v-1)/12):0,r=v-lap*12;return`<span class="sb" style="${lap?'background:'+LAPC[(lap-1)%LAPC.length]:''}" title="${v}"><i style="width:${(r/12*100).toFixed(1)}%;background:${LAPC[lap%LAPC.length]}"></i>${lap?`<em class="lap">×${lap+1}</em>`:''}</span>`}
+/* Mi ficha: el personaje de este jugador, en tiempo real (se repinta con cada cambio de la partida) */
+function miPersonaje(){return D.crew.find(m=>m.mid&&m.st!=='perdido'&&(NET.role?m.pid===NET.me:true))||null}
+function renderYo(){const el=$('#p-yo'),m=miPersonaje();ACTS=[];
+  if(!m){el.innerHTML=`<div class="kick">MI FICHA</div><h2>Sin personaje</h2><p class="note">Sube tu credencial de Members para ver aquí tu personaje en tiempo real.</p><div class="row">${A('⬆ Subir mi ficha',subirCredencial,0,'pri')}</div>`;bindActs(el);return}
+  const b=m.bz?baseById(m.bz):null,es=m.esp?starFromSeed(m.esp):null,up=m.s0?KS.filter(k=>m.s[k]!==m.s0[k]).map(k=>`${STATN[k]} ${m.s0[k]}→${m.s[k]}`).join(', '):'',dv=Math.max(0,Math.round(D.st.days-(m.d0||0)));
+  el.innerHTML=`<div class="kick">MI FICHA · EN TIEMPO REAL</div><div class="dh">${portrait(m)}<div><h2 style="margin:0">${esc(m.nm)}</h2><div class="note">${esc(m.sp)} · ${ROLES[m.role]} · nivel ${m.lv}${m.mid?' · '+esc(m.mid):''}</div>${m.trf?`<div class="note">🔀 traspasado desde ${esc(m.trf.cn||m.trf.cr)}</div>`:''}</div></div>
+  <p class="${m.st==='ok'?'ok':'bad'}">${m.st==='ok'?'En la ronda':b?'🏠 En '+esc(b.n):es?'🤝 Esperando en '+esc(starName(es)):'❄ Animación suspendida'}${incomodo(m)?' · ⚠ incómodo en esta nave':''}</p>
+  <div class="res"><span>Salud</span><span>${Math.round(m.hp)}%</span></div>${meter(m.hp,100,m.hp<50?'#ff6b6b':'#7ee787')}
+  <div class="res"><span>Moral</span><span>${Math.round(m.mor)}%</span></div>${meter(m.mor,100,m.mor<30?'#ff6b6b':'#78dcff')}
+  <div class="res"><span>Experiencia</span><span>${Math.round(m.xp)} / ${30*m.lv}</span></div>${meter(Math.min(m.xp,30*m.lv),30*m.lv,'#e0aa46')}
+  <div class="stats">${STATS.map(([k,n])=>`<span>${n}${m.role===k?' ★':''}</span>${statBar(eff(m,k))}<b>${eff(m,k)}</b>`).join('')}</div>
+  <p class="note">★ +1 por tu rol. <b>${esc(m.tr)}</b>: ${esc((TRAITS[m.tr]||{d:''}).d)}</p>
+  <div class="kv"><span>Días de vuelo</span><span>${fmtI((m.fv0||0)+dv)} (${fmtI(dv)} en esta partida)</span><span>Misiones</span><span>${m.ms0||0}</span>${up?`<span>Mejoras</span><span>${esc(up)}</span>`:''}</div>
+  ${memberInvHtml(m)}
+  ${m.mid?`<div class="row">${A('🏁 Mi ficha actualizada en Members',()=>miFicha(m),0,'pri')}</div>`:''}`;bindActs(el);bindMv(el)}
 function renderCrew(){
   const el=$('#p-crew'),sp=SPEC[D.ship.d],a=alive(),lost=D.crew.filter(m=>m.st==='perdido'),zz=suspended();ACTS=[];
   el.innerHTML=`<div class="kick">FICHAS DE TRIPULACIÓN</div><h2>${crewCount()} en activo${zz.length?` · ${zz.length} ❄`:''}</h2><p class="note">Mínimo para operar: ${sp.crew[0]} · capacidad ${sp.crew[1]}${D.st.extra?` · ${fmtI(D.st.extra)} en la tripulación general`:''}.</p>
@@ -4790,6 +5085,7 @@ function renderCrew(){
     <div class="row">${A('❄ Animación suspendida',()=>cmd({k:'crew',a:'susp',id:m.id},'Dejar a '+m.nm+' en animación suspendida'),NET.role==='client')}</div>
     ${m.mid?`<div class="row">${A('Actualizar su tarjeta en Members',async()=>{const u=await exportLink(m);window.open(u,'_blank','noopener')})}${A('Copiar enlace',async()=>copy(await exportLink(m),'Enlace de actualización copiado'))}</div>`:''}</div>`}).join('')||'<p class="note">Nave no tripulada: la IA de a bordo se encarga de todo.</p>'}
   ${zz.length?`<h3>❄ En animación suspendida</h3><p class="note">Siguen a bordo y su equipo cuenta, pero no participan en la ronda: no tiran, no deciden por su rol, no reciben daño ni XP y comen un 15 %. Al volver a subir su credencial a la sala despiertan solos.</p><div class="lst">${zz.map(m=>`<div class="item"><span>${portrait(m)}</span><div class="m"><b>${esc(m.nm)}${m.pl?` <span class="dim">· ${esc(m.pl)}</span>`:''}</b><i>${esc(m.sp)} · ${ROLES[m.role]} · nivel ${m.lv}</i></div>${A('☀ Despertar',()=>cmd({k:'crew',a:'wake',id:m.id},'Despertar a '+m.nm),NET.role==='client')}</div>`).join('')}</div>`:''}
+  ${esperando().length?`<h3>🤝 Esperando a la nave</h3><p class="note">Se unieron con la partida en marcha y esperan en un sistema de la facción dominante de la nave. Suben a bordo al llegar allí.</p><div class="lst">${esperando().map(m=>{const s=starFromSeed(m.esp);return`<div class="item"><span>${portrait(m)}</span><div class="m"><b>${esc(m.nm)}${m.pl?` <span class="dim">· ${esc(m.pl)}</span>`:''}</b><i>en ${esc(s?starName(s):'?')}${s?' · a '+fmtLen(gd(s,shipStar())):''}</i></div>${s?A('Ver',()=>{if(mode!=='map')exitToMap();selectStar(s,true)}):''}</div>`}).join('')}</div>`:''}
   ${enBase().length?`<h3>🏠 En bases y colonias</h3><p class="note">Fuera de la nave y de la ronda. Se recogen desde la pestaña Bases con la nave en su sistema.</p><div class="lst">${enBase().map(m=>{const b=baseById(m.bz);return`<div class="item"><span>${portrait(m)}</span><div class="m"><b>${esc(m.nm)}${m.pl?` <span class="dim">· ${esc(m.pl)}</span>`:''}</b><i>${esc(m.sp)} · ${ROLES[m.role]} · en ${esc(b?b.n:'?')}</i></div></div>`}).join('')}</div>`:''}
   ${lost.length?`<h3>En memoria</h3><p class="note">${lost.map(m=>esc(m.nm)).join(' · ')}</p>`:''}`;bindActs(el);bindMv(el);
 }
@@ -4857,12 +5153,12 @@ const BLOQ_RONDA=new Set(['travel','plan','orbit','civ','exp','base','rescue']);
 function rondaBloquea(c){if(RONDA||!c)return false;if(c.k==='fac')return!['move','drop'].includes(c.a);return BLOQ_RONDA.has(c.k)}
 const MSG_RONDA='⏳ La ronda todavía no ha empezado: hace falta al menos un tripulante con credencial.';
 function hayPartida(){const s=D.st||{};return(s.jumps|0)>0||(s.days||0)>0||D.crew.some(m=>m.mid)||Object.keys(D.disc||{}).length>1||(D.bases||[]).length>0}
-function nuevaPartida(pnj){
+function nuevaPartida(pnj,plaga){
   const sp=SPEC[D.ship.d];D.st=freshState(D.ship.d);D.crew=[];if(pnj){const n=newCrew(D.ship.d);D.crew=n.c;D.st.extra=n.extra}else D.st.extra=sp.c0;
-  Object.assign(D,{sp:sSeed(SOL),hib:0,cr:0,ex:{},scan:{},disc:{},q:0,qf:{},plan:null,rep:{},fx:null,bases:[],conv:[],rutas:[],intro:0,crewLogo:null});
+  Object.assign(D,{sp:sSeed(SOL),hib:0,cr:0,ex:{},scan:{},disc:{},q:0,qf:{},plan:null,rep:{},fx:null,bases:[],conv:[],rutas:[],intro:0,crewLogo:null,hf:{},nova:{},pl:{on:plaga&&plaga.on?1:0,n:String(plaga&&plaga.n||'Astrófago').trim().slice(0,24)||'Astrófago',P:.3,Q:.25,t:0}});D.ship.mods=[];D.st.mat=MATC();D.st.fuel=ENC();
   _sp='';travel=null;route=null;selStar=null;if(mode!=='map')exitToMap();saveD();updateCrewLogo();centerOnShip();refresh();
 }
-function introRonda(){if(D.intro)return;D.intro=1;saveD();queueDialog({t:'Corporación Ad Astra · Orden de misión',who:alive()[0]||null,tx:`Capitán: el Sol pierde brillo y nadie sabe por qué, salvo que hay algo —lo llaman astrófago— alimentándose de su luz. Tau Ceti, a 11,9 años luz, parece inmune. Tu nave y tu tripulación están listas. Cada salto cuesta astrófago, provisiones y años. Elige bien.`,res:'Primera misión: '+QUESTS[0].t,next:'Consejo: selecciona una estrella en la carta para calcular el salto.'})}
+function introRonda(){if(D.intro)return;D.intro=1;saveD();queueDialog({t:'Corporación Ad Astra · Orden de misión',who:alive()[0]||null,tx:`Capitán: ${PLG().on?`el Sol pierde brillo y nadie sabe por qué, salvo que hay algo —lo llaman ${PLN()}— alimentándose de su luz. Tau Ceti, a 11,9 años luz, parece inmune.`:'la Corporación necesita cartografiar el vecindario del Sol, empezando por Tau Ceti, a 11,9 años luz.'} Tu nave vuela con motor de curvatura: cada salto gasta materia (se extrae en cualquier sistema) y energía negativa (estrellas muertas, agujeros negros, contratos o estaciones de comercio). Elige bien.`,res:'Primera misión: '+QUESTS[0].t,next:'Consejo: selecciona una estrella en la carta para calcular el salto.'})}
 function empezarRonda(){
   if(NET.role==='client')return;const n=miembrosActivos().length;if(!n){toast('Sube al menos una credencial de Members para empezar.');return}
   RONDA=true;const t=`▶ Empieza la ronda con ${n} tripulante${n===1?'':'s'}: ${miembrosActivos().map(m=>m.nm).join(', ')}.`;logDM(t,'sys');toast(esc(t));
@@ -4889,6 +5185,7 @@ function pantallaInicio(join){
     <label class="chk"><input type="radio" name="iniP" value="seguir" checked> Continuar esta partida</label></div>`:''}
   <div class="card"><label class="chk"><input type="radio" name="iniP" value="nueva" ${hay?'':'checked'}> Nueva partida${hay?' <span class="bad">(reemplaza la guardada)</span>':''}</label>
     <label class="chk" style="margin-left:22px"><input type="checkbox" id="iniPnj"> Añadir tripulantes generados (PNJ) además de los jugadores</label>
+    <label class="chk" style="margin-left:22px"><input type="checkbox" id="iniPl" checked> Plaga activa, llamada <input id="iniPlN" maxlength="24" value="Astrófago" style="width:130px"> (se propaga en tiempo real; su depredador la controla)</label>
     <label class="chk"><input type="radio" name="iniP" value="archivo"> Cargar una partida desde archivo (.partida)</label><input type="file" id="iniFile" accept=".partida,application/octet-stream" hidden></div>
   <div class="card"><div class="kick">CÓMO SE JUEGA</div>
     <label class="chk"><input type="radio" name="iniM" value="solo" checked> En este dispositivo</label>
@@ -4903,7 +5200,7 @@ function pantallaInicio(join){
   ov.querySelector('#iniGo').onclick=async()=>{
     const p=elegido('iniP'),m=elegido('iniM');
     if(p==='archivo'){const f=ov.querySelector('#iniFile');f.onchange=()=>{if(f.files[0]){cerrar();loadSaveFile(f.files[0]);if(m==='host')setTimeout(hostSession,300)}};f.click();return}
-    if(p==='nueva'){if(hay&&!confirm('¿Empezar una partida nueva? La guardada en este dispositivo se perderá (descárgala antes desde «Partida» si la quieres).'))return;nuevaPartida(ov.querySelector('#iniPnj').checked)}
+    if(p==='nueva'){if(hay&&!confirm('¿Empezar una partida nueva? La guardada en este dispositivo se perderá (descárgala antes desde «Partida» si la quieres).'))return;nuevaPartida(ov.querySelector('#iniPnj').checked,{on:ov.querySelector('#iniPl').checked,n:ov.querySelector('#iniPlN').value})}
     cerrar();if(m==='host'){D.n=D.n||'Director';hostSession();toggleDrawer(true);setTab('sess')}
     else if(!miembrosActivos().length)setTimeout(subirCredencial,450)};
   ov.querySelector('#iniJoin').onclick=()=>{const c=ov.querySelector('#iniCode').value.trim().toUpperCase();if(!/^[A-Z2-9]{5}$/.test(c)){toast('Escribe el código de 5 caracteres de la sala.');return}cerrar();joinSession(c)};
@@ -4919,9 +5216,9 @@ async function pipe(u8,Ctor){const s=new Ctor('deflate-raw'),w=s.writable.getWri
 const KS=STATS.map(s=>s[0]);
 function snapshot(maxN){
   const sh=D.ship,s=D.st;
-  return{v:3,n:D.n||'',c:seedStr(focusLoc(14)),sh:[sh.d,sh.n||'',sh.c1,sh.c2],sp:D.sp,
-    st:[+s.fuel.toFixed(2),Math.round(s.prov),s.extra|0,Math.round(s.hull),Math.round(s.min),+s.days.toFixed(1),+s.yrs.toFixed(3),s.jumps,+s.ly.toFixed(2)],
-    cw:D.crew.map(m=>[m.nm,m.sp,m.role,KS.map(k=>m.s[k]),m.tr,Math.round(m.hp),Math.round(m.mor),m.xp,m.lv,m.st==='perdido'?1:m.st==='susp'?2:0,m.bio,m.mid||'',m.pid||'',m.pl||'',m.e0??'',m.s0?KS.map(k=>m.s0[k]):0,m.lv0||0,m.t||'',m.n0||'',m.id,m.fv0||0,m.ms0||0,m.mi0||'',m.d0||0,m.ph||'',m.inv&&invCount(m.inv)?m.inv:0,memberFa(m).length?memberFa(m):0,m.trf||0,m.crewName||'',m.bz||'']),hf:D.hf||{},lg:D.crewLogo||null,pl:D.plan||null,rp:D.rep||{},fx:D.fx||null,bs:D.bases||[],cv:D.conv||[],rt:D.rutas||[],
+  return{v:3,n:D.n||'',c:seedStr(focusLoc(14)),sh:[sh.d,sh.n||'',sh.c1,sh.c2,sh.mods||[]],sp:D.sp,
+    st:[+s.fuel.toFixed(2),Math.round(s.prov),s.extra|0,Math.round(s.hull),Math.round(s.min),+s.days.toFixed(1),+s.yrs.toFixed(3),s.jumps,+s.ly.toFixed(2),Math.round(s.mat||0)],pli:D.pl||null,nv:D.nova||{},
+    cw:D.crew.map(m=>[m.nm,m.sp,m.role,KS.map(k=>m.s[k]),m.tr,Math.round(m.hp),Math.round(m.mor),m.xp,m.lv,m.st==='perdido'?1:m.st==='susp'?2:0,m.bio,m.mid||'',m.pid||'',m.pl||'',m.e0??'',m.s0?KS.map(k=>m.s0[k]):0,m.lv0||0,m.t||'',m.n0||'',m.id,m.fv0||0,m.ms0||0,m.mi0||'',m.d0||0,m.ph||'',m.inv&&invCount(m.inv)?m.inv:0,memberFa(m).length?memberFa(m):0,m.trf||0,m.crewName||'',m.bz||'',m.esp||'']),hf:D.hf||{},lg:D.crewLogo||null,pl:D.plan||null,rp:D.rep||{},fx:D.fx||null,bs:D.bases||[],cv:D.conv||[],rt:D.rutas||[],
     f:[D.hib?1:0,D.cr?1:0,D.q|0,D.anon?1:0,typeof RONDA!=='undefined'&&RONDA?1:0],ex:D.ex,sc:Object.keys(D.scan),ds:Object.keys(D.disc),
     cm:[cam.fx,cam.fy,cam.fz,cam.R,cam.yaw,cam.pitch].map(v=>+v.toFixed(3)),op:[opt.color?1:0,opt.spin?1:0,opt.nav?1:0,opt.pet?1:0],b:D.base||'',
     h:D.h.slice(-maxN).map(e=>[e.s,Math.round(e.t/1000).toString(36),e.k,e.f?1:0,e.n||''])};
@@ -4929,14 +5226,16 @@ function snapshot(maxN){
 function normState(st){
   if(!st||(st.v!==2&&st.v!==3)||!Array.isArray(st.h))throw new Error('formato');
   st.h=st.h.map(a=>({s:String(a[0]||''),t:parseInt(a[1],36)*1000,k:['m','s','j'].includes(a[2])?a[2]:'m',f:a[3]?1:0,n:String(a[4]||'').slice(0,120)})).filter(e=>parseSeed(e.s).loc);
-  if(Array.isArray(st.sh))st.ship=cleanShip({d:st.sh[0],n:st.sh[1],c1:st.sh[2],c2:st.sh[3]});
+  if(Array.isArray(st.sh))st.ship=cleanShip({d:st.sh[0],n:st.sh[1],c1:st.sh[2],c2:st.sh[3],mods:st.sh[4]});
   if(st.sp&&!starFromSeed(st.sp))delete st.sp;
   if(st.v===3){const a=st.st,num=(v,d)=>isFinite(+v)?+v:d;
-    st.game={fuel:Math.max(0,num(a[0],0)),prov:Math.max(0,num(a[1],0)),extra:Math.max(0,num(a[2],0)|0),hull:clamp(num(a[3],100),0,100),min:Math.max(0,num(a[4],0)),days:num(a[5],0),yrs:num(a[6],0),jumps:num(a[7],0)|0,ly:num(a[8],0)};
+    st.game={fuel:Math.max(0,num(a[0],0)),prov:Math.max(0,num(a[1],0)),extra:Math.max(0,num(a[2],0)|0),hull:clamp(num(a[3],100),0,100),min:Math.max(0,num(a[4],0)),days:num(a[5],0),yrs:num(a[6],0),jumps:num(a[7],0)|0,ly:num(a[8],0),mat:a[9]!=null?Math.max(0,num(a[9],0)):null};if(st.game.mat==null)delete st.game.mat;
+    {const p=st.pli;st.pl=p&&typeof p==='object'?{on:p.on?1:0,n:String(p.n||'Astrófago').slice(0,24),P:clamp(+p.P||.3,.03,.95),Q:clamp(+p.Q||.25,.02,.9),t:Math.max(0,+p.t||0)}:null;
+     st.nova=Object.fromEntries(Object.entries(st.nv&&typeof st.nv==='object'?st.nv:{}).slice(-60).filter(([k,v])=>starFromSeed(k)&&v&&(v.f==='bh'||v.f==='ns')).map(([k,v])=>[k,{f:v.f,d:+v.d||0,rt:+v.rt||0,n:String(v.n||'').slice(0,40)}]))}
     st.crew=(st.cw||[]).slice(0,12).map(c=>({id:Math.random().toString(36).slice(2),nm:String(c[0]).slice(0,40),sp:SPEMO[c[1]]?c[1]:'Zorro',role:ROLES[c[2]]?c[2]:'pil',s:Object.fromEntries(KS.map((k,i)=>[k,clamp(+((c[3]||[])[i])||3,1,12)])),
       tr:TRAITS[c[4]]?c[4]:'Curioso',hp:clamp(+c[5]||100,0,100),mor:clamp(+c[6]||70,0,100),xp:+c[7]||0,lv:clamp(+c[8]||1,1,20),st:c[9]===2?'susp':c[9]?'perdido':'ok',bio:String(c[10]||'').slice(0,200),
       ...(c[11]?{mid:String(c[11]).slice(0,8)}:{}),...(c[12]?{pid:String(c[12]).slice(0,60)}:{}),...(c[13]?{pl:String(c[13]).slice(0,24)}:{}),...(c[14]!==undefined&&c[14]!==''?{e0:String(c[14]).slice(0,40)}:{}),
-      ...(Array.isArray(c[15])?{s0:Object.fromEntries(KS.map((k,i)=>[k,clamp(+c[15][i]||3,1,12)]))}:{}),...(c[16]?{lv0:+c[16]|0}:{}),...(c[17]?{t:String(c[17]).slice(0,30)}:{}),...(c[18]?{n0:String(c[18]).slice(0,40)}:{}),...(c[19]?{id:String(c[19]).slice(0,40)}:{}),...(c[20]?{fv0:+c[20]|0}:{}),...(c[21]?{ms0:+c[21]|0}:{}),...(c[22]?{mi0:String(c[22]).slice(0,8)}:{}),...(c[23]?{d0:+c[23]||0}:{}),...(okImg(c[24])?{ph:c[24]}:{}),...(c[25]&&typeof c[25]==='object'?{inv:Object.fromEntries(Object.entries(c[25]).filter(([k,n])=>okItem(k)&&+n>0).slice(0,CAP_M).map(([k,n])=>[k,Math.min(CAP_M,+n|0)]))}:{}),...(Array.isArray(c[26])&&c[26].length?{fa:c[26].filter(f=>FAC[f]).slice(0,6)}:{}),...(c[27]&&/^AA-[A-Z2-9]{4}$/.test(c[27].id)&&/^CR-[A-Z2-9]{6}$/.test(c[27].cr)?{trf:{n:clamp(c[27].n|0,1,999),id:c[27].id,cr:c[27].cr,cn:String(c[27].cn||c[27].cr).slice(0,30)}}:{}),...(c[28]?{crewName:String(c[28]).slice(0,30)}:{}),...(c[29]&&c[9]===2?{bz:String(c[29]).slice(0,8)}:{})}));
+      ...(Array.isArray(c[15])?{s0:Object.fromEntries(KS.map((k,i)=>[k,clamp(+c[15][i]||3,1,12)]))}:{}),...(c[16]?{lv0:+c[16]|0}:{}),...(c[17]?{t:String(c[17]).slice(0,30)}:{}),...(c[18]?{n0:String(c[18]).slice(0,40)}:{}),...(c[19]?{id:String(c[19]).slice(0,40)}:{}),...(c[20]?{fv0:+c[20]|0}:{}),...(c[21]?{ms0:+c[21]|0}:{}),...(c[22]?{mi0:String(c[22]).slice(0,8)}:{}),...(c[23]?{d0:+c[23]||0}:{}),...(okImg(c[24])?{ph:c[24]}:{}),...(c[25]&&typeof c[25]==='object'?{inv:Object.fromEntries(Object.entries(c[25]).filter(([k,n])=>okItem(k)&&+n>0).slice(0,CAP_M).map(([k,n])=>[k,Math.min(CAP_M,+n|0)]))}:{}),...(Array.isArray(c[26])&&c[26].length?{fa:c[26].filter(f=>FAC[f]).slice(0,6)}:{}),...(c[27]&&/^AA-[A-Z2-9]{4}$/.test(c[27].id)&&/^CR-[A-Z2-9]{6}$/.test(c[27].cr)?{trf:{n:clamp(c[27].n|0,1,999),id:c[27].id,cr:c[27].cr,cn:String(c[27].cn||c[27].cr).slice(0,30)}}:{}),...(c[28]?{crewName:String(c[28]).slice(0,30)}:{}),...(c[29]&&c[9]===2?{bz:String(c[29]).slice(0,8)}:{}),...(c[30]&&c[9]===2&&starFromSeed(String(c[30]))?{esp:String(c[30])}:{})}));
     st.hf=Object.fromEntries(['salto','harv','tceti','adrian','eri'].filter(k=>st.hf&&st.hf[k]).map(k=>[k,1]));
     st.logo=st.lg&&okImg(st.lg.src)?{src:st.lg.src,name:String(st.lg.name||'').slice(0,30),id:String(st.lg.id||'').slice(0,10)}:null;
     st.plan=st.pl&&Array.isArray(st.pl.stops)?{stops:st.pl.stops.slice(0,40).map(s=>({s:String(s.s).slice(0,40),a:(s.a||[]).slice(0,12).map(x=>String(x).slice(0,20))}))}:null;
@@ -4994,7 +5293,7 @@ function offerImport(st){
   const done=()=>{modalOpen=false;closeModal();_sp='';const p=shipStar();if(!(Array.isArray(st.cm)&&st.v===3))flyTo(p.gx,p.gy,p.gz,20);selStar=null;route=null;mode='map';SYS=null;surf=null;refresh();toast('Partida cargada.')};
   $('#mFull').onclick=()=>{if(D.h.length&&!confirm('Esto sustituye tu partida local. ¿Seguro?'))return;
     D.h=st.h.sort((a,b)=>a.t-b.t);if(st.n)D.n=st.n;if(st.ship)D.ship=st.ship;if(st.sp)D.sp=st.sp;if(st.b)D.base=st.b;
-    if(g){D.st=g;D.crew=st.crew;D.hib=st.flags.hib;D.cr=st.flags.cr;D.q=st.flags.q;D.hf=st.hf||{};D.anon=st.flags.anon;D.ex=st.ex;D.scan=st.scan;D.disc=st.disc;if(st.plan)D.plan=st.plan;D.rep=st.rep||{};if(st.fx)D.fx=st.fx;D.bases=st.bases||[];D.conv=st.conv||[];D.rutas=st.rutas||[];D.crewLogo=st.logo||null;updateCrewLogo()}
+    if(g){D.st=g;D.crew=st.crew;D.hib=st.flags.hib;D.cr=st.flags.cr;D.q=st.flags.q;D.hf=st.hf||{};if(st.pl)D.pl=st.pl;D.nova=st.nova||{};D.anon=st.flags.anon;D.ex=st.ex;D.scan=st.scan;D.disc=st.disc;if(st.plan)D.plan=st.plan;D.rep=st.rep||{};if(st.fx)D.fx=st.fx;D.bases=st.bases||[];D.conv=st.conv||[];D.rutas=st.rutas||[];D.crewLogo=st.logo||null;updateCrewLogo()}
     if(Array.isArray(st.cm)&&st.cm.length===6&&st.cm.every(v=>isFinite(v))){[tg.fx,tg.fy,tg.fz,tg.R,tg.yaw,tg.pitch]=st.cm.map(Number);Object.assign(cam,tg)}
     if(Array.isArray(st.op)&&st.v===3){opt.color=!!st.op[0];opt.spin=!!st.op[1]&&!RM;opt.nav=!!st.op[2];opt.pet=!!st.op[3]}
     saveD();done()};

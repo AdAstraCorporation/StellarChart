@@ -10,7 +10,7 @@ var FAC={
    who:'Un convoy de la Liga',enc:'Un convoy de cargueros de la Liga de Comerciantes Libres os llama por radio.'},
  mh:{n:'Manada de Hierro',s:'la Manada',ic:'⛨',c:'#ff6b6b',w:3,tipo:'hegemonía militar',val:'el orden y la jerarquía',k:['seg','pil'],
    who:'Una patrulla de la Manada',enc:'Una corbeta de la Manada de Hierro se coloca a vuestro lado y ordena detener motores.'},
- ce:{n:'Círculo de la Estrella Oscura',s:'el Círculo',ic:'☾',c:'#b48cff',w:2,tipo:'culto del astrófago',val:'el apagado de las estrellas como renacimiento',k:['soc','cie'],
+ ce:{n:'Círculo de la Estrella Oscura',s:'el Círculo',ic:'☾',c:'#b48cff',w:2,get tipo(){return'culto de la '+pln()},val:'el apagado de las estrellas como renacimiento',k:['soc','cie'],
    who:'Una nave del Círculo',enc:'Una nave negra del Círculo de la Estrella Oscura emite cánticos en todas las frecuencias.'},
  cv:{n:'Corsarios del Vacío',s:'los Corsarios',ic:'☠',c:'#ff9f43',w:2,tipo:'confederación pirata',val:'la libertad y el botín',k:['pil','seg'],
    who:'Una banda de corsarios',enc:'Tres cazas sin matrícula salen de la sombra de un asteroide: Corsarios del Vacío.'},
@@ -118,7 +118,7 @@ function facEvent(at,ctx){
     op.push({l:'Pagar para que os dejen en paz (25 t)',need:()=>D.st.min>=25,run:()=>{D.st.min-=25;return'Aceptan el pago y se alejan.'+addRep(O,1)}});
     if(K.some(k=>Object.keys(x.inv).concat(...aboard().map(m=>Object.keys(m.inv||{}))).some(i=>i.startsWith(k.f+'.'))))op.push({l:'Arrojar al espacio lo que os delata',run:()=>`Los objetos flotan hacia el vacío.${giveUp()} Sin pruebas, os dejan marchar.`});
   }else if(tone==='ami'){
-    op.push({l:'Pedir suministros',run:()=>{const s=sp(),a=Math.round(s.prov*.1),f=+(s.tank*.08).toFixed(1);D.st.prov=Math.min(s.prov,D.st.prov+a);D.st.fuel=Math.min(s.tank,D.st.fuel+f);return`Comparten ${fmtI(a)} días-persona de comida y ${f} t de astrófago.`+addRep(O,1)}});
+    op.push({l:'Pedir suministros',run:()=>{const s=sp(),a=Math.round(s.prov*.1),f=+(ENC()*.08).toFixed(1);D.st.prov=Math.min(s.prov,D.st.prov+a);D.st.fuel=Math.min(ENC(),D.st.fuel+f);return`Comparten ${fmtI(a)} días-persona de comida y ${f} t de astrófago.`+addRep(O,1)}});
     op.push({l:'Aceptar un encargo',run:()=>{const m=genMission(O,shipStar(),hash(Date.now()|0,D.st.jumps,77));if(!m)return'No tienen nada para vosotros ahora.';if(x.mis.length>=5)return'Ya tenéis demasiados contratos.';acceptMission(m);return`Nuevo contrato: ${m.tx}`}});
     op.push({l:'Intercambiar cartas estelares',k:'cie',dc:9,ok:(c,r)=>`Os pasan rutas y nombres de sistemas.`+gainXp(r.m,12)+addRep(O,2),ko:()=>'Los formatos no son compatibles.'});
   }else{
@@ -126,7 +126,7 @@ function facEvent(at,ctx){
       const bad=all.filter(k=>{const[f,t]=k.split('.');return f!=='gen'&&(t==='contra'||rel('mh',f)<=-1)});
       if(!bad.length)return'Registran la bodega y cachean a la tripulación. No encuentran nada ilegal.'+addRep('mh',3);let s='';for(const k of bad)s+=dropItem(k,totalOf(k),1);return`Registran bodega y bolsillos. Confiscan lo que no les gusta.${s}`+addRep('mh',-4)}});
     if(O==='lc')op.push({l:'Comprar equipo (10 t)',need:()=>D.st.min>=10,run:()=>{D.st.min-=10;return'Un comerciante os vende material de calidad.'+giveItem('gen.'+pick(Object.values(GEAR)))+addRep('lc',1)}});
-    if(O==='lc'||O==='cv')op.push({l:'Comerciar: 20 t minerales → astrófago',need:()=>D.st.min>=20,run:()=>{const s=sp();D.st.min-=20;D.st.fuel=Math.min(s.tank,D.st.fuel+s.tank*.14);return'Trato hecho.'+addRep(O,2)}});
+    if(O==='lc'||O==='cv')op.push({l:`Comerciar: 20 t minerales → 3 ${EN_U}`,need:()=>D.st.min>=20,run:()=>{D.st.min-=20;D.st.fuel=Math.min(ENC(),D.st.fuel+3);return'Trato hecho.'+addRep(O,2)}});
     if(O==='cv'||O==='ce')op.push({l:'Comprar «mercancía especial» (15 t)',need:()=>D.st.min>=15,run:()=>{D.st.min-=15;return'Os entregan un paquete sin etiqueta. Vale mucho… y delata mucho.'+giveItem(O+'.contra')+addRep(O,2)}});
     if(O==='ca')op.push({l:'Compartir vuestra bitácora',run:()=>`Los Custodios archivan ${Object.keys(D.disc).length} sistemas a vuestro nombre.`+addRep('ca',Math.min(6,1+Object.keys(D.disc).length/5|0))});
     op.push({l:'Hacerse pasar por otra facción',k:'soc',dc:13,ok:(c,r)=>{const f=pick(FK.filter(q=>rel(O,q)>=1&&q!==O))||O;return`Os creen gente de ${FAC[f].s}. Os desean buen viaje.`+gainXp(r.m,10)},ko:()=>{x.wnt[O]=1;return'Descubren el engaño y os anotan en sus registros.'+addRep(O,-6)}});
@@ -184,7 +184,7 @@ function doMission(id){
     if(!r.ok){let extra='';if(m.ty==='sabotaje'&&m.e){x.wnt[m.e]=1;extra=addRep(m.e,-20)+` ${cap(FAC[m.e].s)} sabe quién fue.`}if(m.ty==='caza'||m.ty==='rescate'){const d=8+(Math.random()*10|0);D.st.hull=Math.max(1,D.st.hull-d);extra+=` Casco −${d}%.`+hurt(pick(alive()),12)}
       failMission(m,'la tirada salió mal');saveD();logDM(`Contrato ${m.id} fallido.${extra}`,'ev');toast(esc(`Contrato fallido.${extra}`));return''}
     if(m.ty==='sabotaje'&&m.e)res+=addRep(m.e,-5);if(m.ty==='diplomacia')for(const f of FK)if(rel(m.g,f)>=1)res+=addRep(f,2)}
-  const s=D.st,sp=SPEC[D.ship.d];s.min=Math.min(sp.cargo,s.min+m.rw.min);res=`+${m.rw.min} t de minerales.`+addRep(m.g,m.rw.rep)+res;
+  const s=D.st,sp=SPEC[D.ship.d],en=Math.max(2,Math.round(m.rw.min*.06));s.min=Math.min(sp.cargo,s.min+m.rw.min);s.fuel=Math.min(ENC(),s.fuel+en);res=`+${m.rw.min} t de minerales y ${en} ${EN_U} de energía negativa.`+addRep(m.g,m.rw.rep)+res;
   for(const f of FK)if(f!==m.g&&rel(m.g,f)<=-2)res+=addRep(f,-2);
   if(m.rw.it)res+=giveItem(m.rw.it);for(const p of alive())gainXp(p,m.rw.xp);res+=` +${m.rw.xp} XP a la tripulación.`;
   x.mis=x.mis.filter(q=>q!==m);x.dn.push(m.id);x.done[m.g]=(x.done[m.g]||0)+1;saveD();

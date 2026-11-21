@@ -46,7 +46,7 @@ function doCiv(i,a){
       if(!r.ok&&c.disp>=4){const dmg=8+(Math.random()*12|0);s.hull=Math.max(1,s.hull-dmg);out+=` Disparan: casco −${dmg}%.`}out+=' '+r.line}
     questEvent({type:'contact',civ:c.name})}
   else if(a==='trade'){if(rep<20)return`Los ${c.name} todavía no confían en vosotros.`;if(s.min<15)return'Necesitas al menos 15 t de minerales para comerciar.';passDays(4);s.min-=15;
-    if(c.tech>=5&&s.fuel<sp.tank){const v=+(sp.tank*.2).toFixed(1);s.fuel=Math.min(sp.tank,s.fuel+v);out=`Intercambias minerales por ${v} t de combustible.`}else{const v=Math.round(sp.prov*.2);s.prov=Math.min(sp.prov,s.prov+v);out=`Intercambias minerales por ${fmtI(v)} días-persona de comida.`}rep+=3}
+    if(c.tech>=5&&s.fuel<ENC()){const v=+(ENC()*.15).toFixed(1);s.fuel=Math.min(ENC(),s.fuel+v);out=`Intercambias minerales por ${v} ${EN_U} de energía negativa.`}else{const v=Math.round(sp.prov*.2);s.prov=Math.min(sp.prov,s.prov+v);out=`Intercambias minerales por ${fmtI(v)} días-persona de comida.`}rep+=3}
   else if(a==='recruit'){if(rep<40)return`Hace falta más confianza (${repLab(rep)}).`;if(D.ex[c.key+':rec'])return'Ya se unió alguien de esta civilización.';if(crewCount()>=sp.crew[1])return'No hay sitio a bordo.';
     passDays(3);D.ex[c.key+':rec']=1;const m=genMember(rng(hash(c.key.length,rep,9)),null,c.name);m.bio=`Voluntario de los ${c.name}, ${c.sp}. Valora ${c.val}.`;out=addMember(m)}
   else if(a==='learn'){if(rep<20)return'No compartirán su saber con desconocidos.';if(D.ex[c.key+':learn'])return'Ya aprendiste lo que podían enseñarte.';passDays(10);D.ex[c.key+':learn']=1;

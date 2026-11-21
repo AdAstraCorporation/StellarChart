@@ -6,14 +6,14 @@
 const BSPEED=5000,BMAX=8,WH={min:1000,fuel:300,prov:60000},RMAX=12;
 const BTY={
  mina:{n:'Mina',ic:'⛏',r:'min',rate:25,cap:400,d:'Extrae minerales del subsuelo.'},
- refineria:{n:'Refinería de astrófago',ic:'⚗',r:'fuel',rate:10,cap:120,d:'Cultiva y refina astrófago.'},
+ refineria:{n:'Extractor de materia',ic:'⚗',r:'fuel',rate:30,cap:400,d:'Extrae y compacta materia para el motor de curvatura.'},
  granja:{n:'Granja hidropónica',ic:'🌱',r:'prov',rate:1500,cap:30000,d:'Produce comida para la tripulación.'},
  puesto:{n:'Puesto avanzado',ic:'⛺',r:null,rate:0,cap:0,d:'Un poco de todo y refugio: +2 moral al visitarlo.'}};
-const RESN={min:['Minerales','t'],fuel:['Astrófago','t'],prov:['Provisiones','días-persona']};
+const RESN={min:['Minerales','t'],fuel:['Materia','t'],prov:['Provisiones','días-persona']}; // en las bases «fuel» es materia para el motor de curvatura
 function baseRes(S,i){
   const info=planetInfo(S,i),p=info.p,r=rng(hash(S.star.h,i,1312));if(info.gas)return null;const has=n=>info.pois.includes(n);
   let min=({lava:1.2,desert:1,barren:1,ice:.5,frozen:.6,temperate:.6,ocean:.3})[p.kind]??.5;if(has('Depósito mineral'))min+=.8;if(has('Géiser de lava'))min+=.5;min*=.4+r();if(r()<.12)min=0;
-  let fuel=(has('Cristales de astrófago')?1.2:0)+(infected(S.star)?.6:0);fuel*=.5+r();
+  let fuel=(has('Cristales exóticos')?1.2:0)+.4+(S.belts.length?.4:0);fuel*=.5+r();
   let prov=(p.hz?.8:0)+(has('Flora comestible')?.8:0)+(info.breath?.3:0)+(has('Hielo puro')?.25:0);if(p.T<150||p.T>420)prov*=.25;prov*=.5+r()*.8;
   return{min:+min.toFixed(2),fuel:+fuel.toFixed(2),prov:+prov.toFixed(2),info}}
 const richLab=v=>v<=0?'nula':v<.4?'pobre':v<.9?'media':v<1.5?'rica':'muy rica';
@@ -88,7 +88,7 @@ function convTick(){
   D.conv=D.conv.filter(c=>now<c.eta);const sp=SPEC[D.ship.d],s=D.st;
   for(const c of done){const lost=[],db=c.dst&&c.dst!=='nave'?baseById(c.dst):null;if(c.dst&&c.dst!=='nave'&&!db){logDM(`📦 El envío de ${c.bn} no encontró su base de destino.`,'sys');continue}
     if(db)baseTick();
-    for(const k in c.amt){const cap=db?whCap(db,k):({min:sp.cargo,fuel:sp.tank,prov:sp.prov})[k],cur=db?(db.stk[k]||0):s[k],v=Math.max(0,Math.min(cap-cur,c.amt[k]));if(db)db.stk[k]=cur+v;else s[k]+=v;if(v<c.amt[k])lost.push(`${fmtI(c.amt[k]-v)} ${RESN[k][1]}`)}
+    for(const k in c.amt){const sk=k==='fuel'?'mat':k,cap=db?whCap(db,k):({min:sp.cargo,fuel:MATC(),prov:sp.prov})[k],cur=db?(db.stk[k]||0):(s[sk]||0),v=Math.max(0,Math.min(cap-cur,c.amt[k]));if(db)db.stk[k]=cur+v;else s[sk]=cur+v;if(v<c.amt[k])lost.push(`${fmtI(c.amt[k]-v)} ${RESN[k][1]}`)}
     const m=`📦 Llega a ${db?esc(db.n):'la nave'} el envío de ${c.bn}: ${resTxt(c.amt)}.${lost.length?' No cabe todo: se pierde '+lost.join(', ')+'.':''}`;toast(esc(m));if(NET&&NET.role==='host')bcast({t:'toast',h:esc(m)})}
   saveD();refresh()}
 setInterval(()=>{if(!(NET&&NET.role==='client')){routeTick();convTick()}if(tab==='base'&&((D.conv||[]).length||(D.rutas||[]).length)&&!(document.activeElement&&document.activeElement.closest&&document.activeElement.closest('#p-base')))renderBases()},1000);
@@ -101,7 +101,7 @@ function normRutas(a){return(Array.isArray(a)?a:[]).slice(0,RMAX).filter(r=>r&&r
 function openSend(id){const b=baseById(id);if(!b)return;baseTick();modalOpen=true;const others=(D.bases||[]).filter(q=>q.id!==id);
   showModal(`<div class="kick">ENVIAR RECURSOS</div><h2>${BTY[b.ty].ic} ${esc(b.n)}</h2><p class="note">En almacén: ${['min','fuel','prov'].map(k=>`${RESN[k][0]} ${fmtI(b.stk[k]||0)}`).join(' · ')}. Viajan a 1 año luz cada 5 segundos reales.</p>
   <div class="field"><label>Destino</label><select id="sdD"><option value="nave">🚀 La nave (donde esté al salir el envío)</option>${others.map(q=>{const a=baseStar(b),z=baseStar(q),d=a&&z?gd(a,z):0;return`<option value="${q.id}">${BTY[q.ty].ic} ${esc(q.n)} · ${fmtLen(d)} · ${fmtDur(Math.max(5000,d*BSPEED))}</option>`}).join('')}</select></div>
-  <div class="field"><label>Recurso</label><select id="sdR"><option value="all">Todo lo almacenado</option><option value="min">Minerales</option><option value="fuel">Astrófago</option><option value="prov">Provisiones</option></select></div>
+  <div class="field"><label>Recurso</label><select id="sdR"><option value="all">Todo lo almacenado</option><option value="min">Minerales</option><option value="fuel">Materia</option><option value="prov">Provisiones</option></select></div>
   <div class="field"><label>Cantidad máx.</label><input id="sdQ" type="number" min="0" step="1" value="0" title="0 = todo"></div>
   <label class="chk"><input type="checkbox" id="sdRep"> Repetir automáticamente</label>
   <div class="field"><label>Cada</label><input id="sdE" type="number" min="1" value="30" style="width:80px"> <select id="sdU"><option value="d">días a bordo</option><option value="m">minutos reales</option></select></div>
@@ -133,7 +133,7 @@ function baseCardHtml(S,i,here){
   if(b){baseTick();const rt=baseRate(b),cp=baseCap(b);return`<div class="card"><div class="kick">BASE · NIVEL ${b.lv}</div><b>${BTY[b.ty].ic} ${esc(b.n)}</b>
     <div class="note">${Object.keys(cp).map(k=>`${RESN[k][0]}: ${fmtI(b.stk[k]||0)}/${fmtI(cp[k])} ${RESN[k][1]} (+${fmtI(rt[k]||0)} cada 100 d)`).join(' · ')}</div>
     <div class="row">${A('🚚 Enviar…',()=>openSend(b.id),cl)}${here&&b.lv<3?A(`Mejorar (${50*b.lv} t · 15 d)`,()=>cmd({k:'base',a:'up',id:b.id},'Mejorar '+b.n),cl||D.st.min<50*b.lv&&!D.cr):''}</div></div>`}
-  return`<div class="note">Recursos del suelo: minerales ${richLab(rs.min)} · astrófago ${richLab(rs.fuel)} · alimento ${richLab(rs.prov)}</div>${here?`<div class="row">${A('🏗 Construir base (40 t · 20 d)',()=>openBuild(S,i),cl||D.st.min<40&&!D.cr||(D.bases||[]).length>=BMAX)}</div>`:''}`}
+  return`<div class="note">Recursos del suelo: minerales ${richLab(rs.min)} · materia ${richLab(rs.fuel)} · alimento ${richLab(rs.prov)}</div>${here?`<div class="row">${A('🏗 Construir base (40 t · 20 d)',()=>openBuild(S,i),cl||D.st.min<40&&!D.cr||(D.bases||[]).length>=BMAX)}</div>`:''}`}
 function openBuild(S,i){
   const rs=baseRes(S,i);modalOpen=true;
   showModal(`<div class="kick">CONSTRUIR BASE</div><h2>${esc(S.planets[i].name)}</h2><p class="note">Coste: 40 t de minerales y 20 días. Producción por cada 100 días a bordo (nivel 1). Los envíos viajan a 1 año luz cada 5 segundos.</p>

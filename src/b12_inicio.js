@@ -10,12 +10,12 @@ const BLOQ_RONDA=new Set(['travel','plan','orbit','civ','exp','base','rescue']);
 function rondaBloquea(c){if(RONDA||!c)return false;if(c.k==='fac')return!['move','drop'].includes(c.a);return BLOQ_RONDA.has(c.k)}
 const MSG_RONDA='⏳ La ronda todavía no ha empezado: hace falta al menos un tripulante con credencial.';
 function hayPartida(){const s=D.st||{};return(s.jumps|0)>0||(s.days||0)>0||D.crew.some(m=>m.mid)||Object.keys(D.disc||{}).length>1||(D.bases||[]).length>0}
-function nuevaPartida(pnj){
+function nuevaPartida(pnj,plaga){
   const sp=SPEC[D.ship.d];D.st=freshState(D.ship.d);D.crew=[];if(pnj){const n=newCrew(D.ship.d);D.crew=n.c;D.st.extra=n.extra}else D.st.extra=sp.c0;
-  Object.assign(D,{sp:sSeed(SOL),hib:0,cr:0,ex:{},scan:{},disc:{},q:0,qf:{},plan:null,rep:{},fx:null,bases:[],conv:[],rutas:[],intro:0,crewLogo:null});
+  Object.assign(D,{sp:sSeed(SOL),hib:0,cr:0,ex:{},scan:{},disc:{},q:0,qf:{},plan:null,rep:{},fx:null,bases:[],conv:[],rutas:[],intro:0,crewLogo:null,hf:{},nova:{},pl:{on:plaga&&plaga.on?1:0,n:String(plaga&&plaga.n||'Astrófago').trim().slice(0,24)||'Astrófago',P:.3,Q:.25,t:0}});D.ship.mods=[];D.st.mat=MATC();D.st.fuel=ENC();
   _sp='';travel=null;route=null;selStar=null;if(mode!=='map')exitToMap();saveD();updateCrewLogo();centerOnShip();refresh();
 }
-function introRonda(){if(D.intro)return;D.intro=1;saveD();queueDialog({t:'Corporación Ad Astra · Orden de misión',who:alive()[0]||null,tx:`Capitán: el Sol pierde brillo y nadie sabe por qué, salvo que hay algo —lo llaman astrófago— alimentándose de su luz. Tau Ceti, a 11,9 años luz, parece inmune. Tu nave y tu tripulación están listas. Cada salto cuesta astrófago, provisiones y años. Elige bien.`,res:'Primera misión: '+QUESTS[0].t,next:'Consejo: selecciona una estrella en la carta para calcular el salto.'})}
+function introRonda(){if(D.intro)return;D.intro=1;saveD();queueDialog({t:'Corporación Ad Astra · Orden de misión',who:alive()[0]||null,tx:`Capitán: ${PLG().on?`el Sol pierde brillo y nadie sabe por qué, salvo que hay algo —lo llaman ${PLN()}— alimentándose de su luz. Tau Ceti, a 11,9 años luz, parece inmune.`:'la Corporación necesita cartografiar el vecindario del Sol, empezando por Tau Ceti, a 11,9 años luz.'} Tu nave vuela con motor de curvatura: cada salto gasta materia (se extrae en cualquier sistema) y energía negativa (estrellas muertas, agujeros negros, contratos o estaciones de comercio). Elige bien.`,res:'Primera misión: '+QUESTS[0].t,next:'Consejo: selecciona una estrella en la carta para calcular el salto.'})}
 function empezarRonda(){
   if(NET.role==='client')return;const n=miembrosActivos().length;if(!n){toast('Sube al menos una credencial de Members para empezar.');return}
   RONDA=true;const t=`▶ Empieza la ronda con ${n} tripulante${n===1?'':'s'}: ${miembrosActivos().map(m=>m.nm).join(', ')}.`;logDM(t,'sys');toast(esc(t));
@@ -42,6 +42,7 @@ function pantallaInicio(join){
     <label class="chk"><input type="radio" name="iniP" value="seguir" checked> Continuar esta partida</label></div>`:''}
   <div class="card"><label class="chk"><input type="radio" name="iniP" value="nueva" ${hay?'':'checked'}> Nueva partida${hay?' <span class="bad">(reemplaza la guardada)</span>':''}</label>
     <label class="chk" style="margin-left:22px"><input type="checkbox" id="iniPnj"> Añadir tripulantes generados (PNJ) además de los jugadores</label>
+    <label class="chk" style="margin-left:22px"><input type="checkbox" id="iniPl" checked> Plaga activa, llamada <input id="iniPlN" maxlength="24" value="Astrófago" style="width:130px"> (se propaga en tiempo real; su depredador la controla)</label>
     <label class="chk"><input type="radio" name="iniP" value="archivo"> Cargar una partida desde archivo (.partida)</label><input type="file" id="iniFile" accept=".partida,application/octet-stream" hidden></div>
   <div class="card"><div class="kick">CÓMO SE JUEGA</div>
     <label class="chk"><input type="radio" name="iniM" value="solo" checked> En este dispositivo</label>
@@ -56,7 +57,7 @@ function pantallaInicio(join){
   ov.querySelector('#iniGo').onclick=async()=>{
     const p=elegido('iniP'),m=elegido('iniM');
     if(p==='archivo'){const f=ov.querySelector('#iniFile');f.onchange=()=>{if(f.files[0]){cerrar();loadSaveFile(f.files[0]);if(m==='host')setTimeout(hostSession,300)}};f.click();return}
-    if(p==='nueva'){if(hay&&!confirm('¿Empezar una partida nueva? La guardada en este dispositivo se perderá (descárgala antes desde «Partida» si la quieres).'))return;nuevaPartida(ov.querySelector('#iniPnj').checked)}
+    if(p==='nueva'){if(hay&&!confirm('¿Empezar una partida nueva? La guardada en este dispositivo se perderá (descárgala antes desde «Partida» si la quieres).'))return;nuevaPartida(ov.querySelector('#iniPnj').checked,{on:ov.querySelector('#iniPl').checked,n:ov.querySelector('#iniPlN').value})}
     cerrar();if(m==='host'){D.n=D.n||'Director';hostSession();toggleDrawer(true);setTab('sess')}
     else if(!miembrosActivos().length)setTimeout(subirCredencial,450)};
   ov.querySelector('#iniJoin').onclick=()=>{const c=ov.querySelector('#iniCode').value.trim().toUpperCase();if(!/^[A-Z2-9]{5}$/.test(c)){toast('Escribe el código de 5 caracteres de la sala.');return}cerrar();joinSession(c)};

@@ -30,14 +30,16 @@ function execCmd(c){
   if(c.k==='fac')return doFac(c);
   if(c.k==='base')return doBase(c);
   if(c.k==='crew')return setSusp(String(c.id),c.a==='susp');
+  if(c.k==='tienda')return comprar(String(c.q),+c.c||0);
+  if(c.k==='emerg')return emergencia(String(c.id));
   return'';
 }
 /* Animación suspendida: el tripulante sigue a bordo pero no participa (no tira, no vota por su rol, no recibe daño ni XP) */
-function setSusp(id,on){const m=D.crew.find(q=>q.id===id&&q.st!=='perdido');if(!m)return'';if(on===(m.st==='susp'))return'';if(!on&&m.bz){const b=baseById(m.bz);return`${m.nm} está en ${b?b.n:'una base'}: id allí a recogerlo.`}
+function setSusp(id,on){const m=D.crew.find(q=>q.id===id&&q.st!=='perdido');if(!m)return'';if(on===(m.st==='susp'))return'';if(!on&&m.bz){const b=baseById(m.bz);return`${m.nm} está en ${b?b.n:'una base'}: id allí a recogerlo.`}if(!on&&m.esp){const s=starFromSeed(m.esp);return`${m.nm} os espera en ${s?starName(s):'otro sistema'}: id a recogerlo.`}
   if(on&&crewCount()-1<SPEC[D.ship.d].crew[0]&&!D.cr)return`Sin ${m.nm} no queda tripulación suficiente para operar la nave.`;
   m.st=on?'susp':'ok';if(!on)m.mor=Math.max(m.mor,60);saveD();const t=on?`❄ ${m.nm} entra en animación suspendida: la partida sigue sin ${m.pl?m.pl:'su jugador'}.`:`☀ ${m.nm} despierta y vuelve a la ronda.`;logDM(t,'sys');return t}
 function changeShip(k){
-  const s=D.ship,st=D.st;if(!SHIPS[k]||k===s.d)return'';const nsp=SPEC[k];D.ship.d=k;Object.assign(st,{fuel:nsp.tank,prov:nsp.prov,hull:100,min:Math.min(st.min,nsp.cargo)});
+  const s=D.ship,st=D.st;if(!SHIPS[k]||k===s.d)return'';const nsp=SPEC[k];D.ship.d=k;Object.assign(st,{fuel:ENC(),mat:MATC(),prov:nsp.prov,hull:100,min:Math.min(st.min,nsp.cargo)});D.ship.mods=(D.ship.mods||[]).slice(0,modSlots());
   const a=alive();if(a.length>nsp.crew[1])a.slice(nsp.crew[1]).forEach(m=>m.st='perdido');st.extra=clamp(nsp.c0-Math.min(8,alive().length),0,Math.max(0,nsp.crew[1]-alive().length));
   while(crewCount()<nsp.crew[0]&&alive().length<6)addMember();if(crewCount()<nsp.crew[0])st.extra+=nsp.crew[0]-crewCount();saveD();return'Nueva nave: '+SHIPS[k].n;
 }
@@ -111,10 +113,15 @@ function addCardLocally(card,pid,pl,dv){setCrewLogo(card);
   if(ex){if(ex.pid&&ex.pid!==pid&&NET.role==='host'&&(ex.pid===NET.me||NET.conns.has(ex.pid))){const old=NET.players[ex.pid];
       /* Mismo dispositivo que vuelve (recargó la página): la conexión vieja se cierra; otra persona con la misma ficha, no entra */
       if(ex.pid!==NET.me&&old&&dv&&old.dv===dv)dropPeer(ex.pid,true);else{const r=new String(`${ex.nm} ya está a bordo y lo maneja ${ex.pl||'otro jugador'}: no se puede subir la misma ficha dos veces.`);r.rej=1;return r}}
+    if(ex.esp){const s=starFromSeed(ex.esp);ex.pid=pid;ex.pl=pl;saveD();return tras+`${ex.nm} os espera en ${s?starName(s):'otro sistema'}: id a recogerlo.`}
     if(ex.bz){const b=baseById(ex.bz);ex.pid=pid;ex.pl=pl;saveD();return tras+`${ex.nm} está en ${b?b.n:'una base'}: recogedlo allí para que vuelva a la ronda.`}
     ex.pid=pid;ex.pl=pl;if(card.c)ex.crewName=card.c;const w=ex.st==='susp';if(w)ex.st='ok';saveD();return tras+(w?`${ex.nm} despierta de la animación suspendida: vuelve a la partida con ${pl}.`:`${ex.nm} ya estaba a bordo: ahora lo maneja ${pl}.`)}
   const ocup=ocupadas();if(ocup>=sp.crew[1]&&D.st.extra>0)D.st.extra--;else if(ocup>=sp.crew[1])return'No queda sitio en la nave.';
-  const m=memberFromCard(card);m.n0=card.n;m.pid=pid;m.pl=pl;D.crew.push(m);saveD();return`${m.nm} (${m.sp}, ${ROLES[m.role]}) sube a bordo.`;
+  const m=memberFromCard(card);m.n0=card.n;m.pid=pid;m.pl=pl;
+  /* Recién llegado con la ronda en marcha: espera en el sistema más cercano de la facción dominante de la nave */
+  const pe=typeof RONDA!=='undefined'&&RONDA&&!travel?puntoDeEncuentro():null;
+  if(pe){m.st='susp';m.esp=sSeed(pe);D.crew.push(m);saveD();const f=FAC[faccionNave()];return`${m.nm} (${m.sp}, ${ROLES[m.role]}) se une y os espera en ${starName(pe)} (${f.ic} ${f.s}, a ${fmtLen(gd(pe,shipStar()))}). Id a recogerlo.`}
+  D.crew.push(m);saveD();return`${m.nm} (${m.sp}, ${ROLES[m.role]}) sube a bordo.`;
 }
 /* Fin de misión: un único QR/enlace #X (v2) con el resultado de toda la tripulación con ficha */
 async function missionLink(){
@@ -200,7 +207,7 @@ function followView(v){if(travel||!Array.isArray(v.c)||v.c.length!==6||!v.c.ever
   if(v.m==='map'){if(mode!=='map')exitToMap();[tg.fx,tg.fy,tg.fz,tg.R,tg.yaw,tg.pitch]=v.c;return}
   if(v.s&&(mode!=='system'||!SYS||!SYS.star||sSeed(SYS.star)!==v.s)){const st=starFromSeed(String(v.s));if(st)enterSystem(st)}}
 function applyRemote(st){
-  const g=st.game;if(!g)return;D.st=g;D.crew=st.crew;D.hib=st.flags.hib;D.cr=st.flags.cr;D.q=st.flags.q;D.hf=st.hf||{};D.ex=st.ex;D.scan=st.scan;D.disc=st.disc;D.h=st.h;
+  const g=st.game;if(!g)return;D.st=g;D.crew=st.crew;D.hib=st.flags.hib;D.cr=st.flags.cr;D.q=st.flags.q;D.hf=st.hf||{};if(st.pl)D.pl=st.pl;D.nova=st.nova||{};D.ex=st.ex;D.scan=st.scan;D.disc=st.disc;D.h=st.h;
   if(st.ship)D.ship=st.ship;if(st.sp&&!travel){D.sp=st.sp;_sp=''}if(st.n)D.n=D.n||st.n;D.plan=st.plan||D.plan;D.rep=st.rep||D.rep;if(st.fx)D.fx=st.fx;RONDA=!!st.flags.ronda;D.bases=st.bases||[];D.conv=st.conv||[];D.rutas=st.rutas||[];
 }
 function propose(v){

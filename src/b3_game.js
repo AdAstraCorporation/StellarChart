@@ -49,33 +49,36 @@ function nextDialog(){
     resolveOpt(+b.dataset.o)});
 }
 function passDays(n){
-  const s=D.st,c=crewCount();if(!D.cr)s.prov=Math.max(0,s.prov-eaters()*n);s.days+=n;s.yrs+=n/365.25;const med=best('med').v;
+  const s=D.st,c=crewCount();if(!D.cr)s.prov=Math.max(0,s.prov-eaters()*n);s.days+=n;s.yrs+=n/365.25;const med=best('med').v*(1+rolF('med',.1,1));
+  plagaPaso(n);tolTick(n);if(Math.random()<n/600)setTimeout(()=>supernova(),50);
   for(const m of alive()){m.hp=Math.min(100,m.hp+n*(.3+med*.08));if(s.prov<=0&&c){m.hp=Math.max(5,m.hp-n*.8);m.mor=Math.max(0,m.mor-n*.6)}}
 }
 
-/* ═════════ Astrófago: estrellas infectadas (modo Petrova) ═════════ */
+/* ═════════ Plaga: estrellas infectadas (modo Petrova). La dinámica vive en b13_curva.js ═════════ */
 const INF=new Set(['sol','tceti','eeri','40eri','acen']);
-const infected=s=>s.point?false:s.anchor?INF.has(s.anchor.id):PETROVA.has(s.P.k)&&hash(s.h,13)%4===0;
+const infected=s=>infectado(s);
 
 /* ═════════ Cálculo de viaje (relativista, aceleración constante con volteo a mitad de camino) ═════════ */
-function legCalc(a,b){
+function legCalc(a,b){ensureSt();
   const sp=SPEC[D.ship.d],d=gd(a,b),acc=sp.acc*1.0323,x=d/2,tE=2*Math.sqrt(x*x+2*x/acc),ph=Math.acosh(1+acc*x),tau=2*ph/acc,days=tau*365.25;
   const prov=sp.prov?eaters()*days*(D.hib&&sp.hib?.15:1)*(1-(sp.farm||0)):0;
-  return{from:a,to:b,d,tE,tau,v:Math.tanh(ph),g:Math.cosh(ph),days,fuel:d*sp.burn,prov};
+  const free=esBH(a)||esBH(b),k=free?0:d*sp.burn*consumoMul(); /* motor de curvatura: energía negativa y materia; un agujero negro la pone gratis */
+  return{from:a,to:b,d,tE,tau,v:Math.tanh(ph),g:Math.cosh(ph),days,fuel:k*EN_POR,mat:k,free,prov};
 }
 function legErr(L,s){
   const sp=SPEC[D.ship.d],ml=legMax(D.ship.d);
   if(L.d>ml+1e-9&&!D.cr)return`el salto de ${fmtLen(L.d)} supera el alcance máximo (${fmtLen(ml)})`;
   if(crewCount()<sp.crew[0])return'tripulación insuficiente para operar la nave';
   if(s.hull<=0)return'casco destruido';if(D.cr)return'';
-  if(s.fuel+1e-9<L.fuel)return`falta astrófago (${L.fuel.toFixed(1)} t necesarias, hay ${s.fuel.toFixed(1)} t)`;
+  if(s.fuel+1e-9<L.fuel)return`falta energía negativa (${L.fuel.toFixed(1)} ${EN_U} necesarias, hay ${s.fuel.toFixed(1)})`;
+  if((s.mat||0)+1e-9<L.mat)return`falta materia (${fmtI(L.mat)} t necesarias, hay ${fmtI(s.mat||0)} t)`;
   if(sp.prov&&s.prov+1e-9<L.prov)return`faltan provisiones (${fmtI(L.prov)} días-persona, hay ${fmtI(s.prov)})`+(sp.hib&&!D.hib?'; activa la hibernación':'');
   return'';
 }
 function buildLegs(stars){
-  const legs=[],tot={d:0,tau:0,tE:0,fuel:0,prov:0},s={...D.st},sp=SPEC[D.ship.d];let bad=false;
+  const legs=[],tot={d:0,tau:0,tE:0,fuel:0,mat:0,prov:0},s={...D.st},sp=SPEC[D.ship.d];let bad=false;
   for(let i=0;i<stars.length-1;i++){const L=legCalc(stars[i],stars[i+1]);for(const k in tot)tot[k]+=L[k];
-    if(bad)L.pend=1;else{L.err=legErr(L,s);if(L.err)bad=true;else{if(!D.cr){s.fuel-=L.fuel;s.prov-=L.prov}if(sp.solar)s.fuel=sp.tank}}legs.push(L)}
+    if(bad)L.pend=1;else{L.err=legErr(L,s);if(L.err)bad=true;else{if(!D.cr){s.fuel-=L.fuel;s.mat-=L.mat;s.prov-=L.prov}if(sp.solar)s.fuel=Math.max(s.fuel,ENC()*.5)}}legs.push(L)}
   return{stars,legs,tot,ok:!bad};
 }
 /* Ruta con A* sobre las estrellas de un corredor alrededor de la línea recta */
@@ -131,12 +134,12 @@ function stepTravel(now){
 function arrive(L){
   if(travel.ghost){D.sp=seedOf(L.to);_sp='';travel.pos=null;travel.i++;travel.t0=0;if(travel.i>=travel.legs.length)endTravel();return}
   const s=D.st,sp=SPEC[D.ship.d],hib=D.hib&&sp.hib;
-  if(!D.cr){s.fuel=Math.max(0,s.fuel-L.fuel);if(sp.prov)s.prov=Math.max(0,s.prov-L.prov)}
-  s.days+=L.days;s.yrs+=L.tE;s.jumps++;s.ly+=L.d;if(sp.solar)s.fuel=sp.tank;
+  if(!D.cr){s.fuel=Math.max(0,s.fuel-L.fuel);s.mat=Math.max(0,(s.mat||0)-L.mat);if(sp.prov)s.prov=Math.max(0,s.prov-L.prov)}
+  s.days+=L.days;s.yrs+=L.tE;s.jumps++;s.ly+=L.d;if(sp.solar)s.fuel=Math.max(s.fuel,ENC()*.5);plagaPaso(L.days);tolTick(L.days);if(L.free)toast('⚫ El agujero negro curva el espacio por vosotros: salto sin gasto.');
   if(!hib)morAll(-Math.min(18,L.days/80));
   else{const risk=.025+(alive().some(m=>m.tr==='Insomne')?.03:0)-best('med').v*.002;if(Math.random()<risk){const w=loseRandom();if(w)queueDialog({t:'Despertar',who:pick(alive())||null,tx:`Al abrir las cápsulas, ${w} no despierta del coma inducido. La tripulación despide a su compañero en silencio.`,res:''})}}
   D.sp=seedOf(L.to);ping=performance.now();travel.pos=null;record('j',D.sp,true);travel.i++;travel.t0=0;
-  questEvent({type:'arrive',star:L.to});facTick();
+  questEvent({type:'arrive',star:L.to});facTick();{const r=recogerEsperando(L.to);if(r)toast(esc(r))}if(Math.random()<.05)supernova();
   if(travel.i>=travel.legs.length){
     const st=L.to;endTravel();selStar=st;
     if(st.point)toast(`Llegada al espacio profundo · ${fmtT(L.tau)} a bordo`);else toast(`Llegada a <b>${esc(starName(st))}</b> · ${fmtT(L.tau)} a bordo`,'Entrar al sistema',()=>enterSystem(st));
@@ -146,7 +149,7 @@ function arrive(L){
 }
 function endTravel(msg){travel=null;$('#travel').classList.remove('show');if(msg)toast(esc(msg));saveD();refresh()}
 function rescue(why){
-  const s=D.st,sp=SPEC[D.ship.d];if(typeof pilot!=='undefined')pilot=null;D.sp=sSeed(SOL);s.fuel=sp.tank*.5;s.prov=Math.max(s.prov,sp.prov*.5);s.hull=Math.max(s.hull,60);s.min=0;s.days+=365;s.yrs+=10;
+  const s=D.st,sp=SPEC[D.ship.d];if(typeof pilot!=='undefined')pilot=null;D.sp=sSeed(SOL);s.fuel=ENC()*.5;s.mat=Math.max(s.mat||0,MATC()*.5);s.prov=Math.max(s.prov,sp.prov*.5);s.hull=Math.max(s.hull,60);s.min=0;s.days+=365;s.yrs+=10;
   if(travel){travel=null;$('#travel').classList.remove('show')}mode='map';SYS=null;surf=null;selStar=null;route=null;
   const p=shipStar();flyTo(p.gx,p.gy,p.gz,20);saveD();
   queueDialog({t:'Rescate',who:null,tx:(why?why+' ':'')+'Una nave de la Corporación Ad Astra remolca la tuya hasta la Tierra. Diez años perdidos y la bodega vacía, pero seguís con vida.',res:'Combustible al 50%, casco reparado al 60%.'});refresh();
@@ -162,7 +165,7 @@ function enterSystem(st){
   saveD();refresh();
 }
 function exitToMap(){mode='map';SYS=null;surf=null;selPlanet=null;refresh()}
-function drawSystem(now){
+function drawSystem2D(now){
   const ent=RM?1:ease(clamp((now-sysT0)/1000,0,1)),S=SYS,P=S.P,cx=W/2,cy=H/2,Rmax=(Math.min(W,H)/2-40)*(.35+.65*ent),t=now/1000,here=sameStar(S.star,shipStar());
   ctx.letterSpacing='1.6px';ctx.globalAlpha=.15+.85*ent;const starPx=clamp(6+Math.log10(P.rad+1)*14,7,34);
   drawSky(now);
@@ -200,7 +203,7 @@ function land(i){if(rondaBloquea({k:'exp'})){toast(esc(MSG_RONDA));return}
   const info=planetInfo(SYS,i),sp=SPEC[D.ship.d];if(info.gas){toast('No hay superficie sólida.');return}
   if(!D.scan[info.key]){D.scan[info.key]=1}if(!(NET&&NET.role==='client'))passDays(sp.land?1:2);mode='surface';surf={i,info,t0:performance.now()};if(!RM)warp={t0:performance.now(),dur:600};saveD();refresh();
 }
-function drawSurface(now){
+function drawSurface2D(now){
   ctx.letterSpacing='1.6px';const {info}=surf,p=info.p,k=p.kind,sky=SKY[k]||SKY.barren,t=now/1000,ent=RM?1:ease(clamp((now-surf.t0)/1200,0,1));
   const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,sky[0]);g.addColorStop(.75,sky[1]);ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
   if(!info.breath){ctx.fillStyle='rgba(255,255,255,.7)';const r=rng(5);for(let i=0;i<140;i++)ctx.fillRect(r()*W,r()*H*.6,1,1)}
@@ -249,7 +252,7 @@ function applyLoot(lo,mult){
   const sp=SPEC[D.ship.d],s=D.st,out=[],rr=a=>lerp(a[0],a[1],Math.random())*mult;
   if(lo.min){const v=Math.round(rr(lo.min));s.min=Math.min(sp.cargo,s.min+v);out.push(`+${v} t minerales`)}
   if(lo.prov&&sp.prov){const v=Math.round(sp.prov*rr(lo.prov));s.prov=Math.min(sp.prov,s.prov+v);out.push(`+${fmtI(v)} días-persona de provisiones`)}
-  if(lo.fuel){const v=+(sp.tank*rr(lo.fuel)).toFixed(1);s.fuel=Math.min(sp.tank,s.fuel+v);out.push(`+${v} t de astrófago`)}
+  if(lo.fuel){const v=+(ENC()*rr(lo.fuel)).toFixed(1);s.fuel=Math.min(ENC(),s.fuel+v);out.push(`+${v} ${EN_U}`)}if(lo.mat){const v=Math.round(MATC()*rr(lo.mat));s.mat=Math.min(MATC(),s.mat+v);out.push(`+${v} t de materia`)}
   if(lo.mor){morAll(lo.mor);out.push(`moral +${lo.mor}`)}
   if(lo.crew&&crewCount()<sp.crew[1])out.push(offerMember(null,'Superviviente en la expedición').trim());
   if(lo.lore)out.push('«'+pick(LORE)+'»');
@@ -279,14 +282,14 @@ function orbitDo(key,days,fn,limit=3){
 function doOrbit(act,i){
   const st=shipStar();if(st.point)return'No hay ningún sistema aquí.';
   const S=genSystem(st),sk=sSeed(st),sp=SPEC[D.ship.d],s=D.st;
-  if(act==='fuel'){if(!infected(st))return'Esta estrella no tiene astrófago.';if(s.fuel>=sp.tank)return'Los tanques ya están llenos.';
-    return orbitDo(sk+':-1',30,()=>{const v=+(Math.min(sp.tank-s.fuel,sp.tank*.35)).toFixed(1);s.fuel+=v;questEvent({type:'harvest',what:'fuel'});return`Los colectores capturan ${v} t de astrófago en la línea Petrova.`})}
+  if(act==='fuel')act='mat'; // planes antiguos: «recolectar astrófago» pasa a ser extraer materia
+  if(act==='mat'||act==='en'||act==='luz')return accionCurva(act,S,st,sk);
   if(act==='rest')return orbitDo(sk+':rest',10,()=>{morAll(12);return'La tripulación descansa. Moral +12.'},0);
   if(act==='rep'){if(s.min<10)return'Faltan minerales para reparar.';if(s.hull>=100)return'El casco está intacto.';return orbitDo(sk+':rep',5,()=>{s.min-=10;s.hull=Math.min(100,s.hull+12);return'Casco reparado +12%.'},0)}
-  if(act==='earth'){if(!(st.anchor&&st.anchor.id==='sol'))return'Sólo se puede reabastecer en la Tierra.';return orbitDo(sk+':earth',60,()=>{s.fuel=sp.tank;s.prov=sp.prov;s.hull=100;morAll(20);for(const m of alive())m.hp=100;return'Tanques llenos, despensa completa, casco nuevo.'},0)}
+  if(act==='earth'){if(!(st.anchor&&st.anchor.id==='sol'))return'Sólo se puede reabastecer en la Tierra.';return orbitDo(sk+':earth',60,()=>{s.fuel=ENC();s.mat=MATC();s.prov=sp.prov;s.hull=100;morAll(20);for(const m of alive())m.hp=100;return'Tanques llenos, despensa completa, casco nuevo.'},0)}
   if(act==='scan'){const info=planetInfo(S,i);return orbitDo(info.key+':scan',2,()=>{D.scan[info.key]=1;return`Escaneo de ${info.p.name} completado.`},0)}
   if(act==='scanall'){const n=S.planets.filter((p,k)=>!D.scan[planetInfo(S,k).key]).length;if(!n)return'Todos los planetas ya están escaneados.';return orbitDo(sk+':scanall',2*n,()=>{S.planets.forEach((p,k)=>D.scan[planetInfo(S,k).key]=1);return`${n} planeta${n>1?'s':''} escaneado${n>1?'s':''}.`},0)}
-  if(act==='gas'){const info=planetInfo(S,i);return orbitDo(info.key+':gas',4,()=>{const r=roll('cie',10);if(r.ok){s.fuel=Math.min(sp.tank,s.fuel+sp.tank*.1);return'La sonda atmosférica recoge volátiles: +10% de combustible.'+gainXp(r.m,10)}return'La sonda se pierde en las tormentas.'},1)}
+  if(act==='gas'){const info=planetInfo(S,i);return orbitDo(info.key+':gas',4,()=>{const r=roll('cie',10);if(r.ok){const v=Math.round(MATC()*.15*extraeMul());s.mat=Math.min(MATC(),s.mat+v);return`La sonda atmosférica recoge gases: +${v} t de materia.`+gainXp(r.m,10)}return'La sonda se pierde en las tormentas.'},1)}
   return'';
 }
 function orbitAct(act,i,label){cmd({k:'orbit',act,i},label)}

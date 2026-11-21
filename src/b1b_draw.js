@@ -54,12 +54,12 @@ function drawMap(now){
       if(opt.fac&&R<220){const t=facOf(s);if(t){ctx.globalAlpha=a*(t.core?.75:.45);ctx.strokeStyle=FAC[t.f].c;ctx.lineWidth=1;ctx.beginPath();ctx.arc(x,y,r+2.5,0,7);ctx.stroke()}}
       if(R<45&&!s.anchor&&df<R*.8){const sc=Math.log10(lum+.001)-df/R*2;if(labels.length<9||sc>labels[labels.length-1][0]){labels.push([sc,s,x,y,inf]);labels.sort((p,q)=>q[0]-p[0]);if(labels.length>9)labels.pop()}}
     }
-    ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
+    ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';drawRemanentes(vis,R);
     if(opt.fac&&R<400){const i0=Math.floor(fx/HUBG),j0=Math.floor(fy/HUBG),k0=Math.floor(fz/(HUBG*.35)),n=Math.ceil(R/HUBG)+1;for(let i=i0-n;i<=i0+n;i++)for(let j=j0-n;j<=j0+n;j++)for(let k=k0-1;k<=k0+1;k++){const h=hubAt(i,j,k);if(!h||!proj(h.x,h.y,h.z))continue;labelAt(_p[0],_p[1],FAC[h.f].ic+' '+h.name.toUpperCase(),FAC[h.f].c,9)}}
     for(const [,s,x,y,inf] of labels)labelAt(x,y,starName(s),inf?'rgba(255,59,92,.85)':'rgba(220,228,240,.62)',9);
   }
   // líneas de navegación (visuales desde la nave)
-  const sp=SPEC[D.ship.d],ml=legMax(D.ship.d),rng0=D.cr?ml:D.st.fuel/sp.burn;
+  const sp=SPEC[D.ship.d],ml=legMax(D.ship.d),rng0=D.cr?ml:alcance();
   if(opt.nav&&proj(P0[0],P0[1],P0[2])){const sx=_p[0],sy=_p[1];ctx.strokeStyle=AMB;ctx.lineWidth=.8;
     for(const s of ANCHSTARS){if(sameStar(s,ship)||(R>150&&s.anchor.id!=='sol'))continue;if(!proj(s.gx,s.gy,s.gz))continue;ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(_p[0],_p[1]);ctx.stroke()}}
   // anclas
